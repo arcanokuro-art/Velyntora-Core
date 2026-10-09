@@ -178,7 +178,7 @@ public final class DrawingView extends View {
   invalidate();return true;
  }
  public boolean selectionContains(int px,int py){
-  if(!hasSelection()||px<selectionLeft||py<selectionTop||px>=selectionRight||py>=selectionBottom)return false;
+  if(!hasSelection()||px<0||py<0||px>=SIZE||py>=SIZE||px<selectionLeft||py<selectionTop||px>=selectionRight||py>=selectionBottom)return false;
   if(selectionTool==SELECT_RECTANGLE)return true;
   if(selectionTool==SELECT_FREE)return freeSelectionReady&&freeRegion.contains(px,py);
   if(selectionTool==MAGIC_WAND)return freeRegion.contains(px,py);
