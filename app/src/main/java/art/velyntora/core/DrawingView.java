@@ -27,6 +27,7 @@ public final class DrawingView extends View {
  private static native boolean nativeMoveLayer(int direction);
  private static native boolean nativeSetLayerOpacity(float opacity);
  private static native float nativeLayerOpacity();
+ private static native int[] nativeLayerThumbnail(int index);
  private static final int SIZE=800;
  public static final int BRUSH=0,RECTANGLE=1,ELLIPSE=2,LINE=3,BUCKET=4;
  private final Paint paint=new Paint(Paint.FILTER_BITMAP_FLAG);
@@ -37,6 +38,11 @@ public final class DrawingView extends View {
  public DrawingView(Context context){super(context);if(!nativeCreate(SIZE,SIZE))throw new IllegalStateException("Canvas error");refresh();}
  public boolean setLayerOpacity(float opacity){boolean ok=nativeSetLayerOpacity(opacity);if(ok)refresh();return ok;}
  public float layerOpacity(){return nativeLayerOpacity();}
+ public Bitmap layerThumbnail(int index){
+  int[] pixels=nativeLayerThumbnail(index);
+  if(pixels==null||pixels.length!=48*48)return null;
+  return Bitmap.createBitmap(pixels,48,48,Bitmap.Config.ARGB_8888);
+ }
  public int layerCount(){return nativeLayerCount();}
  public int activeLayer(){return nativeActiveLayer();}
  public boolean layerVisible(int index){return nativeLayerVisible(index);}

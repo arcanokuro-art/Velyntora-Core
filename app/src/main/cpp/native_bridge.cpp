@@ -126,3 +126,23 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
 extern "C" JNIEXPORT jfloat JNICALL Java_art_velyntora_core_DrawingView_nativeLayerOpacity(JNIEnv*,jclass){
  std::lock_guard<std::mutex> lock(guard);return layers?layers->layer(layers->activeIndex()).opacity:1.f;
 }
+
+extern "C" JNIEXPORT jintArray JNICALL Java_art_velyntora_core_DrawingView_nativeLayerThumbnail(JNIEnv* env,jclass,jint index){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!layers||index<0||static_cast<std::size_t>(index)>=layers->layerCount())return nullptr;
+ constexpr int side=48;
+ const auto& layer=layers->layer(static_cast<std::size_t>(index));
+ const int w=layers->width(),h=layers->height();
+ if(w<=0||h<=0)return nullptr;
+ std::vector<jint> preview(side*side);
+ for(int y=0;y<side;++y){
+  const int sy=static_cast<int>((static_cast<std::int64_t>(y)*h)/side);
+  for(int x=0;x<side;++x){
+   const int sx=static_cast<int>((static_cast<std::int64_t>(x)*w)/side);
+   preview[y*side+x]=static_cast<jint>(layer.pixels[static_cast<std::size_t>(sy)*w+sx]);
+  }
+ }
+ jintArray result=env->NewIntArray(side*side);
+ if(result)env->SetIntArrayRegion(result,0,side*side,preview.data());
+ return result;
+}

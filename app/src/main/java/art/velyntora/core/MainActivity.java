@@ -16,6 +16,7 @@ import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.SeekBar;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import java.io.OutputStream;
@@ -215,10 +216,23 @@ public final class MainActivity extends Activity {
             final int index = i;
             String label = (index == drawing.activeLayer() ? "● " : "○ ") +
                 (drawing.layerVisible(index) ? "▣ " : "□ ") + "Capa " + (index + 1);
-            button(layerItems, label, () -> {
+            LinearLayout item = row();
+            Bitmap preview = drawing.layerThumbnail(index);
+            if (preview != null) {
+                ImageView thumbnail = new ImageView(this);
+                thumbnail.setImageBitmap(preview);
+                thumbnail.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                item.addView(thumbnail, new LinearLayout.LayoutParams(dp(48), dp(48)));
+            }
+            button(item, label, () -> {
                 drawing.selectLayer(index);
                 refreshLayerPanel();
             });
+            item.setOnClickListener(view -> {
+                drawing.selectLayer(index);
+                refreshLayerPanel();
+            });
+            layerItems.addView(item);
         }
     }
 
