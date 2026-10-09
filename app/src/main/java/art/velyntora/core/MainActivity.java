@@ -69,6 +69,33 @@ public final class MainActivity extends Activity {
             }).show();
     }
 
+    private int wandTolerance = 0;
+
+    private void configureWandTolerance() {
+        LinearLayout form = new LinearLayout(this);
+        form.setOrientation(LinearLayout.VERTICAL);
+        TextView value = new TextView(this);
+        value.setText("Tolerancia: " + wandTolerance + " / 255");
+        SeekBar slider = new SeekBar(this);
+        slider.setMax(255);
+        slider.setProgress(wandTolerance);
+        slider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+                value.setText("Tolerancia: " + progress + " / 255");
+            }
+            @Override public void onStartTrackingTouch(SeekBar bar) {}
+            @Override public void onStopTrackingTouch(SeekBar bar) {}
+        });
+        form.addView(value);
+        form.addView(slider);
+        new AlertDialog.Builder(this).setTitle("Varita mágica").setView(form)
+            .setNegativeButton("Cancelar", null)
+            .setPositiveButton("Aplicar", (dialog, which) -> {
+                wandTolerance = slider.getProgress();
+                drawing.setWandTolerance(wandTolerance);
+            }).show();
+    }
+
     private void pasteSelection() {
         if (selectionClipboard == null || selectionClipboard.isRecycled()) {
             message("No hay contenido copiado"); return;
@@ -114,8 +141,8 @@ public final class MainActivity extends Activity {
         menu(menus, "Capas", new String[]{"Añadir capa", "Seleccionar capa", "Eliminar capa", "Mostrar / ocultar", "Subir capa", "Bajar capa"},
             new Runnable[]{this::addLayer, this::chooseLayer, this::deleteLayer, this::toggleLayer,
                 () -> moveLayer(1), () -> moveLayer(-1)});
-        menu(menus, "Ajustes", new String[]{"Información"},
-            new Runnable[]{() -> message("Los ajustes avanzados están en desarrollo.")});
+        menu(menus, "Ajustes", new String[]{"Tolerancia de varita mágica", "Información"},
+            new Runnable[]{this::configureWandTolerance, () -> message("Los ajustes avanzados están en desarrollo.")});
         menu(menus, "Efectos", new String[]{"Información"},
             new Runnable[]{() -> message("Los efectos están en desarrollo.")});
         menu(menus, "Ayuda", new String[]{"Acerca de"},
