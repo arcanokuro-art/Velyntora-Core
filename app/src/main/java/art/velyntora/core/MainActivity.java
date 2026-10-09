@@ -1026,12 +1026,46 @@ public final class MainActivity extends Activity {
         new Thread(()->{boolean ok=drawing.resizeDocumentPixels(w,h,scale,bilinear,anchor);runOnUiThread(()->{if(!isDestroyed()){progress.dismiss();projectProgress=null;drawing.setEnabled(true);if(ok)drawing.documentResized();else message("Sin cambios o tamaño demasiado grande para estas capas");}});},"velyntora-resize").start();
     }
 
+    private android.text.TextWatcher dimensionWatcher(Runnable change){
+        return new android.text.TextWatcher(){public void beforeTextChanged(CharSequence s,int start,int count,int after){}public void onTextChanged(CharSequence s,int start,int before,int count){}public void afterTextChanged(android.text.Editable value){change.run();}};
+    }
+
     private void configureDimensions(int mode) {
         LinearLayout form = new LinearLayout(this);form.setOrientation(LinearLayout.VERTICAL);
         android.widget.EditText width = new android.widget.EditText(this), height = new android.widget.EditText(this);
         width.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);height.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
         width.setText(Integer.toString(drawing.documentWidth()));height.setText(Integer.toString(drawing.documentHeight()));
         form.addView(text("Ancho (px)"));form.addView(width);form.addView(text("Alto (px)"));form.addView(height);
+        final int originalWidth=drawing.documentWidth(),originalHeight=drawing.documentHeight();
+        final int[] ratio={originalWidth,originalHeight},lastEdited={0};final boolean[] updating={false};
+        android.widget.CheckBox lockRatio=new android.widget.CheckBox(this);lockRatio.setText("Mantener proporciones");lockRatio.setChecked(mode==1);
+        android.widget.EditText percent=new android.widget.EditText(this);percent.setInputType(android.text.InputType.TYPE_CLASS_NUMBER|android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);percent.setText("100");percent.setContentDescription("Escala uniforme en porcentaje");
+        if(mode==1){form.addView(lockRatio);form.addView(text("Escala uniforme (%)"));form.addView(percent);}
+        Runnable synchronize=()->{
+            if(updating[0]||mode!=1)return;
+            updating[0]=true;
+            try{
+                DocumentDimensions dimensions;
+                if(lastEdited[0]==2){dimensions=DocumentDimensions.fromPercent(originalWidth,originalHeight,Double.parseDouble(percent.getText().toString().replace(',','.')));ratio[0]=originalWidth;ratio[1]=originalHeight;}
+                else if(lockRatio.isChecked())dimensions=lastEdited[0]==0?DocumentDimensions.fromWidth(ratio[0],ratio[1],Integer.parseInt(width.getText().toString())):DocumentDimensions.fromHeight(ratio[0],ratio[1],Integer.parseInt(height.getText().toString()));
+                else{percent.setText("");return;}
+                if(lastEdited[0]!=0)width.setText(Integer.toString(dimensions.width));
+                if(lastEdited[0]!=1)height.setText(Integer.toString(dimensions.height));
+                width.setError(null);height.setError(null);percent.setError(null);
+                if(lastEdited[0]!=2)percent.setText("");
+            }catch(IllegalArgumentException ignored){/* Keep partial input editable; validate when applying. */}
+            finally{updating[0]=false;}
+        };
+        width.addTextChangedListener(dimensionWatcher(()->{if(!updating[0]){lastEdited[0]=0;synchronize.run();}}));
+        height.addTextChangedListener(dimensionWatcher(()->{if(!updating[0]){lastEdited[0]=1;synchronize.run();}}));
+        percent.addTextChangedListener(dimensionWatcher(()->{if(!updating[0]){lastEdited[0]=2;synchronize.run();}}));
+        lockRatio.setOnCheckedChangeListener((button,checked)->{if(checked)try{DocumentDimensions dimensions=new DocumentDimensions(Integer.parseInt(width.getText().toString()),Integer.parseInt(height.getText().toString()));ratio[0]=dimensions.width;ratio[1]=dimensions.height;}catch(IllegalArgumentException ignored){} });
+        if(mode==0){
+            android.widget.Spinner presets=new android.widget.Spinner(this);presets.setContentDescription("Tamaños rápidos de documento");
+            presets.setAdapter(new android.widget.ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"Personalizado","Cuadrado · 512 × 512","Cuadrado · 1024 × 1024","Horizontal · 1920 × 1080","Vertical · 1080 × 1920","Panorama · 2400 × 1000"}));
+            final int[][] sizes={{originalWidth,originalHeight},{512,512},{1024,1024},{1920,1080},{1080,1920},{2400,1000}};
+            presets.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){public void onNothingSelected(android.widget.AdapterView<?> parent){}public void onItemSelected(android.widget.AdapterView<?> parent,View view,int position,long id){if(position>0){width.setText(Integer.toString(sizes[position][0]));height.setText(Integer.toString(sizes[position][1]));}}});form.addView(text("Tamaños rápidos"));form.addView(presets);
+        }
         android.widget.Spinner method=new android.widget.Spinner(this),anchor=new android.widget.Spinner(this);
         method.setAdapter(new android.widget.ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"Píxel cercano (pixel art)","Bilineal (suave)"}));method.setSelection(1);method.setContentDescription("Método de remuestreo");
         anchor.setAdapter(new android.widget.ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"Arriba izquierda","Arriba centro","Arriba derecha","Centro izquierda","Centro","Centro derecha","Abajo izquierda","Abajo centro","Abajo derecha"}));anchor.setSelection(4);anchor.setContentDescription("Anclaje del contenido");
@@ -1044,12 +1078,15 @@ public final class MainActivity extends Activity {
             .setView(scrollForm(form)).setNegativeButton("Cancelar", null).setPositiveButton("Aplicar", null).create();
         dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> {
             try {
-                int w = Integer.parseInt(width.getText().toString()), h = Integer.parseInt(height.getText().toString());
-                if (w <= 0 || h <= 0 || w > 8192 || h > 8192 || (long) w*h > 4000000) { message("Usa hasta 8192 px por lado y 4 millones de píxeles"); return; }
+                DocumentDimensions dimensions;
+                if(mode==1&&lastEdited[0]==2)dimensions=DocumentDimensions.fromPercent(originalWidth,originalHeight,Double.parseDouble(percent.getText().toString().replace(',','.')));
+                else if(mode==1&&lockRatio.isChecked())dimensions=lastEdited[0]==1?DocumentDimensions.fromHeight(ratio[0],ratio[1],Integer.parseInt(height.getText().toString())):DocumentDimensions.fromWidth(ratio[0],ratio[1],Integer.parseInt(width.getText().toString()));
+                else dimensions=new DocumentDimensions(Integer.parseInt(width.getText().toString()),Integer.parseInt(height.getText().toString()));
+                int w=dimensions.width,h=dimensions.height;
                 if(projectProgress!=null){message("Espera a que termine la operación actual");return;}
                 if(mode==0){if(!drawing.newDocument(w,h)){message("No se pudo crear el documento");return;}dialog.dismiss();}
                 else{dialog.dismiss();resizeDocumentAsync(w,h,mode==1,method.getSelectedItemPosition()==1,anchor.getSelectedItemPosition());}
-            } catch (NumberFormatException e) { message("Introduce ancho y alto válidos"); }
+            } catch (IllegalArgumentException e) { message(e instanceof NumberFormatException?"Introduce dimensiones y porcentaje válidos":e.getMessage()); }
         }));dialog.show();
     }
 
