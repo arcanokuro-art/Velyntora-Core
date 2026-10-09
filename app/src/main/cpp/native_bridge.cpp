@@ -10,13 +10,14 @@ namespace {
 std::mutex guard;
 std::unique_ptr<velyntora::Canvas> canvas;
 std::unique_ptr<velyntora::LayerDocument> layers;
-std::vector<std::vector<std::uint32_t>> undoStack, redoStack;
+struct Snapshot { velyntora::LayerDocument layers; };
+std::vector<Snapshot> undoStack, redoStack;
 constexpr std::size_t limit=15;
 
 void checkpoint(){
  if(!canvas)return;
  if(undoStack.size()==limit)undoStack.erase(undoStack.begin());
- undoStack.push_back(canvas->pixels());
+ undoStack.push_back({*layers});
  redoStack.clear();
 }
 void storeActive(){
@@ -26,6 +27,7 @@ void loadActive(){
  if(layers&&canvas)canvas->setPixels(layers->layer(layers->activeIndex()).pixels);
 }
 void resetHistory(){undoStack.clear();redoStack.clear();}
+void restore(const Snapshot& snapshot){*layers=snapshot.layers;loadActive();}
 }
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeCreate(JNIEnv*,jclass,jint w,jint h){
  std::lock_guard<std::mutex> lock(guard);
@@ -56,11 +58,11 @@ extern "C" JNIEXPORT void JNICALL Java_art_velyntora_core_DrawingView_nativeFill
 }
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeUndo(JNIEnv*,jclass){
  std::lock_guard<std::mutex> lock(guard);if(!canvas||undoStack.empty())return JNI_FALSE;
- redoStack.push_back(canvas->pixels());canvas->setPixels(undoStack.back());undoStack.pop_back();storeActive();return JNI_TRUE;
+ redoStack.push_back({*layers});restore(undoStack.back());undoStack.pop_back();return JNI_TRUE;
 }
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeRedo(JNIEnv*,jclass){
  std::lock_guard<std::mutex> lock(guard);if(!canvas||redoStack.empty())return JNI_FALSE;
- undoStack.push_back(canvas->pixels());canvas->setPixels(redoStack.back());redoStack.pop_back();storeActive();return JNI_TRUE;
+ undoStack.push_back({*layers});restore(redoStack.back());redoStack.pop_back();return JNI_TRUE;
 }
 extern "C" JNIEXPORT jintArray JNICALL Java_art_velyntora_core_DrawingView_nativePixels(JNIEnv* env,jclass){
  std::lock_guard<std::mutex> lock(guard);if(!layers)return nullptr;
@@ -85,19 +87,20 @@ extern "C" JNIEXPORT jint JNICALL Java_art_velyntora_core_DrawingView_nativeActi
 }
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeAddLayer(JNIEnv*,jclass){
  std::lock_guard<std::mutex> lock(guard);if(!layers||layers->layerCount()>=32)return JNI_FALSE;
- layers->addLayer("Capa "+std::to_string(layers->layerCount()+1));loadActive();resetHistory();return JNI_TRUE;
+ checkpoint();layers->addLayer("Capa "+std::to_string(layers->layerCount()+1));loadActive();return JNI_TRUE;
 }
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeSelectLayer(JNIEnv*,jclass,jint index){
  std::lock_guard<std::mutex> lock(guard);if(!layers||index<0||!layers->selectLayer(static_cast<std::size_t>(index)))return JNI_FALSE;
- loadActive();resetHistory();return JNI_TRUE;
+ loadActive();return JNI_TRUE;
 }
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeDeleteLayer(JNIEnv*,jclass){
- std::lock_guard<std::mutex> lock(guard);if(!layers||!layers->removeLayer(layers->activeIndex()))return JNI_FALSE;
- loadActive();resetHistory();return JNI_TRUE;
+ std::lock_guard<std::mutex> lock(guard);if(!layers||layers->layerCount()==1)return JNI_FALSE;
+ checkpoint();if(!layers->removeLayer(layers->activeIndex()))return JNI_FALSE;
+ loadActive();return JNI_TRUE;
 }
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeToggleLayer(JNIEnv*,jclass){
  std::lock_guard<std::mutex> lock(guard);if(!layers)return JNI_FALSE;
- const auto i=layers->activeIndex();return layers->setVisible(i,!layers->layer(i).visible)?JNI_TRUE:JNI_FALSE;
+ const auto i=layers->activeIndex();checkpoint();return layers->setVisible(i,!layers->layer(i).visible)?JNI_TRUE:JNI_FALSE;
 }
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeLayerVisible(JNIEnv*,jclass,jint index){
  std::lock_guard<std::mutex> lock(guard);return layers&&index>=0&&static_cast<std::size_t>(index)<layers->layerCount()&&layers->layer(index).visible?JNI_TRUE:JNI_FALSE;
@@ -106,6 +109,6 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
  std::lock_guard<std::mutex> lock(guard);if(!layers)return JNI_FALSE;
  int from=static_cast<int>(layers->activeIndex()),to=from+direction;
  if(to<0||to>=static_cast<int>(layers->layerCount()))return JNI_FALSE;
- if(!layers->moveLayer(static_cast<std::size_t>(from),static_cast<std::size_t>(to)))return JNI_FALSE;
- loadActive();resetHistory();return JNI_TRUE;
+ checkpoint();if(!layers->moveLayer(static_cast<std::size_t>(from),static_cast<std::size_t>(to)))return JNI_FALSE;
+ loadActive();return JNI_TRUE;
 }
