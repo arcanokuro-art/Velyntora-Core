@@ -100,3 +100,9 @@ Exportación TIFF RGB de 8 bits por canal con alfa no asociado, sin compresión,
 ## Arte y fotografía (entregable 18, parcial)
 
 Pintura al óleo con radio y niveles de intensidad, boceto a lápiz, boceto a tinta con umbral de contorno, resplandor, retrato suave, mediana/percentil y reducción de ojos rojos. Conservan el alfa original y los píxeles totalmente transparentes; el óleo ignora los colores ocultos y pondera por alfa. Procesamiento fuera del hilo de interfaz, máscara de selección y un único punto de historial. Implementaciones propias: no se afirma igualdad numérica con Pinta. Pruebas del motor y llamadas JNI con Undo/Redo y máscara vacía. El catálogo completo sigue pendiente; avance global 16/20 = 80.00 %.
+
+Validación de los siete efectos de arte/foto: pruebas C++ y JNI con Undo/Redo y APK del commit `37763930b6da60d1f571c45fd15389f57d23a37c` (Actions 37986391469 y 37986391407). Optimización de óleo y mediana mediante ventanas deslizantes; comparación exacta contra la implementación previa sobre dimensiones y radios variados, y prueba de percentiles contra una referencia independiente por ordenación. Medición local orientativa de 512×512, compilación `-O2`: óleo 347→95 ms; mediana 164→57 ms. Estas cifras no corresponden a un dispositivo Android y no forman parte del porcentaje global.
+
+## Generadores (entregable 18, parcial)
+
+Nubes por ruido suave multiescala, Voronoi, celdas, Mandelbrot y Julia. Escala/zoom, octavas/iteraciones y semilla según el generador; primer color de dibujo y segundo blanco/negro/transparente. Interpolación de colores premultiplicada por alfa. Generan contenido nuevo en la capa activa o selección; los píxeles excluidos se conservan y el cambio se deshace en un solo paso. Pruebas de determinismo, semillas, paletas uniformes, transparencia, límites y JNI. El catálogo sigue parcial; avance 80.00 %.

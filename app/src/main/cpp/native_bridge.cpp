@@ -8,6 +8,7 @@
 #include "velyntora/BlurEffects.hpp"
 #include "velyntora/DistortionEffects.hpp"
 #include "velyntora/ArtisticEffects.hpp"
+#include "velyntora/RenderEffects.hpp"
 #include "velyntora/SelectionTransform.hpp"
 #include <cmath>
 #include <algorithm>
@@ -1058,4 +1059,9 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeArtistic(JNIEnv*,jclass,jint kind,jint strength,jint radius,jint threshold){
  std::lock_guard<std::mutex> lock(guard);if(!canvas)return JNI_FALSE;
  try{auto pixels=velyntora::artisticEffect(canvas->pixels(),canvas->width(),canvas->height(),kind,strength,radius,threshold);applyEffectSelection(pixels);if(pixels==canvas->pixels())return JNI_FALSE;checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;}catch(const std::exception&){return JNI_FALSE;}
+}
+
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeRender(JNIEnv*,jclass,jint kind,jint scale,jint detail,jint seed,jint first,jint second){
+ std::lock_guard<std::mutex> lock(guard);if(!canvas)return JNI_FALSE;
+ try{auto pixels=velyntora::renderEffect(canvas->width(),canvas->height(),kind,scale,detail,static_cast<std::uint32_t>(seed),static_cast<std::uint32_t>(first),static_cast<std::uint32_t>(second));applyEffectSelection(pixels);if(pixels==canvas->pixels())return JNI_FALSE;checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;}catch(const std::exception&){return JNI_FALSE;}
 }
