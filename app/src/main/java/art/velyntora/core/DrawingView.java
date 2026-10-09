@@ -357,6 +357,7 @@ public final class DrawingView extends View {
     if(hasSelection){
      freeSelectionReady=freeRegion.setPath(freePath,new android.graphics.Region(0,0,SIZE,SIZE));
      hasSelection=freeSelectionReady&&!freeRegion.isEmpty();
+     if(hasSelection){android.graphics.Rect actual=freeRegion.getBounds();selectionLeft=actual.left;selectionTop=actual.top;selectionRight=actual.right;selectionBottom=actual.bottom;}
     }
     drawing=false;invalidate();return true;
    }
@@ -366,6 +367,7 @@ public final class DrawingView extends View {
    drawing=false;refresh();
   }return true;
  case MotionEvent.ACTION_CANCEL:
+  if(drawing&&tool==SELECT_FREE){hasSelection=false;freeSelectionReady=false;freePath.reset();freeRegion.setEmpty();invalidate();}
   if(movingSelection){selectionLeft=moveOriginalLeft;selectionTop=moveOriginalTop;selectionRight=moveOriginalRight;selectionBottom=moveOriginalBottom;invalidate();}
   movingSelection=false;movingPixels=false;drawing=false;return true;
  default:return true;}
