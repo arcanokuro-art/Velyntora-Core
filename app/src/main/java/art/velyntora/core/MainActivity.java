@@ -30,6 +30,7 @@ public final class MainActivity extends Activity {
     private TextView status;
     private TextView selectedTool;
     private LinearLayout layerItems;
+    private ScrollView layerScroll;
     private final java.util.ArrayList<Bitmap> thumbnails = new java.util.ArrayList<>();
     private android.os.Handler layerRefreshHandler = new android.os.Handler(android.os.Looper.getMainLooper());
     private SeekBar layerOpacity;
@@ -531,6 +532,7 @@ public final class MainActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         drawing = new DrawingView(this);
+        drawing.setOnTextPositionListener(this::configureText);
         drawing.setOnColorPickedListener(color -> { activeColor = color; message("Color seleccionado"); });
         drawing.setOnCanvasChangedListener(() -> {
             layerRefreshHandler.removeCallbacks(layerRefreshTask);
@@ -563,8 +565,8 @@ public final class MainActivity extends Activity {
         menu(menus, "Capas", new String[]{"Añadir capa", "Seleccionar capa", "Eliminar capa", "Mostrar / ocultar", "Subir capa", "Bajar capa"},
             new Runnable[]{this::addLayer, this::chooseLayer, this::deleteLayer, this::toggleLayer,
                 () -> moveLayer(1), () -> moveLayer(-1)});
-        menu(menus, "Ajustes", new String[]{"Tolerancia de varita mágica", "Información"},
-            new Runnable[]{this::configureWandTolerance, () -> message("Los ajustes avanzados están en desarrollo.")});
+        menu(menus, "Herramientas", new String[]{"Tolerancia de varita mágica", "Configurar pincel"},
+            new Runnable[]{this::configureWandTolerance, this::configureBrush});
         menu(menus, "Efectos", new String[]{"Información"},
             new Runnable[]{() -> message("Los efectos están en desarrollo.")});
         menu(menus, "Ayuda", new String[]{"Acerca de"},
@@ -577,6 +579,7 @@ public final class MainActivity extends Activity {
         button(commands, "Guardar", this::savePng);
         button(commands, "↶", this::undo);
         button(commands, "↷", this::redo);
+        button(commands, "Capas", () -> { if (layerScroll != null) layerScroll.setVisibility(layerScroll.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE); });
         addScrollable(root, commands);
 
         LinearLayout workspace = row();
@@ -586,21 +589,27 @@ public final class MainActivity extends Activity {
         sidebar.setPadding(dp(3), dp(4), dp(3), dp(4));
         TextView toolsTitle = text("HERRAMIENTAS");
         sidebar.addView(toolsTitle);
-        tool(sidebar, "Pincel", DrawingView.BRUSH);
-        tool(sidebar, "Línea", DrawingView.LINE);
-        tool(sidebar, "Rectángulo", DrawingView.RECTANGLE);
-        tool(sidebar, "Elipse", DrawingView.ELLIPSE);
-        tool(sidebar, "Rectángulo relleno", DrawingView.FILLED_RECTANGLE);
-        tool(sidebar, "Elipse rellena", DrawingView.FILLED_ELLIPSE);
-        tool(sidebar, "Cubeta", DrawingView.BUCKET);
-        tool(sidebar, "Cuentagotas", DrawingView.PICKER);
-        tool(sidebar, "Borrador", DrawingView.ERASER);
-        tool(sidebar, "Selección rectangular", DrawingView.SELECT_RECTANGLE);
-        tool(sidebar, "Selección elíptica", DrawingView.SELECT_ELLIPSE);
-        tool(sidebar, "Selección libre (contorno)", DrawingView.SELECT_FREE);
-        tool(sidebar, "Varita mágica (color exacto)", DrawingView.MAGIC_WAND);
-        tool(sidebar, "Mover contorno", DrawingView.MOVE_SELECTION);
-        tool(sidebar, "Mover píxeles", DrawingView.MOVE_PIXELS);
+        android.widget.GridLayout toolGrid = new android.widget.GridLayout(this);toolGrid.setColumnCount(3);sidebar.addView(toolGrid);
+        tool(toolGrid, "Pincel", DrawingView.BRUSH);
+        tool(toolGrid, "Línea", DrawingView.LINE);
+        tool(toolGrid, "Rectángulo", DrawingView.RECTANGLE);
+        tool(toolGrid, "Elipse", DrawingView.ELLIPSE);
+        tool(toolGrid, "Rectángulo relleno", DrawingView.FILLED_RECTANGLE);
+        tool(toolGrid, "Elipse rellena", DrawingView.FILLED_ELLIPSE);
+        tool(toolGrid, "Rectángulo redondeado", DrawingView.ROUNDED_RECTANGLE);
+        tool(toolGrid, "Redondeado relleno", DrawingView.FILLED_ROUNDED_RECTANGLE);
+        tool(toolGrid, "Triángulo", DrawingView.TRIANGLE);
+        tool(toolGrid, "Triángulo relleno", DrawingView.FILLED_TRIANGLE);
+        tool(toolGrid, "Texto", DrawingView.TEXT);
+        tool(toolGrid, "Cubeta", DrawingView.BUCKET);
+        tool(toolGrid, "Cuentagotas", DrawingView.PICKER);
+        tool(toolGrid, "Borrador", DrawingView.ERASER);
+        tool(toolGrid, "Selección rectangular", DrawingView.SELECT_RECTANGLE);
+        tool(toolGrid, "Selección elíptica", DrawingView.SELECT_ELLIPSE);
+        tool(toolGrid, "Selección libre (contorno)", DrawingView.SELECT_FREE);
+        tool(toolGrid, "Varita mágica (color exacto)", DrawingView.MAGIC_WAND);
+        tool(toolGrid, "Mover contorno", DrawingView.MOVE_SELECTION);
+        tool(toolGrid, "Mover píxeles", DrawingView.MOVE_PIXELS);
         TextView brushSizeLabel = text("Radio: 4 px");
         sidebar.addView(brushSizeLabel);
         SeekBar brushSize = new SeekBar(this);
@@ -619,7 +628,8 @@ public final class MainActivity extends Activity {
         button(sidebar, "Configurar pincel", this::configureBrush);
         selectedTool = text("Pincel");
         sidebar.addView(selectedTool);
-        workspace.addView(sidebar, new LinearLayout.LayoutParams(dp(116), -1));
+        ScrollView toolScroll = new ScrollView(this);toolScroll.addView(sidebar);
+        workspace.addView(toolScroll, new LinearLayout.LayoutParams(dp(154), -1));
         workspace.addView(drawing, new LinearLayout.LayoutParams(0, -1, 1));
         LinearLayout layerPanel = new LinearLayout(this);
         layerPanel.setOrientation(LinearLayout.VERTICAL);
@@ -661,6 +671,8 @@ public final class MainActivity extends Activity {
         layerScroll.addView(layerPanel);
         workspace.addView(layerScroll, new LinearLayout.LayoutParams(dp(152), -1));
         this.layerItems = layerItems;
+        this.layerScroll = layerScroll;
+        if (getResources().getConfiguration().screenWidthDp < 600) layerScroll.setVisibility(View.GONE);
         refreshLayerPanel();
         root.addView(workspace, new LinearLayout.LayoutParams(-1, 0, 1));
 
@@ -723,7 +735,7 @@ public final class MainActivity extends Activity {
         parent.addView(button);
     }
 
-    private void tool(LinearLayout parent, String label, int tool) {
+    private void tool(android.widget.GridLayout parent, String label, int tool) {
         Button iconButton = new Button(this);
         iconButton.setText(label);
         iconButton.setTextSize(12);
@@ -743,17 +755,30 @@ public final class MainActivity extends Activity {
             case DrawingView.ERASER: icon = R.drawable.pinta_eraser; break;
             case DrawingView.SELECT_RECTANGLE: icon = R.drawable.pinta_select_rectangle; break;
             case DrawingView.SELECT_ELLIPSE: icon = R.drawable.pinta_select_ellipse; break;
+            case DrawingView.TEXT: icon = R.drawable.pinta_text; break;
+            case DrawingView.ROUNDED_RECTANGLE:
+            case DrawingView.FILLED_ROUNDED_RECTANGLE: icon = R.drawable.pinta_rounded; break;
+            case DrawingView.TRIANGLE:
+            case DrawingView.FILLED_TRIANGLE: icon = R.drawable.pinta_triangle; break;
+            case DrawingView.SELECT_FREE: icon = R.drawable.pinta_lasso; break;
+            case DrawingView.MAGIC_WAND: icon = R.drawable.pinta_wand; break;
+            case DrawingView.MOVE_SELECTION: icon = R.drawable.pinta_move_selection; break;
+            case DrawingView.MOVE_PIXELS: icon = R.drawable.pinta_move_pixels; break;
         }
         if (icon != 0) {
-            iconButton.setCompoundDrawablesWithIntrinsicBounds(icon, 0, 0, 0);
-            iconButton.setCompoundDrawablePadding(dp(4));
+            android.graphics.drawable.Drawable graphic = getDrawable(icon);graphic.setBounds(0,0,dp(24),dp(24));
+            iconButton.setCompoundDrawables(null,graphic,null,null);
+            boolean filled = tool == DrawingView.FILLED_RECTANGLE || tool == DrawingView.FILLED_ELLIPSE || tool == DrawingView.FILLED_ROUNDED_RECTANGLE || tool == DrawingView.FILLED_TRIANGLE;
+            iconButton.setText(filled ? "●" : "");iconButton.setPadding(0,dp(5),0,0);
+            iconButton.setContentDescription(label);
+            if (android.os.Build.VERSION.SDK_INT >= 26) iconButton.setTooltipText(label);
         }
         iconButton.setOnClickListener(v -> {
             drawing.setTool(tool);
             drawing.setColor(activeColor);
             selectedTool.setText(label);
         });
-        parent.addView(iconButton);
+        android.widget.GridLayout.LayoutParams cell = new android.widget.GridLayout.LayoutParams();cell.width=dp(48);cell.height=dp(48);parent.addView(iconButton,cell);
     }
 
     private void menu(LinearLayout parent, String title, String[] labels, Runnable[] actions) {
@@ -866,6 +891,31 @@ public final class MainActivity extends Activity {
             if (decoded == null) throw new java.io.IOException("Imagen no compatible");
             return decoded;
         }
+    }
+
+    private void configureText(int x,int y) {
+        LinearLayout form = new LinearLayout(this);form.setOrientation(LinearLayout.VERTICAL);
+        android.widget.EditText input = new android.widget.EditText(this);input.setHint("Escribe tu texto");
+        input.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE);input.setMinLines(3);
+        input.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(4096)});form.addView(input);
+        TextView sizeLabel = text("Tamaño: 32 px");form.addView(sizeLabel);
+        SeekBar size = new SeekBar(this);size.setMax(252);size.setProgress(28);form.addView(size);
+        size.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
+            public void onProgressChanged(SeekBar s,int n,boolean u){sizeLabel.setText("Tamaño: " + (n+4) + " px");}
+            public void onStartTrackingTouch(SeekBar s){}public void onStopTrackingTouch(SeekBar s){}
+        });
+        android.widget.CheckBox bold = new android.widget.CheckBox(this), italic = new android.widget.CheckBox(this);
+        bold.setText("Negrita");italic.setText("Cursiva");form.addView(bold);form.addView(italic);
+        android.widget.Spinner font = new android.widget.Spinner(this);
+        String[] families = {"sans-serif", "serif", "monospace"};
+        font.setAdapter(new android.widget.ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,families));form.addView(font);
+        form.addView(text("Se inserta en la capa activa. Puedes deshacer, seleccionar y mover el resultado."));
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle("Texto en " + x + ", " + y).setView(form)
+            .setNegativeButton("Cancelar",null).setPositiveButton("Insertar",null).create();
+        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> {
+            if (drawing.insertText(input.getText().toString(),x,y,size.getProgress()+4,bold.isChecked(),italic.isChecked(),families[font.getSelectedItemPosition()])) dialog.dismiss();
+            else message("Introduce texto visible dentro del lienzo");
+        }));dialog.show();
     }
 
     private void configureBrush() {

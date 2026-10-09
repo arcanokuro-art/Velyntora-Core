@@ -113,9 +113,42 @@ public final class DrawingView extends View {
   drawing=false;movingSelection=false;movingPixels=false;
  }
 
- public static final int BRUSH=0,RECTANGLE=1,ELLIPSE=2,LINE=3,BUCKET=4,ERASER=5,PICKER=6,FILLED_RECTANGLE=7,FILLED_ELLIPSE=8,SELECT_RECTANGLE=9,SELECT_ELLIPSE=10,MOVE_SELECTION=11,MOVE_PIXELS=12,SELECT_FREE=13,MAGIC_WAND=14;
+ public static final int BRUSH=0,RECTANGLE=1,ELLIPSE=2,LINE=3,BUCKET=4,ERASER=5,PICKER=6,FILLED_RECTANGLE=7,FILLED_ELLIPSE=8,SELECT_RECTANGLE=9,SELECT_ELLIPSE=10,MOVE_SELECTION=11,MOVE_PIXELS=12,SELECT_FREE=13,MAGIC_WAND=14,TEXT=15,ROUNDED_RECTANGLE=16,FILLED_ROUNDED_RECTANGLE=17,TRIANGLE=18,FILLED_TRIANGLE=19;
  private final Paint paint=new Paint(Paint.FILTER_BITMAP_FLAG);
  private Bitmap bitmap=Bitmap.createBitmap(canvasWidth,canvasHeight,Bitmap.Config.ARGB_8888);
+ private java.util.function.BiConsumer<Integer,Integer> textPositionListener;
+ public void setOnTextPositionListener(java.util.function.BiConsumer<Integer,Integer> listener){textPositionListener=listener;}
+ public boolean insertText(String text,int x,int y,int size,boolean bold,boolean italic,String family){
+  if(text==null||text.trim().isEmpty()||text.length()>4096||x<0||y<0||x>=canvasWidth||y>=canvasHeight)return false;
+  android.text.TextPaint textPaint=new android.text.TextPaint(Paint.ANTI_ALIAS_FLAG);
+  textPaint.setColor(color);textPaint.setTextSize(Math.max(4,Math.min(256,size)));
+  textPaint.setTypeface(android.graphics.Typeface.create(family,(bold?android.graphics.Typeface.BOLD:0)|(italic?android.graphics.Typeface.ITALIC:0)));
+  int width=canvasWidth-x;
+  android.text.StaticLayout layout=android.text.StaticLayout.Builder.obtain(text,0,text.length(),textPaint,width).setIncludePad(true).build();
+  int height=Math.min(canvasHeight-y,layout.getHeight());if(height<=0)return false;
+  Bitmap glyphs=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
+  try{layout.draw(new Canvas(glyphs));return pasteAt(glyphs,x,y);}finally{glyphs.recycle();}
+ }
+ private boolean pasteAt(Bitmap source,int x,int y){
+  int w=source.getWidth(),h=source.getHeight();int[] data=new int[2+w*h];data[0]=w;data[1]=h;
+  source.getPixels(data,2,w,0,0,w,h);if(!nativePasteSelection(data,x,y))return false;
+  deselect();refresh();return true;
+ }
+ private void additionalShape(int kind,float x0,float y0,float x1,float y1){
+  float left=Math.min(x0,x1),top=Math.min(y0,y1),right=Math.max(x0,x1),bottom=Math.max(y0,y1);
+  int x=Math.max(0,(int)Math.floor(left-brushRadius)),y=Math.max(0,(int)Math.floor(top-brushRadius));
+  int w=Math.min(canvasWidth-x,(int)Math.ceil(right+brushRadius)-x+1),h=Math.min(canvasHeight-y,(int)Math.ceil(bottom+brushRadius)-y+1);
+  if(w<=0||h<=0)return;
+  Bitmap shape=Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888);
+  try{
+   Canvas target=new Canvas(shape);target.translate(-x,-y);
+   Paint style=new Paint(Paint.ANTI_ALIAS_FLAG);style.setColor(color);style.setAlpha(Math.round((color>>>24)*brushOpacity));style.setStrokeWidth(brushRadius*2);
+   style.setStrokeJoin(Paint.Join.ROUND);style.setStyle(kind==FILLED_ROUNDED_RECTANGLE||kind==FILLED_TRIANGLE?Paint.Style.FILL:Paint.Style.STROKE);
+   if(kind==ROUNDED_RECTANGLE||kind==FILLED_ROUNDED_RECTANGLE){float corner=Math.min(right-left,bottom-top)/5f;target.drawRoundRect(left,top,right,bottom,corner,corner,style);}
+   else{android.graphics.Path path=new android.graphics.Path();path.moveTo((left+right)/2,top);path.lineTo(right,bottom);path.lineTo(left,bottom);path.close();target.drawPath(path,style);}
+   pasteAt(shape,x,y);
+  }finally{shape.recycle();}
+ }
  private int color=0xFF202020,tool=BRUSH;
  private float brushRadius=4f,brushOpacity=1f,brushHardness=1f;
  private boolean squareBrush,pressureBrush=true;
@@ -168,7 +201,7 @@ public final class DrawingView extends View {
  public void setBrushRadius(float radius){if(Float.isFinite(radius)&&radius>=1f&&radius<=128f)brushRadius=radius;}
  public float brushRadius(){return brushRadius;}
  public void setTool(int value){
-  if(value<BRUSH||value>MAGIC_WAND)return;
+  if(value<BRUSH||value>FILLED_TRIANGLE)return;
   tool=value;
   // Switching away from a selection tool must not leave a selection
   // permanently active as an accidental overlay on subsequent drawings.
@@ -512,7 +545,7 @@ public final class DrawingView extends View {
   if(hasSelection)wandBoundary.set(freeRegion.getBoundaryPath());
   invalidate();
  }
- private void nativeBeginEditIfNeeded(){if(tool!=PICKER)nativeBeginEdit();}
+ private void nativeBeginEditIfNeeded(){if(tool!=PICKER&&tool<=FILLED_ELLIPSE)nativeBeginEdit();}
  private void updateMovedSelection(float x,float y){
   float dx=x-moveStartX,dy=y-moveStartY;
   dx=Math.max(-moveOriginalLeft,Math.min(canvasWidth-moveOriginalRight,dx));
@@ -555,6 +588,7 @@ public final class DrawingView extends View {
   if(x<0||y<0||x>=canvasWidth||y>=canvasHeight)return true;
   getParent().requestDisallowInterceptTouchEvent(true);
   drawing=true;startX=previousX=x;startY=previousY=y;
+  if(tool==TEXT){drawing=false;if(textPositionListener!=null)textPositionListener.accept((int)x,(int)y);return true;}
   if(tool==MAGIC_WAND){
    selectMatchingRegion((int)x,(int)y);drawing=false;return true;
   }
@@ -631,6 +665,7 @@ public final class DrawingView extends View {
    }
    if(tool==SELECT_RECTANGLE||tool==SELECT_ELLIPSE){updateSelection(x,y);hasSelection=hasSelection();drawing=false;return true;}
    if(tool==BRUSH||tool==ERASER){if(x!=previousX||y!=previousY)paintStroke(previousX,previousY,x,y,event);}
+   else if(tool>=ROUNDED_RECTANGLE&&tool<=FILLED_TRIANGLE)additionalShape(tool,startX,startY,x,y);
    else nativeShape(tool,(int)startX,(int)startY,(int)x,(int)y,color);
    drawing=false;refresh();
   }return true;
