@@ -29,6 +29,7 @@ public final class MainActivity extends Activity {
     private TextView status;
     private TextView selectedTool;
     private LinearLayout layerItems;
+    private android.os.Handler layerRefreshHandler = new android.os.Handler(android.os.Looper.getMainLooper());
     private SeekBar layerOpacity;
     private int activeColor = Color.BLACK;
 
@@ -39,6 +40,10 @@ public final class MainActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         drawing = new DrawingView(this);
+        drawing.setOnCanvasChangedListener(() -> {
+            layerRefreshHandler.removeCallbacks(layerRefreshTask);
+            layerRefreshHandler.postDelayed(layerRefreshTask, 120);
+        });
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(0xFFF1F1F1);
@@ -207,6 +212,13 @@ public final class MainActivity extends Activity {
 
     private void undo(){drawing.undo();refreshLayerPanel();}
     private void redo(){drawing.redo();refreshLayerPanel();}
+
+    private final Runnable layerRefreshTask = this::refreshLayerPanel;
+
+    @Override protected void onDestroy() {
+        layerRefreshHandler.removeCallbacks(layerRefreshTask);
+        super.onDestroy();
+    }
 
     private void refreshLayerPanel() {
         if (layerItems == null) return;

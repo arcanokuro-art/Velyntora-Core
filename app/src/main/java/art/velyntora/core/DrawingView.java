@@ -35,6 +35,8 @@ public final class DrawingView extends View {
  private int color=0xFF202020,tool=BRUSH;
  private float previousX,previousY,startX,startY;
  private boolean drawing;
+ private Runnable canvasChangedListener;
+ public void setOnCanvasChangedListener(Runnable listener){canvasChangedListener=listener;}
  public DrawingView(Context context){super(context);if(!nativeCreate(SIZE,SIZE))throw new IllegalStateException("Canvas error");refresh();}
  public boolean setLayerOpacity(float opacity){boolean ok=nativeSetLayerOpacity(opacity);if(ok)refresh();return ok;}
  public float layerOpacity(){return nativeLayerOpacity();}
@@ -62,7 +64,7 @@ public final class DrawingView extends View {
   finally{if(scaled!=source)scaled.recycle();}
  }
  public Bitmap snapshot(){return bitmap.copy(Bitmap.Config.ARGB_8888,false);}
- private void refresh(){int[] pixels=nativePixels();if(pixels!=null)bitmap.setPixels(pixels,0,SIZE,0,0,SIZE,SIZE);invalidate();}
+ private void refresh(){int[] pixels=nativePixels();if(pixels!=null)bitmap.setPixels(pixels,0,SIZE,0,0,SIZE,SIZE);invalidate();if(canvasChangedListener!=null)canvasChangedListener.run();}
  @Override protected void onDraw(Canvas canvas){super.onDraw(canvas);float scale=Math.min(getWidth()/(float)SIZE,getHeight()/(float)SIZE);float x=(getWidth()-SIZE*scale)/2f,y=(getHeight()-SIZE*scale)/2f;canvas.drawColor(0xFFE3E3E3);canvas.drawBitmap(bitmap,null,new RectF(x,y,x+SIZE*scale,y+SIZE*scale),paint);}
  @Override public boolean onTouchEvent(MotionEvent event){float scale=Math.min(getWidth()/(float)SIZE,getHeight()/(float)SIZE);if(scale<=0)return false;float left=(getWidth()-SIZE*scale)/2f,top=(getHeight()-SIZE*scale)/2f;float x=(event.getX()-left)/scale,y=(event.getY()-top)/scale;
  switch(event.getActionMasked()){
