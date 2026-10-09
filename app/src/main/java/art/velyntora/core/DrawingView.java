@@ -85,7 +85,7 @@ public final class DrawingView extends View {
   tool=value;
   // Switching away from a selection tool must not leave a selection
   // permanently active as an accidental overlay on subsequent drawings.
-  if(value==SELECT_RECTANGLE||value==SELECT_ELLIPSE||value==SELECT_FREE)invalidate();
+  invalidate();
  }
  public boolean hasSelection(){return hasSelection&&selectionRight-selectionLeft>=1f&&selectionBottom-selectionTop>=1f;}
  public boolean shrinkSelectionOnePixel(){
@@ -164,7 +164,7 @@ public final class DrawingView extends View {
   }else return false;
   android.graphics.Region inverted=new android.graphics.Region(0,0,SIZE,SIZE);
   inverted.op(selected,android.graphics.Region.Op.DIFFERENCE);
-  if(inverted.isEmpty())return false;
+  if(inverted.isEmpty()){deselect();return true;}
   freeRegion.set(inverted);
   freePath.reset();
   wandBoundary.set(freeRegion.getBoundaryPath());
