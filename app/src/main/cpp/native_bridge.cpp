@@ -801,3 +801,33 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
  if(!changed)return JNI_FALSE;
  checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;
 }
+
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeNormalizeActive(JNIEnv*,jclass){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!canvas||!layers)return JNI_FALSE;
+ auto pixels=canvas->pixels();
+ std::uint32_t minimum=255u,maximum=0u;
+ bool hasVisible=false;
+ for(const auto pixel:pixels){
+  if((pixel&0xFF000000u)==0u)continue;
+  const std::uint32_t r=(pixel>>16)&255u,g=(pixel>>8)&255u,b=pixel&255u;
+  minimum=std::min(minimum,std::min(r,std::min(g,b)));
+  maximum=std::max(maximum,std::max(r,std::max(g,b)));
+  hasVisible=true;
+ }
+ if(!hasVisible||minimum>=maximum||(minimum==0u&&maximum==255u))return JNI_FALSE;
+ bool changed=false;
+ const std::uint32_t range=maximum-minimum;
+ const auto normalize=[minimum,range](std::uint32_t channel)->std::uint32_t{
+  return ((channel-minimum)*255u+range/2u)/range;
+ };
+ for(auto& pixel:pixels){
+  const std::uint32_t alpha=pixel&0xFF000000u;
+  if(!alpha)continue;
+  const std::uint32_t r=normalize((pixel>>16)&255u),g=normalize((pixel>>8)&255u),b=normalize(pixel&255u);
+  const std::uint32_t result=alpha|(r<<16)|(g<<8)|b;
+  if(result!=pixel){pixel=result;changed=true;}
+ }
+ if(!changed)return JNI_FALSE;
+ checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;
+}
