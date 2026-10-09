@@ -461,3 +461,16 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
  if(!changed)return JNI_FALSE;
  checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;
 }
+
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeInvertActiveColors(JNIEnv*,jclass){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!canvas||!layers)return JNI_FALSE;
+ auto pixels=canvas->pixels();bool changed=false;
+ for(auto& pixel:pixels){
+  if((pixel>>24)==0u)continue;
+  const std::uint32_t inverted=(pixel&0xFF000000u)|((~pixel)&0x00FFFFFFu);
+  if(inverted!=pixel){pixel=inverted;changed=true;}
+ }
+ if(!changed)return JNI_FALSE;
+ checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;
+}
