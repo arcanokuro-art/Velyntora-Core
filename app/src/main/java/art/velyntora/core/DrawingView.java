@@ -114,7 +114,7 @@ public final class DrawingView extends View {
  }
  public Bitmap copySelection(){
   if(!hasSelection())return null;
-  int[] data=nativeCopySelection(selectionTool==SELECT_FREE?SELECT_RECTANGLE:selectionTool,(int)Math.floor(selectionLeft),(int)Math.floor(selectionTop),(int)Math.ceil(selectionRight),(int)Math.ceil(selectionBottom));
+  int[] data=nativeCopySelection((selectionTool==SELECT_FREE||selectionTool==MAGIC_WAND)?SELECT_RECTANGLE:selectionTool,(int)Math.floor(selectionLeft),(int)Math.floor(selectionTop),(int)Math.ceil(selectionRight),(int)Math.ceil(selectionBottom));
   if(data==null||data.length<3)return null;
   int w=data[0],h=data[1];
   if(w<=0||h<=0||((long)w*h)!=data.length-2)return null;
@@ -129,7 +129,7 @@ public final class DrawingView extends View {
  public boolean eraseSelection(){
   if(!hasSelection())return false;
   boolean ok;
-  if(selectionTool==SELECT_FREE){
+  if(selectionTool==SELECT_FREE||selectionTool==MAGIC_WAND){
    int left=(int)Math.floor(selectionLeft),top=(int)Math.floor(selectionTop);
    int w=(int)Math.ceil(selectionRight)-left,h=(int)Math.ceil(selectionBottom)-top;
    if(w<=0||h<=0||((long)w*h)>SIZE*SIZE)return false;
@@ -318,8 +318,11 @@ public final class DrawingView extends View {
   if(!drawing)return true;
   if(tool==MOVE_SELECTION||tool==MOVE_PIXELS){if(movingSelection)updateMovedSelection(x,y);return true;}
   if(tool==SELECT_FREE){
-   freePath.lineTo(Math.max(0f,Math.min(SIZE,x)),Math.max(0f,Math.min(SIZE,y)));
-   updateSelection(x,y);invalidate();return true;
+   float px=Math.max(0f,Math.min(SIZE,x)),py=Math.max(0f,Math.min(SIZE,y));
+   freePath.lineTo(px,py);
+   selectionLeft=Math.min(selectionLeft,px);selectionRight=Math.max(selectionRight,px);
+   selectionTop=Math.min(selectionTop,py);selectionBottom=Math.max(selectionBottom,py);
+   invalidate();return true;
   }
   if(tool==SELECT_RECTANGLE||tool==SELECT_ELLIPSE){
    updateSelection(x,y);return true;
@@ -342,8 +345,11 @@ public final class DrawingView extends View {
     movingSelection=false;movingPixels=false;drawing=false;return true;
    }
    if(tool==SELECT_FREE){
-    freePath.lineTo(Math.max(0f,Math.min(SIZE,x)),Math.max(0f,Math.min(SIZE,y)));
-    freePath.close();updateSelection(x,y);hasSelection=hasSelection();
+    float px=Math.max(0f,Math.min(SIZE,x)),py=Math.max(0f,Math.min(SIZE,y));
+    freePath.lineTo(px,py);freePath.close();
+    selectionLeft=Math.min(selectionLeft,px);selectionRight=Math.max(selectionRight,px);
+    selectionTop=Math.min(selectionTop,py);selectionBottom=Math.max(selectionBottom,py);
+    hasSelection=hasSelection();
     if(hasSelection){
      freeSelectionReady=freeRegion.setPath(freePath,new android.graphics.Region(0,0,SIZE,SIZE));
      hasSelection=freeSelectionReady&&!freeRegion.isEmpty();
