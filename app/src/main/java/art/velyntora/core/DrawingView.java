@@ -71,7 +71,32 @@ public final class DrawingView extends View {
  }
  public Bitmap snapshot(){return bitmap.copy(Bitmap.Config.ARGB_8888,false);}
  private void refresh(){int[] pixels=nativePixels();if(pixels!=null)bitmap.setPixels(pixels,0,SIZE,0,0,SIZE,SIZE);invalidate();if(canvasChangedListener!=null)canvasChangedListener.run();}
- @Override protected void onDraw(Canvas canvas){super.onDraw(canvas);float scale=Math.min(getWidth()/(float)SIZE,getHeight()/(float)SIZE);float x=(getWidth()-SIZE*scale)/2f,y=(getHeight()-SIZE*scale)/2f;canvas.drawColor(0xFFE3E3E3);canvas.drawBitmap(bitmap,null,new RectF(x,y,x+SIZE*scale,y+SIZE*scale),paint);}
+ private final Paint checkerPaint=new Paint();
+ @Override protected void onDraw(Canvas canvas){
+  super.onDraw(canvas);
+  if(getWidth()<=0||getHeight()<=0)return;
+  float scale=Math.min(getWidth()/(float)SIZE,getHeight()/(float)SIZE);
+  float x=(getWidth()-SIZE*scale)/2f,y=(getHeight()-SIZE*scale)/2f;
+  canvas.drawColor(0xFFE3E3E3);
+  // The checkerboard is drawn beneath the image, so transparent eraser
+  // strokes reveal transparency instead of looking like opaque gray paint.
+  canvas.save();
+  canvas.clipRect(x,y,x+SIZE*scale,y+SIZE*scale);
+  checkerPaint.setColor(0xFFFFFFFF);
+  canvas.drawRect(x,y,x+SIZE*scale,y+SIZE*scale,checkerPaint);
+  final float tile=16f*scale;
+  if(tile>0f){
+   checkerPaint.setColor(0xFFD1D1D1);
+   for(int row=0;row<50;++row){
+    for(int col=(row&1);col<50;col+=2){
+     float left=x+col*tile,top=y+row*tile;
+     canvas.drawRect(left,top,left+tile,top+tile,checkerPaint);
+    }
+   }
+  }
+  canvas.drawBitmap(bitmap,null,new RectF(x,y,x+SIZE*scale,y+SIZE*scale),paint);
+  canvas.restore();
+ }
  @Override public boolean onTouchEvent(MotionEvent event){float scale=Math.min(getWidth()/(float)SIZE,getHeight()/(float)SIZE);if(scale<=0)return false;float left=(getWidth()-SIZE*scale)/2f,top=(getHeight()-SIZE*scale)/2f;float x=(event.getX()-left)/scale,y=(event.getY()-top)/scale;
  switch(event.getActionMasked()){
  case MotionEvent.ACTION_DOWN:
