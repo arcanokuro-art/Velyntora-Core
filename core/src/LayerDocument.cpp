@@ -13,14 +13,30 @@ bool LayerDocument::renameLayer(std::size_t index,const std::string& name){
  if(index>=layers_.size())return false;
  layers_[index].name=name;return true;
 }
-LayerDocument LayerDocument::resized(int w,int h,bool scalePixels) const{
+LayerDocument LayerDocument::resized(int w,int h,bool scalePixels,bool bilinear,int anchor) const{
+ if(anchor<0||anchor>8)throw std::invalid_argument("Invalid canvas anchor");
  LayerDocument result(w,h);result.layers_.clear();
+ const int offsetX=int(std::floor((double(w)-width_)*(anchor%3)/2));
+ const int offsetY=int(std::floor((double(h)-height_)*(anchor/3)/2));
  for(const auto& layer:layers_){
   Layer output{layer.name,std::vector<std::uint32_t>(std::size_t(w)*h,0u),layer.visible,layer.opacity};
   for(int y=0;y<h;++y)for(int x=0;x<w;++x){
-   int sx=scalePixels?int(std::int64_t(x)*width_/w):x;
-   int sy=scalePixels?int(std::int64_t(y)*height_/h):y;
-   if(sx<width_&&sy<height_)output.pixels[std::size_t(y)*w+x]=layer.pixels[std::size_t(sy)*width_+sx];
+   if(scalePixels&&bilinear){
+    const double sx=std::clamp((x+.5)*width_/w-.5,0.,double(width_-1));
+    const double sy=std::clamp((y+.5)*height_/h-.5,0.,double(height_-1));
+    const int x0=int(sx),y0=int(sy),x1=std::min(x0+1,width_-1),y1=std::min(y0+1,height_-1);
+    const double fx=sx-x0,fy=sy-y0,weights[4]={(1-fx)*(1-fy),fx*(1-fy),(1-fx)*fy,fx*fy};
+    const std::uint32_t pixels[4]={layer.pixels[std::size_t(y0)*width_+x0],layer.pixels[std::size_t(y0)*width_+x1],layer.pixels[std::size_t(y1)*width_+x0],layer.pixels[std::size_t(y1)*width_+x1]};
+    double alpha=0.,channels[3]={0.,0.,0.};
+    for(int i=0;i<4;++i){const double weight=weights[i]*(pixels[i]>>24);alpha+=weight;for(int c=0;c<3;++c)channels[c]+=weight*((pixels[i]>>(16-8*c))&255);}
+    const auto a=std::uint32_t(std::lround(alpha));std::uint32_t pixel=a<<24;
+    if(a>0)for(int c=0;c<3;++c)pixel|=std::uint32_t(std::clamp(std::lround(channels[c]/alpha),0L,255L))<<(16-8*c);
+    output.pixels[std::size_t(y)*w+x]=pixel;
+   }else{
+    const int sx=scalePixels?int(std::int64_t(x)*width_/w):x-offsetX;
+    const int sy=scalePixels?int(std::int64_t(y)*height_/h):y-offsetY;
+    if(sx>=0&&sy>=0&&sx<width_&&sy<height_)output.pixels[std::size_t(y)*w+x]=layer.pixels[std::size_t(sy)*width_+sx];
+   }
   }
   result.layers_.push_back(std::move(output));
  }

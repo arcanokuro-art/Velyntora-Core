@@ -914,9 +914,7 @@ public final class MainActivity extends Activity {
         }
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0)
             throw new java.io.IOException("Dimensiones inválidas");
-        int sample = 1;
-        while (Math.max(bounds.outWidth / sample, bounds.outHeight / sample) > 2048
-                && sample < 1024) sample *= 2;
+        int sample = ImageDecodePolicy.sampleSize(bounds.outWidth,bounds.outHeight);
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inSampleSize = sample;
         options.inPreferredConfig = Bitmap.Config.ARGB_8888;
@@ -924,6 +922,7 @@ public final class MainActivity extends Activity {
             if (input == null) throw new java.io.IOException("No se puede leer el archivo");
             Bitmap decoded = BitmapFactory.decodeStream(input, null, options);
             if (decoded == null) throw new java.io.IOException("Imagen no compatible");
+            if(decoded.getWidth()>8192||decoded.getHeight()>8192||(long)decoded.getWidth()*decoded.getHeight()>4000000){decoded.recycle();throw new java.io.IOException("Imagen demasiado grande");}
             return decoded;
         }
     }
@@ -1021,23 +1020,35 @@ public final class MainActivity extends Activity {
             .setPositiveButton("Aplicar",(d,w)->drawing.configureBrush(opacity.getProgress()/100f,hardness.getProgress()/100f,square.isChecked(),pressure.isChecked())).show();
     }
 
+    private void resizeDocumentAsync(int w,int h,boolean scale,boolean bilinear,int anchor){
+        if(projectProgress!=null){message("Espera a que termine la operación actual");return;}
+        android.app.ProgressDialog progress=new android.app.ProgressDialog(this);progress.setMessage("Cambiando tamaño…");progress.setCancelable(false);projectProgress=progress;progress.show();drawing.setEnabled(false);
+        new Thread(()->{boolean ok=drawing.resizeDocumentPixels(w,h,scale,bilinear,anchor);runOnUiThread(()->{if(!isDestroyed()){progress.dismiss();projectProgress=null;drawing.setEnabled(true);if(ok)drawing.documentResized();else message("Sin cambios o tamaño demasiado grande para estas capas");}});},"velyntora-resize").start();
+    }
+
     private void configureDimensions(int mode) {
         LinearLayout form = new LinearLayout(this);form.setOrientation(LinearLayout.VERTICAL);
         android.widget.EditText width = new android.widget.EditText(this), height = new android.widget.EditText(this);
         width.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);height.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
         width.setText(Integer.toString(drawing.documentWidth()));height.setText(Integer.toString(drawing.documentHeight()));
         form.addView(text("Ancho (px)"));form.addView(width);form.addView(text("Alto (px)"));form.addView(height);
-        form.addView(text(mode == 2 ? "El lienzo se amplía desde arriba a la izquierda; el área nueva es transparente."
-            : mode == 1 ? "Remuestreo por píxel cercano; todas las capas conservan sus propiedades." : "Se crea un documento nuevo. Guarda primero el dibujo actual."));
+        android.widget.Spinner method=new android.widget.Spinner(this),anchor=new android.widget.Spinner(this);
+        method.setAdapter(new android.widget.ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"Píxel cercano (pixel art)","Bilineal (suave)"}));method.setSelection(1);method.setContentDescription("Método de remuestreo");
+        anchor.setAdapter(new android.widget.ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"Arriba izquierda","Arriba centro","Arriba derecha","Centro izquierda","Centro","Centro derecha","Abajo izquierda","Abajo centro","Abajo derecha"}));anchor.setSelection(4);anchor.setContentDescription("Anclaje del contenido");
+        if(mode==1){form.addView(text("Remuestreo"));form.addView(method);}
+        if(mode==2){form.addView(text("Anclaje del contenido"));form.addView(anchor);}
+        width.setContentDescription("Ancho en píxeles");height.setContentDescription("Alto en píxeles");
+        form.addView(text(mode == 2 ? "El anclaje determina dónde se conserva el contenido al ampliar o recortar. El área nueva es transparente."
+            : mode == 1 ? "Todas las capas conservan sus propiedades. Bilineal interpola color y transparencia; píxel cercano mantiene bordes duros." : "Se crea un documento nuevo. Guarda primero el dibujo actual."));
         AlertDialog dialog = new AlertDialog.Builder(this).setTitle(mode == 0 ? "Nuevo documento" : mode == 1 ? "Tamaño de imagen" : "Tamaño de lienzo")
             .setView(scrollForm(form)).setNegativeButton("Cancelar", null).setPositiveButton("Aplicar", null).create();
         dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> {
             try {
                 int w = Integer.parseInt(width.getText().toString()), h = Integer.parseInt(height.getText().toString());
                 if (w <= 0 || h <= 0 || w > 8192 || h > 8192 || (long) w*h > 4000000) { message("Usa hasta 8192 px por lado y 4 millones de píxeles"); return; }
-                boolean ok = mode == 0 ? drawing.newDocument(w,h) : drawing.resizeDocument(w,h,mode == 1);
-                if (!ok) { message("Sin cambios o tamaño demasiado grande para estas capas"); return; }
-                dialog.dismiss();
+                if(projectProgress!=null){message("Espera a que termine la operación actual");return;}
+                if(mode==0){if(!drawing.newDocument(w,h)){message("No se pudo crear el documento");return;}dialog.dismiss();}
+                else{dialog.dismiss();resizeDocumentAsync(w,h,mode==1,method.getSelectedItemPosition()==1,anchor.getSelectedItemPosition());}
             } catch (NumberFormatException e) { message("Introduce ancho y alto válidos"); }
         }));dialog.show();
     }
@@ -1148,6 +1159,14 @@ public final class MainActivity extends Activity {
 
     private void savePng() { saveImage("image/png", "dibujo.png", SAVE_PNG); }
 
+    private void importImage(Uri uri){
+        if(projectProgress!=null){message("Espera a que termine la operación actual");return;}
+        android.app.ProgressDialog progress=new android.app.ProgressDialog(this);progress.setMessage("Abriendo imagen…");progress.setCancelable(false);projectProgress=progress;progress.show();drawing.setEnabled(false);
+        new Thread(()->{Bitmap decoded=null;try{decoded=decodeImage(uri);}catch(Exception e){decoded=null;}final Bitmap image=decoded;
+            runOnUiThread(()->{try{if(!isDestroyed()){progress.dismiss();projectProgress=null;drawing.setEnabled(true);if(image==null||!drawing.loadBitmap(image))message("No se pudo abrir la imagen");}}finally{if(image!=null)image.recycle();}});
+        },"velyntora-image-import").start();
+    }
+
     private void openImage() {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -1172,16 +1191,7 @@ public final class MainActivity extends Activity {
         } else if (request == OPEN_TGA) {
             importTga(uri);
         } else if (request == OPEN_IMAGE) {
-            try {
-                Bitmap bitmap = decodeImage(uri);
-                try {
-                    if (!drawing.loadBitmap(bitmap)) throw new java.io.IOException("No se pudo cargar la imagen");
-                } finally {
-                    bitmap.recycle();
-                }
-            } catch (Exception e) {
-                message("No se pudo abrir la imagen");
-            }
+            importImage(uri);
         } else if (request == SAVE_BMP || request == SAVE_TGA || request == SAVE_TIFF || request == SAVE_GIF || request == SAVE_ICO || request == SAVE_PPM || request == SAVE_PNG || request == SAVE_JPEG || request == SAVE_WEBP) {
             exportRaster(uri,request);
         }

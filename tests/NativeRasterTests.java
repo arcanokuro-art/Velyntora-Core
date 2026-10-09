@@ -3,6 +3,7 @@ import java.util.Arrays;
 class DrawingView {
  static {System.loadLibrary("velyntora_host");}
  static native boolean nativeCreate(int w,int h);
+ static native boolean nativeResizeDocumentOptions(int w,int h,boolean scale,boolean bilinear,int anchor);
  static native boolean nativeLoadBitmap(int w,int h,int[] pixels);
  static native boolean nativeAddLayer();
  static native boolean nativePasteSelection(int[] data,int x,int y);
@@ -25,6 +26,11 @@ class DrawingView {
 public final class NativeRasterTests {
  static void check(boolean ok){if(!ok)throw new AssertionError();}
  public static void main(String[] args){
+  check(DrawingView.nativeLoadBitmap(2,1,new int[]{0xffff0000,0}));
+  check(DrawingView.nativeResizeDocumentOptions(3,1,true,true,4));check(Arrays.equals(DrawingView.nativePixels(),new int[]{0xffff0000,0x80ff0000,0}));
+  check(DrawingView.nativeUndo());check(Arrays.equals(DrawingView.nativePixels(),new int[]{0xffff0000,0}));check(DrawingView.nativeRedo());
+  int[] resized=DrawingView.nativePixels();check(!DrawingView.nativeResizeDocumentOptions(4,2,false,false,9));check(Arrays.equals(resized,DrawingView.nativePixels()));
+  check(DrawingView.nativeResizeDocumentOptions(5,3,false,false,4));check(DrawingView.nativePixels()[6]==0xffff0000);check(DrawingView.nativeUndo());check(Arrays.equals(resized,DrawingView.nativePixels()));
   check(DrawingView.nativeLoadBitmap(4,3,new int[12]));
   check(DrawingView.nativeAddLayer());
   int[] before=DrawingView.nativePixels();

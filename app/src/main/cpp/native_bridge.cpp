@@ -960,16 +960,18 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
 
 extern "C" JNIEXPORT jint JNICALL Java_art_velyntora_core_DrawingView_nativeWidth(JNIEnv*,jclass){std::lock_guard<std::mutex> lock(guard);return layers?layers->width():0;}
 extern "C" JNIEXPORT jint JNICALL Java_art_velyntora_core_DrawingView_nativeHeight(JNIEnv*,jclass){std::lock_guard<std::mutex> lock(guard);return layers?layers->height():0;}
-extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeResizeDocument(JNIEnv*,jclass,jint w,jint h,jboolean scalePixels){
+static jboolean resizeDocument(int w,int h,bool scalePixels,bool bilinear,int anchor){
  std::lock_guard<std::mutex> lock(guard);
- if(!layers||w<=0||h<=0||w>8192||h>8192||std::int64_t(w)*h>4000000||std::int64_t(w)*h*layers->layerCount()>24000000)return JNI_FALSE;
+ if(!layers||anchor<0||anchor>8||w<=0||h<=0||w>8192||h>8192||std::int64_t(w)*h>4000000||std::int64_t(w)*h*layers->layerCount()>24000000)return JNI_FALSE;
  if(w==layers->width()&&h==layers->height())return JNI_FALSE;
  try{
-  auto resized=std::make_unique<velyntora::LayerDocument>(layers->resized(w,h,scalePixels));
+  auto resized=std::make_unique<velyntora::LayerDocument>(layers->resized(w,h,scalePixels,bilinear,anchor));
   auto resizedCanvas=std::make_unique<velyntora::Canvas>(w,h);resizedCanvas->setPixels(resized->layer(resized->activeIndex()).pixels);
   checkpoint();layers=std::move(resized);canvas=std::move(resizedCanvas);return JNI_TRUE;
  }catch(...){return JNI_FALSE;}
 }
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeResizeDocument(JNIEnv*,jclass,jint w,jint h,jboolean scalePixels){return resizeDocument(w,h,scalePixels,false,0);}
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeResizeDocumentOptions(JNIEnv*,jclass,jint w,jint h,jboolean scalePixels,jboolean bilinear,jint anchor){return resizeDocument(w,h,scalePixels,bilinear,anchor);}
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeCropDocument(JNIEnv*,jclass,jint left,jint top,jint w,jint h){
  std::lock_guard<std::mutex> lock(guard);if(!layers)return JNI_FALSE;
  try{

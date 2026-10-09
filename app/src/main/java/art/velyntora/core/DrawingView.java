@@ -99,10 +99,14 @@ public final class DrawingView extends View {
  private static native int nativeWidth();
  private static native int nativeHeight();
  private static native boolean nativeResizeDocument(int w,int h,boolean scalePixels);
+ private static native boolean nativeResizeDocumentOptions(int w,int h,boolean scalePixels,boolean bilinear,int anchor);
  private static native boolean nativeCropDocument(int left,int top,int w,int h);
  public int documentWidth(){return canvasWidth;}
  public int documentHeight(){return canvasHeight;}
- public boolean resizeDocument(int w,int h,boolean scalePixels){if(!nativeResizeDocument(w,h,scalePixels))return false;deselect();refresh();fitCanvas();return true;}
+ public boolean resizeDocument(int w,int h,boolean scalePixels){return resizeDocument(w,h,scalePixels,false,0);}
+ public boolean resizeDocument(int w,int h,boolean scalePixels,boolean bilinear,int anchor){if(!resizeDocumentPixels(w,h,scalePixels,bilinear,anchor))return false;documentResized();return true;}
+ public boolean resizeDocumentPixels(int w,int h,boolean scalePixels,boolean bilinear,int anchor){return nativeResizeDocumentOptions(w,h,scalePixels,bilinear,anchor);}
+ public void documentResized(){deselect();refresh();fitCanvas();}
  public boolean newDocument(int w,int h){if(w<=0||h<=0||w>8192||h>8192||(long)w*h>4000000||!nativeCreate(w,h))return false;deselect();refresh();fitCanvas();return true;}
  public boolean cropDocument(){if(!hasSelection())return false;int left=(int)Math.floor(selectionLeft),top=(int)Math.floor(selectionTop);if(!nativeCropDocument(left,top,(int)Math.ceil(selectionRight)-left,(int)Math.ceil(selectionBottom)-top))return false;deselect();refresh();fitCanvas();return true;}
  private final Viewport viewport=new Viewport(canvasWidth,canvasHeight);

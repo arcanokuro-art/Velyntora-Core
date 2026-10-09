@@ -133,3 +133,10 @@ Guardar ICO de una imagen DIB de 32 bits con semitransparencias y máscara AND. 
 ## Netpbm/PPM (entregable 16, parcial)
 
 Abrir PPM ASCII P3 y binario P6 con comentarios, valores máximos de 1–65535 y canales binarios de 8/16 bits en orden big endian. Convierte a RGB de 8 bits; valida dimensiones, muestras fuera de rango, cabeceras, truncamiento y muestras adicionales. Los bytes de color que coinciden con espacios, saltos de línea o `#` se conservan en P6. Guardar P6 RGB de 8 bits, por filas, componiendo semitransparencias sobre blanco. Operaciones fuera del hilo de interfaz. Pruebas Java e inspección del archivo exportado con Pillow. No admite PBM/PGM/PAM ni secuencias de imágenes; 64 MiB máximo de archivo y los límites habituales del documento.
+
+
+## Tamaños avanzados e importación sin bloqueo (entregables 16 y 20, parciales)
+
+Tamaño de imagen: elegir píxel cercano o bilineal, con interpolación premultiplicada por alfa para evitar halos de colores ocultos. Tamaño de lienzo: nueve anclajes (esquinas, bordes y centro), tanto al ampliar como al recortar; relleno nuevo transparente. Conserva nombres, opacidad, visibilidad y capa activa. Las dimensiones y los píxeles se publican atómicamente y forman un solo paso de Undo/Redo. Remuestreo y asignación del documento en hilo de trabajo; actualización de selección y vista en el hilo de interfaz. Pruebas C++ de los nueve anclajes, recorte/ampliación, alfa y colores, y pruebas JNI reales de Undo/Redo y rechazo de parámetros inválidos.
+
+Abrir imagen ahora realiza lectura y decodificación Android en segundo plano. La política de reducción usa los límites reales (8192 por lado y 4 millones de píxeles), con cálculo por redondeo hacia arriba y protección de desbordamientos; ya no reduce innecesariamente panoramas que caben en el presupuesto. Pruebas Java de panoramas, dimensiones enormes y muestras mínimas suficientes. El avance global sigue en **85.00 %**; esto no completa todas las variantes de formatos ni el pulido transversal.
