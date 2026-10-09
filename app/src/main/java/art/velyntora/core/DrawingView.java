@@ -176,11 +176,11 @@ public final class DrawingView extends View {
   if(ok){selectionLeft+=dx;selectionRight+=dx;selectionTop+=dy;selectionBottom+=dy;refresh();}
   return ok;
  }
- public void undo(){if(nativeUndo())refresh();}
- public void redo(){if(nativeRedo())refresh();}
+ public void undo(){if(nativeUndo()){deselect();refresh();}}
+ public void redo(){if(nativeRedo()){deselect();refresh();}}
  public void loadBitmap(Bitmap source){
   Bitmap scaled=Bitmap.createScaledBitmap(source,SIZE,SIZE,true);
-  try{int[] pixels=new int[SIZE*SIZE];scaled.getPixels(pixels,0,SIZE,0,0,SIZE,SIZE);if(nativeImport(pixels))refresh();}
+  try{int[] pixels=new int[SIZE*SIZE];scaled.getPixels(pixels,0,SIZE,0,0,SIZE,SIZE);if(nativeImport(pixels)){deselect();refresh();}}
   finally{if(scaled!=source)scaled.recycle();}
  }
  public Bitmap snapshot(){return bitmap.copy(Bitmap.Config.ARGB_8888,false);}
@@ -368,6 +368,7 @@ public final class DrawingView extends View {
   }return true;
  case MotionEvent.ACTION_CANCEL:
   if(drawing&&tool==SELECT_FREE){hasSelection=false;freeSelectionReady=false;freePath.reset();freeRegion.setEmpty();invalidate();}
+  if(drawing&&(tool==SELECT_RECTANGLE||tool==SELECT_ELLIPSE)){hasSelection=false;invalidate();}
   if(movingSelection){selectionLeft=moveOriginalLeft;selectionTop=moveOriginalTop;selectionRight=moveOriginalRight;selectionBottom=moveOriginalBottom;invalidate();}
   movingSelection=false;movingPixels=false;drawing=false;return true;
  default:return true;}

@@ -12,7 +12,7 @@ Objetivo: reproducir la experiencia y las funciones de Pinta 3.1.2 en Android. E
 - [x] 08. Iconos originales de Pinta integrados (siete herramientas básicas; otros recursos visuales pendientes).
 - [ ] 09. Diseño adaptable equivalente a Pinta.
 - [x] 10. Selecciones rectangulares y elípticas (crear, borrar, copiar, cortar, pegar y mover contenido; sin selección libre).
-- [ ] 11. Selección libre y varita mágica.
+- [x] 11. Selección libre y varita mágica (máscaras para copiar, borrar y mover; tolerancia configurable y regiones conectadas).
 - [ ] 12. Mover, recortar y transformar selecciones.
 - [ ] 13. Herramientas de texto y formas adicionales.
 - [ ] 14. Pinceles, borrador alfa y configuración avanzada.
@@ -23,7 +23,7 @@ Objetivo: reproducir la experiencia y las funciones de Pinta 3.1.2 en Android. E
 - [ ] 19. Guardar y abrir proyectos editables con capas.
 - [ ] 20. Pulido de interfaz, accesibilidad y corrección de defectos detectados durante desarrollo.
 
-**Avance provisional por entregables: 9/20 = 45.00%** tras CI verde de las selecciones rectangulares/elípticas y operaciones básicas de edición. La cifra **no equivale a paridad funcional del 40%** con todas las opciones de Pinta, sino al cumplimiento de estos hitos definidos. Las funcionalidades marcadas pueden tener limitaciones y defectos pendientes.
+**Avance provisional por entregables: 10/20 = 50.00%** tras CI verde de la selección libre y varita mágica, con copia, borrado y movimiento por máscaras. La cifra **no equivale a paridad funcional del 40%** con todas las opciones de Pinta, sino al cumplimiento de estos hitos definidos. Las funcionalidades marcadas pueden tener limitaciones y defectos pendientes.
 
 ## Regla del 100.00 %
 
