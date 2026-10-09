@@ -149,6 +149,7 @@ public final class MainActivity extends Activity {
         tool(sidebar, "Selección rectangular", DrawingView.SELECT_RECTANGLE);
         tool(sidebar, "Selección elíptica", DrawingView.SELECT_ELLIPSE);
         tool(sidebar, "Selección libre (contorno)", DrawingView.SELECT_FREE);
+        tool(sidebar, "Varita mágica (color exacto)", DrawingView.MAGIC_WAND);
         tool(sidebar, "Mover contorno", DrawingView.MOVE_SELECTION);
         tool(sidebar, "Mover píxeles", DrawingView.MOVE_PIXELS);
         TextView brushSizeLabel = text("Tamaño: 4 px");

@@ -37,7 +37,7 @@ public final class DrawingView extends View {
  private static native float nativeLayerOpacity();
  private static native int[] nativeLayerThumbnail(int index);
  private static final int SIZE=800;
- public static final int BRUSH=0,RECTANGLE=1,ELLIPSE=2,LINE=3,BUCKET=4,ERASER=5,PICKER=6,FILLED_RECTANGLE=7,FILLED_ELLIPSE=8,SELECT_RECTANGLE=9,SELECT_ELLIPSE=10,MOVE_SELECTION=11,MOVE_PIXELS=12,SELECT_FREE=13;
+ public static final int BRUSH=0,RECTANGLE=1,ELLIPSE=2,LINE=3,BUCKET=4,ERASER=5,PICKER=6,FILLED_RECTANGLE=7,FILLED_ELLIPSE=8,SELECT_RECTANGLE=9,SELECT_ELLIPSE=10,MOVE_SELECTION=11,MOVE_PIXELS=12,SELECT_FREE=13,MAGIC_WAND=14;
  private final Paint paint=new Paint(Paint.FILTER_BITMAP_FLAG);
  private final Bitmap bitmap=Bitmap.createBitmap(SIZE,SIZE,Bitmap.Config.ARGB_8888);
  private int color=0xFF202020,tool=BRUSH;
@@ -50,6 +50,7 @@ public final class DrawingView extends View {
  private final android.graphics.Path freePath=new android.graphics.Path();
  private boolean freeSelectionReady;
  private final android.graphics.Region freeRegion=new android.graphics.Region();
+ private boolean magicSelection;
  private float moveStartX,moveStartY,moveOriginalLeft,moveOriginalTop,moveOriginalRight,moveOriginalBottom;
  private int selectionTool;
  private float selectionLeft,selectionTop,selectionRight,selectionBottom;
@@ -78,7 +79,7 @@ public final class DrawingView extends View {
  public void setBrushRadius(float radius){if(Float.isFinite(radius)&&radius>=1f&&radius<=128f)brushRadius=radius;}
  public float brushRadius(){return brushRadius;}
  public void setTool(int value){
-  if(value<BRUSH||value>SELECT_FREE)return;
+  if(value<BRUSH||value>MAGIC_WAND)return;
   tool=value;
   // Switching away from a selection tool must not leave a selection
   // permanently active as an accidental overlay on subsequent drawings.
@@ -89,6 +90,7 @@ public final class DrawingView extends View {
   if(!hasSelection()||px<selectionLeft||py<selectionTop||px>=selectionRight||py>=selectionBottom)return false;
   if(selectionTool==SELECT_RECTANGLE)return true;
   if(selectionTool==SELECT_FREE)return freeSelectionReady&&freeRegion.contains(px,py);
+  if(selectionTool==MAGIC_WAND)return freeRegion.contains(px,py);
   final float rx=(selectionRight-selectionLeft)/2f,ry=(selectionBottom-selectionTop)/2f;
   if(rx<=0f||ry<=0f)return false;
   final float cx=(selectionRight+selectionLeft)/2f,cy=(selectionBottom+selectionTop)/2f;
@@ -115,7 +117,7 @@ public final class DrawingView extends View {
   if(data==null||data.length<3)return null;
   int w=data[0],h=data[1];
   if(w<=0||h<=0||((long)w*h)!=data.length-2)return null;
-  if(selectionTool==SELECT_FREE){
+  if(selectionTool==SELECT_FREE||selectionTool==MAGIC_WAND){
    int left=(int)Math.floor(selectionLeft),top=(int)Math.floor(selectionTop);
    for(int row=0;row<h;++row)for(int col=0;col<w;++col){
     if(!freeRegion.contains(left+col,top+row))data[2+row*w+col]=0;
@@ -154,7 +156,7 @@ public final class DrawingView extends View {
   dy=Math.max(-top,Math.min(SIZE-bottom,dy));
   if(dx==0&&dy==0)return false;
   boolean ok;
-  if(selectionTool==SELECT_FREE){
+  if(selectionTool==SELECT_FREE||selectionTool==MAGIC_WAND){
    int w=right-left,h=bottom-top;
    if(w<=0||h<=0||((long)w*h)>SIZE*SIZE)return false;
    byte[] mask=new byte[w*h];
@@ -212,10 +214,36 @@ public final class DrawingView extends View {
    RectF bounds=new RectF(x+selectionLeft*scale,y+selectionTop*scale,x+selectionRight*scale,y+selectionBottom*scale);
    if(selectionTool==SELECT_ELLIPSE)canvas.drawOval(bounds,selectionPaint);
    else if(selectionTool==SELECT_FREE){canvas.save();canvas.translate(x,y);canvas.scale(scale,scale);canvas.drawPath(freePath,selectionPaint);canvas.restore();}
+   else if(selectionTool==MAGIC_WAND){canvas.save();canvas.translate(x,y);canvas.scale(scale,scale);android.graphics.Path boundary=freeRegion.getBoundaryPath();canvas.drawPath(boundary,selectionPaint);canvas.restore();}
    else canvas.drawRect(bounds,selectionPaint);
    selectionPaint.setPathEffect(null);
   }
   canvas.restore();
+ }
+ private void selectMatchingRegion(int sx,int sy){
+  if(sx<0||sy<0||sx>=SIZE||sy>=SIZE)return;
+  int[] pixels=new int[SIZE*SIZE];
+  bitmap.getPixels(pixels,0,SIZE,0,0,SIZE,SIZE);
+  int target=pixels[sy*SIZE+sx];
+  byte[] visited=new byte[pixels.length];
+  int[] queue=new int[pixels.length];
+  int head=0,tail=0,start=sy*SIZE+sx;
+  visited[start]=1;queue[tail++]=start;
+  int minX=sx,maxX=sx,minY=sy,maxY=sy;
+  freeRegion.setEmpty();freePath.reset();
+  while(head<tail){
+   int pos=queue[head++],px=pos%SIZE,py=pos/SIZE;
+   freeRegion.op(px,py,px+1,py+1,android.graphics.Region.Op.UNION);
+   minX=Math.min(minX,px);maxX=Math.max(maxX,px);
+   minY=Math.min(minY,py);maxY=Math.max(maxY,py);
+   if(px>0){int q=pos-1;if(visited[q]==0){visited[q]=1;if(pixels[q]==target)queue[tail++]=q;}}
+   if(px<SIZE-1){int q=pos+1;if(visited[q]==0){visited[q]=1;if(pixels[q]==target)queue[tail++]=q;}}
+   if(py>0){int q=pos-SIZE;if(visited[q]==0){visited[q]=1;if(pixels[q]==target)queue[tail++]=q;}}
+   if(py<SIZE-1){int q=pos+SIZE;if(visited[q]==0){visited[q]=1;if(pixels[q]==target)queue[tail++]=q;}}
+  }
+  selectionTool=MAGIC_WAND;
+  selectionLeft=minX;selectionTop=minY;selectionRight=maxX+1;selectionBottom=maxY+1;
+  hasSelection=!freeRegion.isEmpty();invalidate();
  }
  private void nativeBeginEditIfNeeded(){if(tool!=PICKER)nativeBeginEdit();}
  private void updateMovedSelection(float x,float y){
@@ -238,6 +266,9 @@ public final class DrawingView extends View {
  case MotionEvent.ACTION_DOWN:
   if(x<0||y<0||x>=SIZE||y>=SIZE)return false;
   drawing=true;startX=previousX=x;startY=previousY=y;
+  if(tool==MAGIC_WAND){
+   selectMatchingRegion((int)x,(int)y);drawing=false;return true;
+  }
   if(tool==SELECT_FREE){
    selectionTool=SELECT_FREE;hasSelection=false;freeSelectionReady=false;freeRegion.setEmpty();
    freePath.reset();freePath.moveTo(x,y);
@@ -251,7 +282,7 @@ public final class DrawingView extends View {
   }
   if(tool==MOVE_SELECTION||tool==MOVE_PIXELS){
    movingPixels=tool==MOVE_PIXELS;
-   if(selectionTool==SELECT_FREE&&tool==MOVE_SELECTION){movingSelection=false;drawing=false;return true;}
+   if((selectionTool==SELECT_FREE||selectionTool==MAGIC_WAND)&&tool==MOVE_SELECTION){movingSelection=false;drawing=false;return true;}
    movingSelection=hasSelection()&&selectionContains((int)x,(int)y);
    if(movingSelection){moveStartX=x;moveStartY=y;moveOriginalLeft=selectionLeft;moveOriginalTop=selectionTop;moveOriginalRight=selectionRight;moveOriginalBottom=selectionBottom;}
    else drawing=false;
