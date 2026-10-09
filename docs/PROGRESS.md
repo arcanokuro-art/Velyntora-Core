@@ -128,3 +128,8 @@ PNG/JPEG/WebP usan ahora el mismo hilo de exportación que BMP/TGA/TIFF/GIF; com
 Abrir iconos Windows con imágenes PNG embebidas o DIB sin compresión de 1/4/8/24/32 bits. Selecciona la mayor representación compatible y usa profundidad de color como desempate; valida entradas, offsets, paletas, dimensiones y máscaras AND. Admite el alfa de 32 bits y la convención antigua de alfa completamente cero más máscara. Importación fuera del hilo de interfaz y sin reemplazar el documento ante un error.
 
 Guardar ICO de una imagen DIB de 32 bits con semitransparencias y máscara AND. El dibujo se reduce proporcionalmente a un máximo de 256 px por lado, sin modificar el documento. Límites de lectura: 16 MiB y 64 representaciones. No admite CUR, DIB comprimidos ni BI_BITFIELDS. Pruebas Java y lectura independiente con Pillow del archivo exportado. Este avance no suma aún el entregable 16; progreso **85.00 %**.
+
+
+## Netpbm/PPM (entregable 16, parcial)
+
+Abrir PPM ASCII P3 y binario P6 con comentarios, valores máximos de 1–65535 y canales binarios de 8/16 bits en orden big endian. Convierte a RGB de 8 bits; valida dimensiones, muestras fuera de rango, cabeceras, truncamiento y muestras adicionales. Los bytes de color que coinciden con espacios, saltos de línea o `#` se conservan en P6. Guardar P6 RGB de 8 bits, por filas, componiendo semitransparencias sobre blanco. Operaciones fuera del hilo de interfaz. Pruebas Java e inspección del archivo exportado con Pillow. No admite PBM/PGM/PAM ni secuencias de imágenes; 64 MiB máximo de archivo y los límites habituales del documento.
