@@ -74,3 +74,9 @@ BMP de 24 bits con fondo blanco y TGA de 32 bits con alfa, escritos fila a fila 
 ## Desenfoques adicionales (entregable 18, parcial)
 
 Gaussiano separable con radio 0–32 px, movimiento con distancia y dirección, radial con centro configurable y arco, y zoom con centro e intensidad. Muestreo bilineal y mezcla premultiplicada por alfa para no contaminar bordes con RGB oculto de píxeles transparentes. Cada aplicación se ejecuta fuera de la interfaz y ocupa un solo paso del historial. Pruebas de simetría, constantes, identidad, direcciones, transparencia, parámetros inválidos y llamadas JNI con Undo/Redo. El catálogo completo de efectos sigue pendiente y no suma el entregable 18. Se corrigió también la curva de luminosidad identidad para colores próximos al negro.
+
+## Espacio adaptable (entregable 09, parcial)
+
+A partir de 720 dp, herramientas a la izquierda, lienzo central y capas a la derecha. En teléfonos o ventanas más estrechas, los paneles son superpuestos y se abren desde botones; nunca restan ancho al lienzo, sólo uno queda abierto, y elegir herramienta cierra su panel. Los cambios de orientación/tamaño conservan la misma vista de dibujo, sus ajustes y selección. Política de ancho probada de 240 a 1280 dp. Los colores tienen descripción accesible y superficie táctil de 48 dp; Deshacer/Rehacer tienen etiquetas completas. La paridad visual completa continúa pendiente y no suma el entregable 09.
+
+Validación de formatos BMP/TGA: pruebas Java y compilación Android del commit `35b9d6025eef758f0cbdef494de5ef522b7f8969` (Actions 37981022159 y 37981022107). Validación de los cuatro desenfoques y corrección de curvas: C++/Java/JNI y APK del commit `524e47a3c047f3f4d6336904428c51c515ee5b9d` (Actions 37981283105 y 37981283130).

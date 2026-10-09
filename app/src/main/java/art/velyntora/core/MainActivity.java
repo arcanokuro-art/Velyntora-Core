@@ -30,7 +30,9 @@ public final class MainActivity extends Activity {
     private TextView status;
     private TextView selectedTool;
     private LinearLayout layerItems;
-    private ScrollView layerScroll;
+    private ScrollView layerScroll,toolScroll;
+    private android.widget.FrameLayout workspaceFrame;
+    private boolean panelsInline;
     private final java.util.ArrayList<Bitmap> thumbnails = new java.util.ArrayList<>();
     private android.os.Handler layerRefreshHandler = new android.os.Handler(android.os.Looper.getMainLooper());
     private SeekBar layerOpacity;
@@ -579,12 +581,12 @@ public final class MainActivity extends Activity {
         button(commands, "Nuevo", () -> configureDimensions(0));
         button(commands, "Abrir", this::openImage);
         button(commands, "Guardar", this::savePng);
-        button(commands, "↶", this::undo);
-        button(commands, "↷", this::redo);
-        button(commands, "Capas", () -> { if (layerScroll != null) layerScroll.setVisibility(layerScroll.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE); });
+        button(commands, "Deshacer", this::undo);
+        button(commands, "Rehacer", this::redo);
+        button(commands, "Herramientas", () -> togglePanel(toolScroll));
+        button(commands, "Capas", () -> togglePanel(layerScroll));
         addScrollable(root, commands);
 
-        LinearLayout workspace = row();
         LinearLayout sidebar = new LinearLayout(this);
         sidebar.setOrientation(LinearLayout.VERTICAL);
         sidebar.setBackgroundColor(0xFFE4E4E4);
@@ -631,8 +633,7 @@ public final class MainActivity extends Activity {
         selectedTool = text("Pincel");
         sidebar.addView(selectedTool);
         ScrollView toolScroll = new ScrollView(this);toolScroll.addView(sidebar);
-        workspace.addView(toolScroll, new LinearLayout.LayoutParams(dp(154), -1));
-        workspace.addView(drawing, new LinearLayout.LayoutParams(0, -1, 1));
+        this.toolScroll=toolScroll;
         LinearLayout layerPanel = new LinearLayout(this);
         layerPanel.setOrientation(LinearLayout.VERTICAL);
         layerPanel.setBackgroundColor(0xFFE6E6E6);
@@ -671,12 +672,14 @@ public final class MainActivity extends Activity {
         layerPanel.addView(layerItems);
         ScrollView layerScroll = new ScrollView(this);
         layerScroll.addView(layerPanel);
-        workspace.addView(layerScroll, new LinearLayout.LayoutParams(dp(152), -1));
+
         this.layerItems = layerItems;
         this.layerScroll = layerScroll;
-        if (getResources().getConfiguration().screenWidthDp < 600) layerScroll.setVisibility(View.GONE);
+
         refreshLayerPanel();
-        root.addView(workspace, new LinearLayout.LayoutParams(-1, 0, 1));
+        workspaceFrame=new android.widget.FrameLayout(this);
+        layoutWorkspace();
+        root.addView(workspaceFrame, new LinearLayout.LayoutParams(-1, 0, 1));
 
         LinearLayout colors = row();
         TextView paletteLabel = text("COLORES  ");
@@ -687,7 +690,8 @@ public final class MainActivity extends Activity {
         for (int color : palette) {
             View swatch = new View(this);
             swatch.setBackgroundColor(color);
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(30), dp(30));
+            swatch.setContentDescription(String.format(java.util.Locale.US,"Color #%06X",color & 0xffffff));
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(48), dp(48));
             params.setMargins(dp(3), dp(4), dp(3), dp(4));
             colors.addView(swatch, params);
             swatch.setOnClickListener(v -> {
@@ -703,6 +707,18 @@ public final class MainActivity extends Activity {
             "%d × %d px  |  Zoom: %.1f %%  |  Rotación: %.1f°", drawing.documentWidth(), drawing.documentHeight(), drawing.zoomPercent(), drawing.rotationDegrees())));
         setContentView(root);
     }
+
+    private void togglePanel(ScrollView panel){if(panel==null)return;boolean show=panel.getVisibility()!=View.VISIBLE;if(show&&!panelsInline){toolScroll.setVisibility(View.GONE);layerScroll.setVisibility(View.GONE);}panel.setVisibility(show?View.VISIBLE:View.GONE);}
+    private void detach(View view){if(view.getParent() instanceof android.view.ViewGroup)((android.view.ViewGroup)view.getParent()).removeView(view);}
+    private void layoutWorkspace(){
+        WorkspaceLayout layout=new WorkspaceLayout(Math.max(1,getResources().getConfiguration().screenWidthDp));panelsInline=layout.inline;
+        detach(drawing);detach(toolScroll);detach(layerScroll);workspaceFrame.removeAllViews();
+        if(panelsInline){LinearLayout row=row();row.addView(toolScroll,new LinearLayout.LayoutParams(dp(layout.toolsWidth),-1));row.addView(drawing,new LinearLayout.LayoutParams(0,-1,1));row.addView(layerScroll,new LinearLayout.LayoutParams(dp(layout.layersWidth),-1));workspaceFrame.addView(row,new android.widget.FrameLayout.LayoutParams(-1,-1));toolScroll.setVisibility(View.VISIBLE);layerScroll.setVisibility(View.VISIBLE);}
+        else{workspaceFrame.addView(drawing,new android.widget.FrameLayout.LayoutParams(-1,-1));workspaceFrame.addView(toolScroll,new android.widget.FrameLayout.LayoutParams(dp(layout.toolsWidth),-1,Gravity.START));workspaceFrame.addView(layerScroll,new android.widget.FrameLayout.LayoutParams(dp(layout.layersWidth),-1,Gravity.END));toolScroll.setVisibility(View.GONE);layerScroll.setVisibility(View.GONE);}
+        toolScroll.setBackgroundColor(0xFFE4E4E4);layerScroll.setBackgroundColor(0xFFE6E6E6);
+        toolScroll.setElevation(dp(6));layerScroll.setElevation(dp(6));
+    }
+    @Override public void onConfigurationChanged(android.content.res.Configuration config){super.onConfigurationChanged(config);if(workspaceFrame!=null)layoutWorkspace();}
 
     private View scrollForm(View form) {
         ScrollView scroll = new ScrollView(this);
@@ -785,6 +801,7 @@ public final class MainActivity extends Activity {
             drawing.setTool(tool);
             drawing.setColor(activeColor);
             selectedTool.setText(label);
+            if(!panelsInline&&toolScroll!=null)toolScroll.setVisibility(View.GONE);
         });
         android.widget.GridLayout.LayoutParams cell = new android.widget.GridLayout.LayoutParams();cell.width=dp(48);cell.height=dp(48);parent.addView(iconButton,cell);
     }
@@ -1028,6 +1045,7 @@ public final class MainActivity extends Activity {
     }
 
     private void transferProject(Uri uri, boolean save) {
+        if(projectProgress!=null){message("Espera a que termine la operación actual");return;}
         android.app.ProgressDialog progress = new android.app.ProgressDialog(this);
         progress.setMessage(save ? "Guardando proyecto…" : "Abriendo proyecto…");
         progress.setCancelable(false);
