@@ -35,7 +35,7 @@ public final class DrawingView extends View {
  private static native float nativeLayerOpacity();
  private static native int[] nativeLayerThumbnail(int index);
  private static final int SIZE=800;
- public static final int BRUSH=0,RECTANGLE=1,ELLIPSE=2,LINE=3,BUCKET=4,ERASER=5,PICKER=6,FILLED_RECTANGLE=7,FILLED_ELLIPSE=8,SELECT_RECTANGLE=9,SELECT_ELLIPSE=10,MOVE_SELECTION=11;
+ public static final int BRUSH=0,RECTANGLE=1,ELLIPSE=2,LINE=3,BUCKET=4,ERASER=5,PICKER=6,FILLED_RECTANGLE=7,FILLED_ELLIPSE=8,SELECT_RECTANGLE=9,SELECT_ELLIPSE=10,MOVE_SELECTION=11,MOVE_PIXELS=12;
  private final Paint paint=new Paint(Paint.FILTER_BITMAP_FLAG);
  private final Bitmap bitmap=Bitmap.createBitmap(SIZE,SIZE,Bitmap.Config.ARGB_8888);
  private int color=0xFF202020,tool=BRUSH;
@@ -44,6 +44,7 @@ public final class DrawingView extends View {
  private boolean drawing;
  private boolean hasSelection;
  private boolean movingSelection;
+ private boolean movingPixels;
  private float moveStartX,moveStartY,moveOriginalLeft,moveOriginalTop,moveOriginalRight,moveOriginalBottom;
  private int selectionTool;
  private float selectionLeft,selectionTop,selectionRight,selectionBottom;
@@ -72,7 +73,7 @@ public final class DrawingView extends View {
  public void setBrushRadius(float radius){if(Float.isFinite(radius)&&radius>=1f&&radius<=128f)brushRadius=radius;}
  public float brushRadius(){return brushRadius;}
  public void setTool(int value){
-  if(value<BRUSH||value>MOVE_SELECTION)return;
+  if(value<BRUSH||value>MOVE_PIXELS)return;
   tool=value;
   // Switching away from a selection tool must not leave a selection
   // permanently active as an accidental overlay on subsequent drawings.
@@ -200,7 +201,8 @@ public final class DrawingView extends View {
    selectionLeft=selectionRight=x;selectionTop=selectionBottom=y;
    invalidate();return true;
   }
-  if(tool==MOVE_SELECTION){
+  if(tool==MOVE_SELECTION||tool==MOVE_PIXELS){
+   movingPixels=tool==MOVE_PIXELS;
    movingSelection=hasSelection&&selectionContains((int)x,(int)y);
    if(movingSelection){moveStartX=x;moveStartY=y;moveOriginalLeft=selectionLeft;moveOriginalTop=selectionTop;moveOriginalRight=selectionRight;moveOriginalBottom=selectionBottom;}
    else drawing=false;
@@ -216,7 +218,7 @@ public final class DrawingView extends View {
   return true;
  case MotionEvent.ACTION_MOVE:
   if(!drawing)return true;
-  if(tool==MOVE_SELECTION){if(movingSelection)updateMovedSelection(x,y);return true;}
+  if(tool==MOVE_SELECTION||tool==MOVE_PIXELS){if(movingSelection)updateMovedSelection(x,y);return true;}
   if(tool==SELECT_RECTANGLE||tool==SELECT_ELLIPSE){
    updateSelection(x,y);return true;
   }
@@ -224,13 +226,27 @@ public final class DrawingView extends View {
   previousX=x;previousY=y;return true;
  case MotionEvent.ACTION_UP:
   if(drawing){
-   if(tool==MOVE_SELECTION){if(movingSelection)updateMovedSelection(x,y);movingSelection=false;drawing=false;return true;}
+   if(tool==MOVE_SELECTION||tool==MOVE_PIXELS){
+    if(movingSelection){
+     if(movingPixels){
+      final int dx=Math.round(x-moveStartX),dy=Math.round(y-moveStartY);
+      // Restore the original bounds before moving the pixels. The native
+      // operation changes both the image and selection position atomically.
+      selectionLeft=moveOriginalLeft;selectionTop=moveOriginalTop;
+      selectionRight=moveOriginalRight;selectionBottom=moveOriginalBottom;
+      if(!moveSelectedPixels(dx,dy))invalidate();
+     }else updateMovedSelection(x,y);
+    }
+    movingSelection=false;movingPixels=false;drawing=false;return true;
+   }
    if(tool==SELECT_RECTANGLE||tool==SELECT_ELLIPSE){updateSelection(x,y);drawing=false;return true;}
    if(tool==BRUSH||tool==ERASER)nativeStroke(previousX,previousY,x,y,brushRadius,tool==ERASER?0x00000000:color);
    else nativeShape(tool,(int)startX,(int)startY,(int)x,(int)y,color);
    drawing=false;refresh();
   }return true;
- case MotionEvent.ACTION_CANCEL:drawing=false;return true;
+ case MotionEvent.ACTION_CANCEL:
+  if(movingSelection){selectionLeft=moveOriginalLeft;selectionTop=moveOriginalTop;selectionRight=moveOriginalRight;selectionBottom=moveOriginalBottom;invalidate();}
+  movingSelection=false;movingPixels=false;drawing=false;return true;
  default:return true;}
  }
 }
