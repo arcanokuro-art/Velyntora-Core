@@ -79,9 +79,9 @@ public final class DrawingView extends View {
   // permanently active as an accidental overlay on subsequent drawings.
   if(value==SELECT_RECTANGLE||value==SELECT_ELLIPSE)invalidate();
  }
- public boolean hasSelection(){return hasSelection;}
+ public boolean hasSelection(){return hasSelection&&selectionRight-selectionLeft>=1f&&selectionBottom-selectionTop>=1f;}
  public boolean selectionContains(int px,int py){
-  if(!hasSelection||px<selectionLeft||py<selectionTop||px>=selectionRight||py>=selectionBottom)return false;
+  if(!hasSelection()||px<selectionLeft||py<selectionTop||px>=selectionRight||py>=selectionBottom)return false;
   if(selectionTool==SELECT_RECTANGLE)return true;
   final float rx=(selectionRight-selectionLeft)/2f,ry=(selectionBottom-selectionTop)/2f;
   if(rx<=0f||ry<=0f)return false;
@@ -104,7 +104,7 @@ public final class DrawingView extends View {
   return ok;
  }
  public Bitmap copySelection(){
-  if(!hasSelection)return null;
+  if(!hasSelection())return null;
   int[] data=nativeCopySelection(selectionTool,(int)Math.floor(selectionLeft),(int)Math.floor(selectionTop),(int)Math.ceil(selectionRight),(int)Math.ceil(selectionBottom));
   if(data==null||data.length<3)return null;
   int w=data[0],h=data[1];
@@ -112,7 +112,7 @@ public final class DrawingView extends View {
   return Bitmap.createBitmap(data,2,w,w,h,Bitmap.Config.ARGB_8888);
  }
  public boolean eraseSelection(){
-  if(!hasSelection)return false;
+  if(!hasSelection())return false;
   boolean ok=nativeEraseSelection(selectionTool,(int)Math.floor(selectionLeft),(int)Math.floor(selectionTop),(int)Math.ceil(selectionRight),(int)Math.ceil(selectionBottom));
   if(ok){hasSelection=false;refresh();}
   return ok;
@@ -120,7 +120,7 @@ public final class DrawingView extends View {
  public void deselect(){hasSelection=false;movingSelection=false;invalidate();}
  public void enableSelectionMove(){tool=MOVE_SELECTION;invalidate();}
  public boolean moveSelectedPixels(int dx,int dy){
-  if(!hasSelection||(dx==0&&dy==0))return false;
+  if(!hasSelection()||(dx==0&&dy==0))return false;
   int left=(int)Math.floor(selectionLeft),top=(int)Math.floor(selectionTop);
   int right=(int)Math.ceil(selectionRight),bottom=(int)Math.ceil(selectionBottom);
   dx=Math.max(-left,Math.min(SIZE-right,dx));
@@ -163,7 +163,7 @@ public final class DrawingView extends View {
    }
   }
   canvas.drawBitmap(bitmap,null,new RectF(x,y,x+SIZE*scale,y+SIZE*scale),paint);
-  if(hasSelection){
+  if(hasSelection()){
    selectionPaint.setColor(0xFF202020);
    selectionPaint.setStyle(Paint.Style.STROKE);
    selectionPaint.setStrokeWidth(Math.max(1f,1f/scale));
@@ -203,7 +203,7 @@ public final class DrawingView extends View {
   }
   if(tool==MOVE_SELECTION||tool==MOVE_PIXELS){
    movingPixels=tool==MOVE_PIXELS;
-   movingSelection=hasSelection&&selectionContains((int)x,(int)y);
+   movingSelection=hasSelection()&&selectionContains((int)x,(int)y);
    if(movingSelection){moveStartX=x;moveStartY=y;moveOriginalLeft=selectionLeft;moveOriginalTop=selectionTop;moveOriginalRight=selectionRight;moveOriginalBottom=selectionBottom;}
    else drawing=false;
    return true;
@@ -239,7 +239,7 @@ public final class DrawingView extends View {
     }
     movingSelection=false;movingPixels=false;drawing=false;return true;
    }
-   if(tool==SELECT_RECTANGLE||tool==SELECT_ELLIPSE){updateSelection(x,y);drawing=false;return true;}
+   if(tool==SELECT_RECTANGLE||tool==SELECT_ELLIPSE){updateSelection(x,y);hasSelection=hasSelection();drawing=false;return true;}
    if(tool==BRUSH||tool==ERASER)nativeStroke(previousX,previousY,x,y,brushRadius,tool==ERASER?0x00000000:color);
    else nativeShape(tool,(int)startX,(int)startY,(int)x,(int)y,color);
    drawing=false;refresh();
