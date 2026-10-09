@@ -388,3 +388,19 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
  if(!changed)return JNI_FALSE;
  checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;
 }
+
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeRotateActive90(JNIEnv*,jclass,jboolean clockwise){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!canvas||!layers)return JNI_FALSE;
+ const int w=canvas->width(),h=canvas->height();
+ if(w<=0||h<=0||w!=h)return JNI_FALSE;
+ const auto original=canvas->pixels();
+ auto rotated=original;
+ for(int y=0;y<h;++y)for(int x=0;x<w;++x){
+  const int nx=clockwise?(w-1-y):y;
+  const int ny=clockwise?x:(h-1-x);
+  rotated[static_cast<std::size_t>(ny)*w+nx]=original[static_cast<std::size_t>(y)*w+x];
+ }
+ if(rotated==original)return JNI_FALSE;
+ checkpoint();canvas->setPixels(rotated);storeActive();return JNI_TRUE;
+}
