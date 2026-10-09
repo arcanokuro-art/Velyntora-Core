@@ -1,4 +1,5 @@
 #include <jni.h>
+#include <cmath>
 #include <memory>
 #include <mutex>
 #include <vector>
@@ -113,4 +114,15 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
  if(to<0||to>=static_cast<int>(layers->layerCount()))return JNI_FALSE;
  checkpoint();if(!layers->moveLayer(static_cast<std::size_t>(from),static_cast<std::size_t>(to)))return JNI_FALSE;
  loadActive();return JNI_TRUE;
+}
+
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeSetLayerOpacity(JNIEnv*,jclass,jfloat opacity){
+ std::lock_guard<std::mutex> lock(guard);if(!layers)return JNI_FALSE;
+ const auto i=layers->activeIndex();
+ if(!std::isfinite(opacity)||opacity<0.f||opacity>1.f)return JNI_FALSE;
+ if(layers->layer(i).opacity==opacity)return JNI_TRUE;
+ checkpoint();return layers->setOpacity(i,opacity)?JNI_TRUE:JNI_FALSE;
+}
+extern "C" JNIEXPORT jfloat JNICALL Java_art_velyntora_core_DrawingView_nativeLayerOpacity(JNIEnv*,jclass){
+ std::lock_guard<std::mutex> lock(guard);return layers?layers->layer(layers->activeIndex()).opacity:1.f;
 }

@@ -15,6 +15,7 @@ import android.widget.Button;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import java.io.OutputStream;
@@ -27,6 +28,7 @@ public final class MainActivity extends Activity {
     private TextView status;
     private TextView selectedTool;
     private LinearLayout layerItems;
+    private SeekBar layerOpacity;
     private int activeColor = Color.BLACK;
 
     private int dp(int value) {
@@ -103,7 +105,23 @@ public final class MainActivity extends Activity {
         button(layerOrder, "↑", () -> moveLayer(1));
         button(layerOrder, "↓", () -> moveLayer(-1));
         layerPanel.addView(layerOrder);
-        button(layerPanel, "👁 Mostrar / ocultar", this::toggleLayer);
+        button(layerPanel, "Mostrar / ocultar", this::toggleLayer);
+        TextView opacityLabel = text("Opacidad: 100%");
+        opacityLabel.setPadding(dp(6), dp(8), dp(6), dp(2));
+        layerPanel.addView(opacityLabel);
+        SeekBar opacity = new SeekBar(this);
+        opacity.setMax(100);
+        opacity.setProgress(100);
+        opacity.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar bar, int progress, boolean user) {
+                opacityLabel.setText("Opacidad: " + progress + "%");
+                if (user) drawing.setLayerOpacity(progress / 100f);
+            }
+            @Override public void onStartTrackingTouch(SeekBar bar) {}
+            @Override public void onStopTrackingTouch(SeekBar bar) {}
+        });
+        layerPanel.addView(opacity);
+        this.layerOpacity = opacity;
         LinearLayout layerItems = new LinearLayout(this);
         layerItems.setOrientation(LinearLayout.VERTICAL);
         layerPanel.addView(layerItems);
@@ -192,6 +210,7 @@ public final class MainActivity extends Activity {
     private void refreshLayerPanel() {
         if (layerItems == null) return;
         layerItems.removeAllViews();
+        if (layerOpacity != null) layerOpacity.setProgress(Math.round(drawing.layerOpacity() * 100));
         for (int i = drawing.layerCount() - 1; i >= 0; --i) {
             final int index = i;
             String label = (index == drawing.activeLayer() ? "● " : "○ ") +
