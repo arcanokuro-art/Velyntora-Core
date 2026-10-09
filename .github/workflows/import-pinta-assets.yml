@@ -1,6 +1,11 @@
 name: Import Pinta graphics
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/import_pinta_assets.py'
+      - '.github/workflows/import-pinta-assets.yml'
 permissions:
   contents: write
 jobs:
