@@ -185,7 +185,7 @@ public final class DrawingView extends View {
   final float dx=(px+0.5f-cx)/rx,dy=(py+0.5f-cy)/ry;
   return dx*dx+dy*dy<=1f;
  }
- public void clear(){if(nativeClear()){hasSelection=false;refresh();}}
+ public void clear(){if(nativeClear()){deselect();refresh();}}
  public boolean pasteBitmap(Bitmap source){
   if(source==null||source.isRecycled())return false;
   int w=source.getWidth(),h=source.getHeight();
