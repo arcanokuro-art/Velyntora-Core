@@ -41,6 +41,7 @@ public final class DrawingView extends View {
  private static native boolean nativeQuantizeActive(int step);
  private static native boolean nativeClampHighlightsActive(int ceiling);
  private static native boolean nativeLiftShadowsActive(int floor);
+ private static native boolean nativeAdjustChannelActive(int channel,int adjustment);
  private static native void nativeStroke(float x0,float y0,float x1,float y1,float radius,int color);
  private static native void nativeShape(int kind,int x0,int y0,int x1,int y1,int color);
  private static native void nativeFill(int x,int y,int color);
@@ -222,6 +223,7 @@ public final class DrawingView extends View {
  public boolean flipActiveVertical(){if(!nativeFlipActiveVertical())return false;deselect();refresh();return true;}
  public boolean rotateActive180(){if(!nativeRotateActive180())return false;deselect();refresh();return true;}
  public boolean rotateActive90(boolean clockwise){if(!nativeRotateActive90(clockwise))return false;deselect();refresh();return true;}
+ public boolean adjustChannelActive(int channel,int adjustment){if(!nativeAdjustChannelActive(channel,adjustment))return false;deselect();refresh();return true;}
  public boolean liftShadowsActive(int floor){if(!nativeLiftShadowsActive(floor))return false;deselect();refresh();return true;}
  public boolean clampHighlightsActive(int ceiling){if(!nativeClampHighlightsActive(ceiling))return false;deselect();refresh();return true;}
  public boolean quantizeActive(int step){if(!nativeQuantizeActive(step))return false;deselect();refresh();return true;}
