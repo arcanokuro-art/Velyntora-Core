@@ -51,6 +51,7 @@ public final class DrawingView extends View {
  private boolean freeSelectionReady;
  private final android.graphics.Region freeRegion=new android.graphics.Region();
  private int wandTolerance=0;
+ private final android.graphics.Path wandBoundary=new android.graphics.Path();
  public void setWandTolerance(int value){wandTolerance=Math.max(0,Math.min(255,value));}
  private float moveStartX,moveStartY,moveOriginalLeft,moveOriginalTop,moveOriginalRight,moveOriginalBottom;
  private int selectionTool;
@@ -169,6 +170,7 @@ public final class DrawingView extends View {
     matrix.setTranslate(dx,dy);
     freePath.transform(matrix);
     freeRegion.translate(dx,dy);
+    if(selectionTool==MAGIC_WAND)wandBoundary.transform(matrix);
    }
   }else ok=nativeMovePixels(selectionTool,left,top,right,bottom,dx,dy);
   if(ok){selectionLeft+=dx;selectionRight+=dx;selectionTop+=dy;selectionBottom+=dy;refresh();}
@@ -215,7 +217,7 @@ public final class DrawingView extends View {
    RectF bounds=new RectF(x+selectionLeft*scale,y+selectionTop*scale,x+selectionRight*scale,y+selectionBottom*scale);
    if(selectionTool==SELECT_ELLIPSE)canvas.drawOval(bounds,selectionPaint);
    else if(selectionTool==SELECT_FREE){canvas.save();canvas.translate(x,y);canvas.scale(scale,scale);canvas.drawPath(freePath,selectionPaint);canvas.restore();}
-   else if(selectionTool==MAGIC_WAND){canvas.save();canvas.translate(x,y);canvas.scale(scale,scale);android.graphics.Path boundary=freeRegion.getBoundaryPath();canvas.drawPath(boundary,selectionPaint);canvas.restore();}
+   else if(selectionTool==MAGIC_WAND){canvas.save();canvas.translate(x,y);canvas.scale(scale,scale);canvas.drawPath(wandBoundary,selectionPaint);canvas.restore();}
    else canvas.drawRect(bounds,selectionPaint);
    selectionPaint.setPathEffect(null);
   }
@@ -238,7 +240,7 @@ public final class DrawingView extends View {
   int head=0,tail=0,start=sy*SIZE+sx;
   visited[start]=1;queue[tail++]=start;
   int minX=sx,maxX=sx,minY=sy,maxY=sy;
-  freeRegion.setEmpty();freePath.reset();
+  freeRegion.setEmpty();freePath.reset();wandBoundary.reset();
   while(head<tail){
    int pos=queue[head++],px=pos%SIZE,py=pos/SIZE;
    visited[pos]=2;
@@ -261,7 +263,9 @@ public final class DrawingView extends View {
   }
   selectionTool=MAGIC_WAND;
   selectionLeft=minX;selectionTop=minY;selectionRight=maxX+1;selectionBottom=maxY+1;
-  hasSelection=!freeRegion.isEmpty();invalidate();
+  hasSelection=!freeRegion.isEmpty();
+  if(hasSelection)wandBoundary.set(freeRegion.getBoundaryPath());
+  invalidate();
  }
  private void nativeBeginEditIfNeeded(){if(tool!=PICKER)nativeBeginEdit();}
  private void updateMovedSelection(float x,float y){
