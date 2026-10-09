@@ -404,3 +404,20 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
  if(rotated==original)return JNI_FALSE;
  checkpoint();canvas->setPixels(rotated);storeActive();return JNI_TRUE;
 }
+
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeCropActiveSelection(JNIEnv*,jclass,jint left,jint top,jint right,jint bottom){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!canvas||!layers)return JNI_FALSE;
+ const int w=canvas->width(),h=canvas->height();
+ if(left<0||top<0||right>w||bottom>h||left>=right||top>=bottom)return JNI_FALSE;
+ if(left==0&&top==0&&right==w&&bottom==h)return JNI_FALSE;
+ auto pixels=canvas->pixels();
+ bool changed=false;
+ for(int y=0;y<h;++y)for(int x=0;x<w;++x){
+  if(x>=left&&x<right&&y>=top&&y<bottom)continue;
+  auto& pixel=pixels[static_cast<std::size_t>(y)*w+x];
+  if(pixel!=0u){pixel=0u;changed=true;}
+ }
+ if(!changed)return JNI_FALSE;
+ checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;
+}
