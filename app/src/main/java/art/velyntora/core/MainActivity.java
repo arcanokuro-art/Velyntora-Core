@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import java.io.InputStream;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
@@ -191,6 +193,30 @@ public final class MainActivity extends Activity {
         Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
     }
 
+    /** Decode with a bounded memory footprint, even for very large source images. */
+    private Bitmap decodeImage(Uri uri) throws java.io.IOException {
+        BitmapFactory.Options bounds = new BitmapFactory.Options();
+        bounds.inJustDecodeBounds = true;
+        try (InputStream input = getContentResolver().openInputStream(uri)) {
+            if (input == null) throw new java.io.IOException("No se puede abrir el archivo");
+            BitmapFactory.decodeStream(input, null, bounds);
+        }
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0)
+            throw new java.io.IOException("Dimensiones inválidas");
+        int sample = 1;
+        while (Math.max(bounds.outWidth / sample, bounds.outHeight / sample) > 2048
+                && sample < 1024) sample *= 2;
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inSampleSize = sample;
+        options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+        try (InputStream input = getContentResolver().openInputStream(uri)) {
+            if (input == null) throw new java.io.IOException("No se puede leer el archivo");
+            Bitmap decoded = BitmapFactory.decodeStream(input, null, options);
+            if (decoded == null) throw new java.io.IOException("Imagen no compatible");
+            return decoded;
+        }
+    }
+
     private void savePng() {
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -211,9 +237,8 @@ public final class MainActivity extends Activity {
         if (result != RESULT_OK || data == null || data.getData() == null) return;
         Uri uri = data.getData();
         if (request == OPEN_IMAGE) {
-            try (java.io.InputStream input = getContentResolver().openInputStream(uri)) {
-                Bitmap bitmap = android.graphics.BitmapFactory.decodeStream(input);
-                if (bitmap == null) throw new IllegalStateException("Imagen inválida");
+            try {
+                Bitmap bitmap = decodeImage(uri);
                 try {
                     drawing.loadBitmap(bitmap);
                     status.setText("800 × 800 px  |  Imagen importada");
