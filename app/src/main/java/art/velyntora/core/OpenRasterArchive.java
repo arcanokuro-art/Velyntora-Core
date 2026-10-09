@@ -24,7 +24,7 @@ final class OpenRasterArchive {
  }
  static byte[] bounded(InputStream input,int max)throws IOException{ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] buffer=new byte[4096];int n,total=0;while((n=input.read(buffer))!=-1){total+=n;if(total>max)throw new IOException("Entrada demasiado grande");out.write(buffer,0,n);}return out.toByteArray();}
  static Stack metadata(byte[] xml)throws IOException{
-  String raw=new String(xml,StandardCharsets.UTF_8);if(raw.contains("<!DOCTYPE")||raw.contains("<!ENTITY"))throw new IOException("XML no compatible");Stack stack=new Stack();
+  String raw=StandardCharsets.UTF_8.newDecoder().onMalformedInput(java.nio.charset.CodingErrorAction.REPORT).onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT).decode(java.nio.ByteBuffer.wrap(xml)).toString();if(raw.startsWith("\uFEFF"))raw=raw.substring(1);if(raw.contains("<!DOCTYPE")||raw.contains("<!ENTITY"))throw new IOException("XML no compatible");Stack stack=new Stack();
   try{org.xml.sax.XMLReader parser=SAXParserFactory.newInstance().newSAXParser().getXMLReader();parser.setEntityResolver((publicId,systemId)->{throw new SAXException("Entidades externas no permitidas");});parser.setContentHandler(new DefaultHandler(){int depth;boolean image,root;
    int number(Attributes a,String key,int defaultValue){String v=a.getValue(key);return v==null?defaultValue:Integer.parseInt(v);}
    public void startElement(String uri,String local,String name,Attributes a)throws SAXException{depth++;try{if(depth==1&&name.equals("image")&&!image){image=true;stack.width=number(a,"w",0);stack.height=number(a,"h",0);VlyProjectStream.limits(stack.width,stack.height,1,0);}

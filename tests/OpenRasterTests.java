@@ -22,6 +22,8 @@ public final class OpenRasterTests {
   }finally{file.delete();}
   String start="<image w='2' h='1'><stack>",end="</stack></image>";reject(start+"<stack><layer src='data/l.png'/></stack>"+end);reject(start+"<layer src='data/../l.png'/>"+end);reject(start+"<layer src='data/l.png' composite-op='svg:multiply'/>"+end);reject(start+"<layer src='data/l.png' opacity='NaN'/>"+end);reject("<!DOCTYPE image [<!ENTITY a 'test'>]>"+start+"<layer src='data/l.png'/>"+end);reject("<image w='8192' h='8192'><stack><layer src='data/l.png'/></stack></image>");
   OpenRasterArchive.Stack stack=OpenRasterArchive.metadata((start+"<layer src='data/l.png' x='-2' y='3'/>"+end).getBytes(StandardCharsets.UTF_8));check(stack.layers.get(0).x==-2&&stack.layers.get(0).y==3);
+  check(OpenRasterArchive.metadata(("\uFEFF"+start+"<layer src='data/l.png'/>"+end).getBytes(StandardCharsets.UTF_8)).layers.size()==1);
+  boolean invalidUtf8=false;try{OpenRasterArchive.metadata(new byte[]{(byte)0xff});}catch(IOException e){invalidUtf8=true;}check(invalidUtf8);
   // Exercise real PNG entries as well as the exact streamed VLY representation.
   OpenRasterArchive.PngWriter pngWriter=(w,h,p,o)->{BufferedImage image=new BufferedImage(w,h,BufferedImage.TYPE_INT_ARGB);image.setRGB(0,0,w,h,p,0,w);if(!ImageIO.write(image,"png",o))throw new IOException();};
   OpenRasterArchive.PngReader pngReader=(i,w,h,x,y)->{BufferedImage image=ImageIO.read(i);if(image==null||image.getWidth()!=w||image.getHeight()!=h)throw new IOException();return image.getRGB(0,0,w,h,null,0,w);};
