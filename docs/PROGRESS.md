@@ -159,3 +159,11 @@ Color activo visible sobre tablero de transparencia, actualizado desde la paleta
 ## Herramientas de la lista del usuario (implementación parcial)
 
 Lápiz dedicado de un píxel: trazo alineado a centros de píxel, borde duro, sin presión ni suavizado; respeta alfa del color, selección e historial del pincel. Desplazamiento con un dedo y zoom como herramientas del panel: toque acerca, toque largo aleja y arrastre vertical cambia escala alrededor del punto inicial. Navegar no edita píxeles ni añade historial; conserva los gestos existentes de dos dedos. Iconos derivados de los recursos SVG originales de Pinta ya almacenados en el repositorio. Pruebas Java de navegación anclada. Siguen pendientes degradado, forma libre de dibujo, tampón de clonar, recoloración, curvas editables, mover contornos de lazo/varita y restricción circular. Avance global **85.00 %**.
+
+## Degradado lineal y movimiento de máscaras (parcial)
+
+Degradado del color activo a transparente por arrastre, aplicado sólo a la selección si existe y con una operación de historial. Extremos con alfa gradual y sin RGB visible al llegar a transparencia total. Por ahora no incluye segundo color, variantes radiales ni edición posterior de tiradores. El movimiento del contorno de lazo y varita conserva y traslada su máscara en píxeles enteros; cancelar restaura la posición. Estos cambios no cierran los entregables abiertos: avance 17/20 = 85.00 %. Las pruebas de degradado forman parte de CI.
+
+## Formas pendientes (parcial)
+
+Forma libre: arrastre para construir un contorno cerrado rasterizado en la capa activa, respetando la selección y con un solo paso de historial. Vista previa durante el arrastre; cancelar no escribe píxeles. Círculo: variante de la elipse que impone ancho y alto iguales. Quedan Línea/Curva editable, Tampón de clonar, Recoloración y variantes avanzadas del degradado. Las funciones nuevas siguen pendientes de compilación/verificación del cambio completo; avance global 85.00 %.

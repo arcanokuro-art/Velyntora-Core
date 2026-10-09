@@ -602,6 +602,8 @@ public final class MainActivity extends Activity {
         tool(toolGrid, "Zoom: toque acerca; toque largo aleja; arrastre vertical", DrawingView.ZOOM);
         tool(toolGrid, "Línea", DrawingView.LINE);
         tool(toolGrid, "Rectángulo", DrawingView.RECTANGLE);
+        tool(toolGrid, "Círculo", DrawingView.CIRCLE);
+        tool(toolGrid, "Forma libre (contorno cerrado)", DrawingView.FREEFORM);
         tool(toolGrid, "Elipse", DrawingView.ELLIPSE);
         tool(toolGrid, "Rectángulo relleno", DrawingView.FILLED_RECTANGLE);
         tool(toolGrid, "Elipse rellena", DrawingView.FILLED_ELLIPSE);
@@ -610,6 +612,7 @@ public final class MainActivity extends Activity {
         tool(toolGrid, "Triángulo", DrawingView.TRIANGLE);
         tool(toolGrid, "Triángulo relleno", DrawingView.FILLED_TRIANGLE);
         tool(toolGrid, "Texto", DrawingView.TEXT);
+        tool(toolGrid, "Degradado lineal: color activo a transparente", DrawingView.GRADIENT);
         tool(toolGrid, "Cubeta", DrawingView.BUCKET);
         tool(toolGrid, "Cuentagotas", DrawingView.PICKER);
         tool(toolGrid, "Borrador", DrawingView.ERASER);
@@ -819,6 +822,9 @@ public final class MainActivity extends Activity {
             case DrawingView.SELECT_FREE: icon = R.drawable.pinta_lasso; break;
             case DrawingView.MAGIC_WAND: icon = R.drawable.pinta_wand; break;
             case DrawingView.MOVE_SELECTION: icon = R.drawable.pinta_move_selection; break;
+            case DrawingView.CIRCLE: icon = R.drawable.pinta_ellipse; break;
+            case DrawingView.FREEFORM: icon = R.drawable.pinta_lasso; break;
+            case DrawingView.GRADIENT: icon = R.drawable.pinta_gradient; break;
             case DrawingView.MOVE_PIXELS: icon = R.drawable.pinta_move_pixels; break;
         }
         if (icon != 0) {
