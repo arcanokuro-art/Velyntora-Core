@@ -18,12 +18,12 @@ Objetivo: reproducir la experiencia y las funciones de Pinta 3.1.2 en Android. E
 - [x] 14. Pinceles, borrador alfa y configuración avanzada.
 - [x] 15. Zoom, panorámica y rotación del lienzo.
 - [ ] 16. Gestión completa de tamaños y formatos.
-- [ ] 17. Ajustes de color de Pinta.
+- [x] 17. Ajustes de color de Pinta.
 - [ ] 18. Efectos y filtros de Pinta.
 - [x] 19. Guardar y abrir proyectos editables con capas.
 - [ ] 20. Pulido de interfaz, accesibilidad y corrección de defectos detectados durante desarrollo.
 
-**Avance verificado por entregables: 15/20 = 75.00%**. El entregable 15 incluye zoom de 1–7000 %, panorámica y rotación con dos dedos, controles del menú Ver y coordenadas inversas para las herramientas. Validado con pruebas Java y compilación Android del commit `e90a779f6c8dc8f6c5cea4a1bf33d7ae634e9507` (Actions 37975450908 y 37975450586). La cifra mide estos hitos y no representa paridad exhaustiva con cada comando de Pinta. Las funcionalidades marcadas pueden tener limitaciones y defectos pendientes.
+**Avance verificado por entregables: 16/20 = 80.00%**. El entregable 15 incluye zoom de 1–7000 %, panorámica y rotación con dos dedos, controles del menú Ver y coordenadas inversas para las herramientas. Validado con pruebas Java y compilación Android del commit `e90a779f6c8dc8f6c5cea4a1bf33d7ae634e9507` (Actions 37975450908 y 37975450586). La cifra mide estos hitos y no representa paridad exhaustiva con cada comando de Pinta. Las funcionalidades marcadas pueden tener limitaciones y defectos pendientes.
 
 ## Regla del 100.00 %
 
@@ -61,8 +61,12 @@ Movimiento por arrastre y desplazamiento numérico, recorte real del documento e
 
 Validación del entregable 12: pruebas C++ del remuestreo y máscaras, pruebas de llamadas JNI desde Java con reflejo/Undo/Redo y compilación APK del commit `453f8f1f76ced79c6ebeaddbe9aeb901f732ad6b` (Actions 37978432820 y 37978432930). Se corrigió una publicación incompleta y se verificó el árbol final completo frente a la revisión anterior: ningún archivo eliminado.
 
-**Resumen actual: 15 de 20 entregables verificados = 75.00 %.** Abiertos: 09 (paridad/adaptación completa de interfaz), 16 (todos los formatos), 17 (todos los ajustes y controles), 18 (catálogo completo de efectos), 20 (pulido/accesibilidad/defectos transversales). Los diálogos de parámetros usan desplazamiento para que todos los controles sean accesibles en pantallas pequeñas y con el teclado visible.
+**Resumen actual: 16 de 20 entregables verificados = 80.00 %.** Abiertos: 09 (paridad/adaptación completa de interfaz), 16 (todos los formatos), 18 (catálogo completo de efectos), 20 (pulido/accesibilidad/defectos transversales). Los diálogos de parámetros usan desplazamiento para que todos los controles sean accesibles en pantallas pequeñas y con el teclado visible.
 
-## Ajustes de color avanzados (entregable 17, ampliación pendiente de validación)
+## Ajustes de color avanzados (entregable 17, verificado)
 
-Curvas suaves editables con hasta 32 puntos y canal RGB/R/G/B/luminosidad; niveles independientes con entrada, salida y gamma por canal; niveles automáticos con recorte de histogramas; posterización RGB independiente y tono/saturación/luminosidad combinados. Procesamiento fuera del hilo de interfaz, alfa conservado, píxeles totalmente transparentes intactos y un solo paso de Undo/Redo. Los valores inválidos y operaciones sin cambios no alteran el historial. Se incluyen pruebas C++, interpolación Java e integración JNI. El porcentaje continúa en 75.00 %: esta ampliación todavía no completa todos los controles del entregable 17.
+Curvas suaves editables con hasta 32 puntos y canal RGB/R/G/B/luminosidad; niveles independientes con entrada, salida y gamma por canal; niveles automáticos con recorte de histogramas; posterización RGB independiente y tono/saturación/luminosidad combinados. Procesamiento fuera del hilo de interfaz, alfa conservado, píxeles totalmente transparentes intactos y un solo paso de Undo/Redo. Los valores inválidos y operaciones sin cambios no alteran el historial. Se incluyen pruebas C++, interpolación Java e integración JNI. Brillo/contraste combinados y blanco y negro, invertir y sepia completan las nueve familias de ajustes base en un menú propio. Validado con C++/Java/JNI y APK del commit `0955b4fec74da61437ef092bbaa3f0b9ce89039d` (Actions 37980592850 y 37980592486). El procesamiento afecta a la capa activa; no incluye previsualización interactiva ni igualdad numérica exacta con Pinta.
+
+## Exportación adicional (entregable 16, parcial)
+
+BMP de 24 bits con fondo blanco y TGA de 32 bits con alfa, escritos fila a fila en un hilo de trabajo. Se comprueban cabeceras, orden de filas, relleno, transparencia y composición mediante pruebas Java. Siguen pendientes formatos adicionales e importación TGA. No se suma el entregable 16.

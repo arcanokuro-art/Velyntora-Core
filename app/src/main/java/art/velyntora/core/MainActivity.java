@@ -23,7 +23,7 @@ import java.io.OutputStream;
 
 /** Android workspace modeled after Pinta's tool, canvas, palette and status regions. */
 public final class MainActivity extends Activity {
-    private static final int SAVE_PROJECT = 43, OPEN_PROJECT = 44, SAVE_JPEG = 45, SAVE_WEBP = 46;
+    private static final int SAVE_PROJECT = 43, OPEN_PROJECT = 44, SAVE_JPEG = 45, SAVE_WEBP = 46, SAVE_BMP = 47, SAVE_TGA = 48;
     private static final int SAVE_PNG = 41;
     private static final int OPEN_IMAGE = 42;
     private DrawingView drawing;
@@ -543,8 +543,8 @@ public final class MainActivity extends Activity {
         root.setBackgroundColor(0xFFF1F1F1);
 
         LinearLayout menus = row();
-        menu(menus, "Archivo", new String[]{"Nuevo…", "Abrir imagen", "Guardar PNG", "Guardar JPEG", "Guardar WebP", "Abrir proyecto", "Guardar proyecto"},
-            new Runnable[]{() -> configureDimensions(0), this::openImage, this::savePng, () -> saveImage("image/jpeg", "dibujo.jpg", SAVE_JPEG), () -> saveImage("image/webp", "dibujo.webp", SAVE_WEBP), () -> projectPicker(false), () -> projectPicker(true)});
+        menu(menus, "Archivo", new String[]{"Nuevo…", "Abrir imagen", "Guardar PNG", "Guardar JPEG", "Guardar WebP", "Guardar BMP", "Guardar TGA", "Abrir proyecto", "Guardar proyecto"},
+            new Runnable[]{() -> configureDimensions(0), this::openImage, this::savePng, () -> saveImage("image/jpeg", "dibujo.jpg", SAVE_JPEG), () -> saveImage("image/webp", "dibujo.webp", SAVE_WEBP), () -> saveImage("image/bmp", "dibujo.bmp", SAVE_BMP), () -> saveImage("image/x-tga", "dibujo.tga", SAVE_TGA), () -> projectPicker(false), () -> projectPicker(true)});
         menu(menus, "Editar", new String[]{"Deshacer", "Rehacer", "Copiar selección", "Cortar selección", "Pegar selección", "Duplicar selección", "Mover contenido…", "Transformar selección…", "Seleccionar todo", "Invertir selección", "Expandir selección 1 px", "Contraer selección 1 px", "Borrar selección", "Deseleccionar"},
             new Runnable[]{this::undo, this::redo, this::copySelection, this::cutSelection, this::pasteSelection, this::duplicateSelection, this::moveSelectedContent, this::configureSelectionTransform, drawing::selectAll, () -> {if(!drawing.invertSelection())message("No se pudo invertir la selección");}, () -> {if(!drawing.expandSelectionOnePixel())message("No se pudo expandir la selección");}, () -> {if(!drawing.shrinkSelectionOnePixel())message("No se pudo contraer la selección");}, () -> {if(!drawing.eraseSelection())message("No hay selección válida");}, drawing::deselect});
         menu(menus, "Ver", new String[]{"Ajustar al lienzo", "Acercar", "Alejar", "Zoom 100 %", "Zoom 7000 %", "Rotar vista 15° derecha", "Rotar vista 15° izquierda", "Restablecer rotación"},
@@ -1050,6 +1050,21 @@ public final class MainActivity extends Activity {
         }, "velyntora-project-io").start();
     }
 
+    private void exportRaster(Uri uri,boolean tga) {
+        if(projectProgress!=null){message("Espera a que termine la operación actual");return;}
+        Bitmap image=drawing.snapshot();
+        android.app.ProgressDialog progress=new android.app.ProgressDialog(this);progress.setMessage("Exportando imagen…");progress.setCancelable(false);projectProgress=progress;progress.show();drawing.setEnabled(false);
+        new Thread(()->{
+            boolean success=false;
+            try(OutputStream output=getContentResolver().openOutputStream(uri,"wt")){
+                if(output==null)throw new java.io.IOException("No output");
+                java.io.BufferedOutputStream buffered=new java.io.BufferedOutputStream(output);
+                RasterFileWriter.write(buffered,image.getWidth(),image.getHeight(),tga,(y,row)->image.getPixels(row,0,image.getWidth(),0,y,image.getWidth(),1));buffered.flush();success=true;
+            }catch(Exception e){success=false;}finally{image.recycle();}
+            final boolean ok=success;runOnUiThread(()->{if(!isDestroyed()){progress.dismiss();projectProgress=null;drawing.setEnabled(true);message(ok?"Imagen guardada":"Error al guardar la imagen");}});
+        },"velyntora-raster-export").start();
+    }
+
     private void savePng() { saveImage("image/png", "dibujo.png", SAVE_PNG); }
 
     private void openImage() {
@@ -1076,6 +1091,8 @@ public final class MainActivity extends Activity {
             } catch (Exception e) {
                 message("No se pudo abrir la imagen");
             }
+        } else if (request == SAVE_BMP || request == SAVE_TGA) {
+            exportRaster(uri,request == SAVE_TGA);
         } else if (request == SAVE_PNG || request == SAVE_JPEG || request == SAVE_WEBP) {
             Bitmap image = drawing.snapshot();
             if (request == SAVE_JPEG) {
