@@ -39,4 +39,9 @@ int main(){
  assert(!Java_art_velyntora_core_DrawingView_nativeResizeDocument(nullptr,nullptr,10000,10000,true));
  assert(layers->width()==240);
 
+ assert(Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,4000,1000));
+ for(int i=0;i<5;++i)assert(Java_art_velyntora_core_DrawingView_nativeAddLayer(nullptr,nullptr));
+ assert(layers->layerCount()==6);assert(!Java_art_velyntora_core_DrawingView_nativeAddLayer(nullptr,nullptr));
+ assert(layers->layerCount()==6);
+
 }

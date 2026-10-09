@@ -8,6 +8,9 @@ import android.view.MotionEvent;
 import android.view.View;
 public final class DrawingView extends View {
  static {System.loadLibrary("velyntora_jni");}
+ private static native boolean nativeEffect(int kind,int amount);
+ public boolean applyEffect(int kind,int amount){return nativeEffect(kind,amount);}
+ public void effectApplied(){deselect();refresh();}
  private static native boolean nativeSaveProject(int fd);
  private static native boolean nativeOpenProject(int fd);
  public boolean writeProject(int fd){return nativeSaveProject(fd);}
@@ -47,6 +50,7 @@ public final class DrawingView extends View {
  private static native boolean nativeClampHighlightsActive(int ceiling);
  private static native boolean nativeLiftShadowsActive(int floor);
  private static native boolean nativeAdjustChannelActive(int channel,int adjustment);
+ private static native void nativeSetBrushSelection(byte[] mask);
  private static native void nativeStyledStroke(float x0,float y0,float x1,float y1,float radius,int color,float opacity,float hardness,boolean square,boolean eraser);
  private static native void nativeStroke(float x0,float y0,float x1,float y1,float radius,int color);
  private static native void nativeShape(int kind,int x0,int y0,int x1,int y1,int color);
@@ -151,13 +155,23 @@ public final class DrawingView extends View {
  }
  private int color=0xFF202020,tool=BRUSH;
  private float brushRadius=4f,brushOpacity=1f,brushHardness=1f;
- private boolean squareBrush,pressureBrush=true;
+ private boolean squareBrush,pressureBrush=true,strokeEditing;
  public float brushOpacity(){return brushOpacity;}
  public float brushHardness(){return brushHardness;}
  public boolean squareBrush(){return squareBrush;}
  public boolean pressureBrush(){return pressureBrush;}
  public void configureBrush(float opacity,float hardness,boolean square,boolean pressure){brushOpacity=opacity;brushHardness=hardness;squareBrush=square;pressureBrush=pressure;}
  private void paintStroke(float x0,float y0,float x1,float y1,MotionEvent event){
+  if(!strokeEditing){
+   byte[] mask=null;
+   if(hasSelection()){
+    mask=new byte[canvasWidth*canvasHeight];
+    int left=Math.max(0,(int)Math.floor(selectionLeft)),right=Math.min(canvasWidth,(int)Math.ceil(selectionRight));
+    int top=Math.max(0,(int)Math.floor(selectionTop)),bottom=Math.min(canvasHeight,(int)Math.ceil(selectionBottom));
+    for(int y=top;y<bottom;++y)for(int x=left;x<right;++x)if(selectionContains(x,y))mask[y*canvasWidth+x]=1;
+   }
+   nativeSetBrushSelection(mask);nativeBeginEdit();strokeEditing=true;
+  }
   float pressure=pressureBrush&&event.getToolType(0)==MotionEvent.TOOL_TYPE_STYLUS?Math.max(.1f,Math.min(1f,event.getPressure())):1f;
   nativeStyledStroke(x0,y0,x1,y1,brushRadius*pressure,color,brushOpacity,brushHardness,squareBrush,tool==ERASER);
  }
@@ -545,7 +559,7 @@ public final class DrawingView extends View {
   if(hasSelection)wandBoundary.set(freeRegion.getBoundaryPath());
   invalidate();
  }
- private void nativeBeginEditIfNeeded(){if(tool!=PICKER&&tool<=FILLED_ELLIPSE)nativeBeginEdit();}
+ private void nativeBeginEditIfNeeded(){if(tool!=BRUSH&&tool!=ERASER&&tool!=PICKER&&tool<=FILLED_ELLIPSE)nativeBeginEdit();}
  private void updateMovedSelection(float x,float y){
   float dx=x-moveStartX,dy=y-moveStartY;
   dx=Math.max(-moveOriginalLeft,Math.min(canvasWidth-moveOriginalRight,dx));
@@ -587,7 +601,7 @@ public final class DrawingView extends View {
  case MotionEvent.ACTION_DOWN:
   if(x<0||y<0||x>=canvasWidth||y>=canvasHeight)return true;
   getParent().requestDisallowInterceptTouchEvent(true);
-  drawing=true;startX=previousX=x;startY=previousY=y;
+  drawing=true;strokeEditing=false;startX=previousX=x;startY=previousY=y;
   if(tool==TEXT){drawing=false;if(textPositionListener!=null)textPositionListener.accept((int)x,(int)y);return true;}
   if(tool==MAGIC_WAND){
    selectMatchingRegion((int)x,(int)y);drawing=false;return true;
@@ -617,7 +631,7 @@ public final class DrawingView extends View {
    drawing=false;
    if(pickedColorListener!=null)pickedColorListener.accept(color);
   }else if(tool==BUCKET){nativeFill((int)x,(int)y,color);drawing=false;refresh();}
-  else if(tool==BRUSH||tool==ERASER){paintStroke(x,y,x,y,event);refresh();}
+  else if(tool==BRUSH||tool==ERASER){invalidate();}
   return true;
  case MotionEvent.ACTION_MOVE:
   if(!drawing)return true;
@@ -664,7 +678,7 @@ public final class DrawingView extends View {
     drawing=false;invalidate();return true;
    }
    if(tool==SELECT_RECTANGLE||tool==SELECT_ELLIPSE){updateSelection(x,y);hasSelection=hasSelection();drawing=false;return true;}
-   if(tool==BRUSH||tool==ERASER){if(x!=previousX||y!=previousY)paintStroke(previousX,previousY,x,y,event);}
+   if(tool==BRUSH||tool==ERASER){if(!strokeEditing||x!=previousX||y!=previousY)paintStroke(previousX,previousY,x,y,event);}
    else if(tool>=ROUNDED_RECTANGLE&&tool<=FILLED_TRIANGLE)additionalShape(tool,startX,startY,x,y);
    else nativeShape(tool,(int)startX,(int)startY,(int)x,(int)y,color);
    drawing=false;refresh();

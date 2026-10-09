@@ -3,6 +3,7 @@
 #include <cerrno>
 #include <stdexcept>
 #include "velyntora/ProjectIO.hpp"
+#include "velyntora/PixelEffects.hpp"
 #include <cmath>
 #include <algorithm>
 #include <memory>
@@ -18,6 +19,7 @@ std::unique_ptr<velyntora::Canvas> canvas;
 std::unique_ptr<velyntora::LayerDocument> layers;
 struct Snapshot { velyntora::LayerDocument layers; };
 std::vector<Snapshot> undoStack, redoStack;
+std::vector<std::uint8_t> brushMask;
 constexpr std::size_t limit=15;
 // Cap history memory across both stacks to avoid exhausting Android heap
 // when many full-resolution layers are present.
@@ -56,7 +58,7 @@ void storeActive(){
 void loadActive(){
  if(layers&&canvas)canvas->setPixels(layers->layer(layers->activeIndex()).pixels);
 }
-void resetHistory(){undoStack.clear();redoStack.clear();}
+void resetHistory(){undoStack.clear();redoStack.clear();brushMask.clear();}
 void restore(const Snapshot& snapshot){
  auto restored=std::make_unique<velyntora::LayerDocument>(snapshot.layers);
  auto restoredCanvas=std::make_unique<velyntora::Canvas>(restored->width(),restored->height());
@@ -292,8 +294,10 @@ extern "C" JNIEXPORT jint JNICALL Java_art_velyntora_core_DrawingView_nativeActi
  std::lock_guard<std::mutex> lock(guard);return layers?static_cast<jint>(layers->activeIndex()):-1;
 }
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeAddLayer(JNIEnv*,jclass){
- std::lock_guard<std::mutex> lock(guard);if(!layers||layers->layerCount()>=32)return JNI_FALSE;
- checkpoint();layers->addLayer("Capa "+std::to_string(layers->layerCount()+1));loadActive();return JNI_TRUE;
+ std::lock_guard<std::mutex> lock(guard);
+ if(!layers||layers->layerCount()>=32||std::uint64_t(layers->width())*layers->height()*(layers->layerCount()+1)>24000000)return JNI_FALSE;
+ try{checkpoint();layers->addLayer("Capa "+std::to_string(layers->layerCount()+1));loadActive();return JNI_TRUE;}
+ catch(...){return JNI_FALSE;}
 }
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeSelectLayer(JNIEnv*,jclass,jint index){
  std::lock_guard<std::mutex> lock(guard);if(!layers||index<0||!layers->selectLayer(static_cast<std::size_t>(index)))return JNI_FALSE;
@@ -981,5 +985,21 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
 
 extern "C" JNIEXPORT void JNICALL Java_art_velyntora_core_DrawingView_nativeStyledStroke(JNIEnv*,jclass,jfloat x0,jfloat y0,jfloat x1,jfloat y1,jfloat radius,jint color,jfloat opacity,jfloat hardness,jboolean square,jboolean eraser){
  std::lock_guard<std::mutex> lock(guard);
- if(canvas){canvas->strokeStyled(x0,y0,x1,y1,radius,static_cast<std::uint32_t>(color),opacity,hardness,square,eraser);storeActive();}
+ if(canvas){canvas->strokeStyled(x0,y0,x1,y1,radius,static_cast<std::uint32_t>(color),opacity,hardness,square,eraser,brushMask.size()==canvas->pixels().size()?&brushMask:nullptr);storeActive();}
+}
+
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeEffect(JNIEnv*,jclass,jint kind,jint amount){
+ std::lock_guard<std::mutex> lock(guard);if(!canvas||!layers)return JNI_FALSE;
+ try{
+  auto pixels=velyntora::pixelEffect(canvas->pixels(),canvas->width(),canvas->height(),kind,amount);
+  if(pixels==canvas->pixels())return JNI_FALSE;
+  checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;
+ }catch(...){return JNI_FALSE;}
+}
+
+extern "C" JNIEXPORT void JNICALL Java_art_velyntora_core_DrawingView_nativeSetBrushSelection(JNIEnv* env,jclass,jbyteArray source){
+ std::lock_guard<std::mutex> lock(guard);brushMask.clear();if(!source||!canvas)return;
+ auto size=env->GetArrayLength(source);if(size!=static_cast<jsize>(canvas->pixels().size()))return;
+ try{brushMask.resize(size);env->GetByteArrayRegion(source,0,size,reinterpret_cast<jbyte*>(brushMask.data()));if(env->ExceptionCheck())brushMask.clear();}
+ catch(...){brushMask.clear();}
 }

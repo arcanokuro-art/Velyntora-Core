@@ -567,8 +567,8 @@ public final class MainActivity extends Activity {
                 () -> moveLayer(1), () -> moveLayer(-1)});
         menu(menus, "Herramientas", new String[]{"Tolerancia de varita mágica", "Configurar pincel"},
             new Runnable[]{this::configureWandTolerance, this::configureBrush});
-        menu(menus, "Efectos", new String[]{"Información"},
-            new Runnable[]{() -> message("Los efectos están en desarrollo.")});
+        menu(menus, "Efectos", new String[]{"Desenfoque de caja…", "Enfocar…", "Detectar bordes…", "Relieve…", "Pixelar…", "Ruido…", "Viñeta…"},
+            new Runnable[]{() -> configureEffect(0), () -> configureEffect(1), () -> configureEffect(2), () -> configureEffect(3), () -> configureEffect(4), () -> configureEffect(5), () -> configureEffect(6)});
         menu(menus, "Ayuda", new String[]{"Acerca de"},
             new Runnable[]{() -> message("Velyntora Core 0.1 — versión de desarrollo Android")});
         addScrollable(root, menus);
@@ -834,7 +834,7 @@ public final class MainActivity extends Activity {
     }
 
     private void addLayer() {
-        if (!drawing.addLayer()) message("Límite de 32 capas alcanzado");
+        if (!drawing.addLayer()) message("Límite de capas o memoria alcanzado");
         else message("Capa creada: " + (drawing.activeLayer() + 1));
         refreshLayerPanel();
     }
@@ -891,6 +891,32 @@ public final class MainActivity extends Activity {
             if (decoded == null) throw new java.io.IOException("Imagen no compatible");
             return decoded;
         }
+    }
+
+    private void configureEffect(int kind) {
+        String[] names = {"Desenfoque de caja", "Enfocar", "Detectar bordes", "Relieve", "Pixelar", "Ruido", "Viñeta"};
+        LinearLayout form = new LinearLayout(this);form.setOrientation(LinearLayout.VERTICAL);
+        int max = kind == 0 || kind == 4 ? 64 : 100;
+        SeekBar amount = new SeekBar(this);amount.setMax(max-1);amount.setProgress(kind == 0 ? 2 : kind == 4 ? 7 : kind == 5 ? 19 : 49);
+        TextView label = text("Valor: " + (amount.getProgress()+1));form.addView(label);form.addView(amount);
+        form.addView(text("Se aplica a toda la capa activa. Puedes deshacer el resultado."));
+        amount.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
+            public void onProgressChanged(SeekBar s,int n,boolean u){label.setText("Valor: " + (n+1));}
+            public void onStartTrackingTouch(SeekBar s){}public void onStopTrackingTouch(SeekBar s){}
+        });
+        new AlertDialog.Builder(this).setTitle(names[kind]).setView(form).setNegativeButton("Cancelar",null)
+            .setPositiveButton("Aplicar",(d,w) -> runEffect(kind,amount.getProgress()+1)).show();
+    }
+
+    private void runEffect(int kind,int amount) {
+        android.app.ProgressDialog progress = new android.app.ProgressDialog(this);
+        progress.setMessage("Aplicando efecto…");progress.setCancelable(false);projectProgress=progress;progress.show();drawing.setEnabled(false);
+        new Thread(() -> {
+            boolean changed = drawing.applyEffect(kind,amount);
+            runOnUiThread(() -> {if (!isDestroyed()) {progress.dismiss();projectProgress=null;drawing.setEnabled(true);
+                if (changed) drawing.effectApplied();else message("La capa no tiene cambios para este efecto");}
+            });
+        },"velyntora-effect").start();
     }
 
     private void configureText(int x,int y) {

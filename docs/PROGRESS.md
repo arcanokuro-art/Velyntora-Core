@@ -14,7 +14,7 @@ Objetivo: reproducir la experiencia y las funciones de Pinta 3.1.2 en Android. E
 - [x] 10. Selecciones rectangulares y elípticas (crear, borrar, copiar, cortar, pegar y mover contenido; sin selección libre).
 - [x] 11. Selección libre y varita mágica (máscaras para copiar, borrar y mover; tolerancia configurable y regiones conectadas).
 - [ ] 12. Mover, recortar y transformar selecciones.
-- [ ] 13. Herramientas de texto y formas adicionales.
+- [x] 13. Herramientas de texto y formas adicionales.
 - [x] 14. Pinceles, borrador alfa y configuración avanzada.
 - [x] 15. Zoom, panorámica y rotación del lienzo.
 - [ ] 16. Gestión completa de tamaños y formatos.
@@ -23,7 +23,7 @@ Objetivo: reproducir la experiencia y las funciones de Pinta 3.1.2 en Android. E
 - [x] 19. Guardar y abrir proyectos editables con capas.
 - [ ] 20. Pulido de interfaz, accesibilidad y corrección de defectos detectados durante desarrollo.
 
-**Avance verificado por entregables: 13/20 = 65.00%**. El entregable 15 incluye zoom de 1–7000 %, panorámica y rotación con dos dedos, controles del menú Ver y coordenadas inversas para las herramientas. Validado con pruebas Java y compilación Android del commit `e90a779f6c8dc8f6c5cea4a1bf33d7ae634e9507` (Actions 37975450908 y 37975450586). La cifra mide estos hitos y no representa paridad exhaustiva con cada comando de Pinta. Las funcionalidades marcadas pueden tener limitaciones y defectos pendientes.
+**Avance verificado por entregables: 14/20 = 70.00%**. El entregable 15 incluye zoom de 1–7000 %, panorámica y rotación con dos dedos, controles del menú Ver y coordenadas inversas para las herramientas. Validado con pruebas Java y compilación Android del commit `e90a779f6c8dc8f6c5cea4a1bf33d7ae634e9507` (Actions 37975450908 y 37975450586). La cifra mide estos hitos y no representa paridad exhaustiva con cada comando de Pinta. Las funcionalidades marcadas pueden tener limitaciones y defectos pendientes.
 
 ## Regla del 100.00 %
 
@@ -31,7 +31,7 @@ El 100.00 % se alcanza al terminar **la programación** de los 20 entregables, n
 
 ## Proyectos editables (entregable 19, verificado)
 
-Formato `.vlycore` versión 1: dimensiones, orden y nombres de capas, visibilidad, opacidad, capa activa y píxeles ARGB completos. Lectura/escritura por bloques de 4 KiB en un hilo de trabajo; no se crea una copia completa del archivo. Se valida el formato, dimensiones, cantidad de capas, propiedades y archivo completo antes de sustituir el documento. Un archivo inválido conserva el dibujo y su historial. Límites: 32 capas y 24 millones de píxeles acumulados; la interfaz de la versión validada abre proyectos de 800 × 800. Undo/Redo comienza vacío al abrir y funciona con las ediciones posteriores. Validado con pruebas C++ y JNI, y compilación Android del commit `c4c80f337bd76350642b2aaedc66ece5eb822620` (Actions 37975859273 y 37975859142).
+Formato `.vlycore` versión 1: dimensiones, orden y nombres de capas, visibilidad, opacidad, capa activa y píxeles ARGB completos. Lectura/escritura por bloques de 4 KiB en un hilo de trabajo; no se crea una copia completa del archivo. Se valida el formato, dimensiones, cantidad de capas, propiedades y archivo completo antes de sustituir el documento. Un archivo inválido conserva el dibujo y su historial. Límites: 32 capas y 24 millones de píxeles acumulados; tras el bloque de tamaños, abre proyectos con dimensiones variables dentro del límite Android. Undo/Redo comienza vacío al abrir y funciona con las ediciones posteriores. Validado con pruebas C++ y JNI, y compilación Android del commit `c4c80f337bd76350642b2aaedc66ece5eb822620` (Actions 37975859273 y 37975859142).
 
 ## Tamaños y formatos (entregable 16, parcial)
 
@@ -41,6 +41,16 @@ Nuevo documento con ancho/alto, tamaño de imagen con remuestreo por píxel cerc
 
 Puntas circular/cuadrada; radio de 1–128 px; opacidad y dureza de 0–100 %; presión del stylus sobre el radio. Mezcla alfa source-over y borrador que reduce alfa sin pintar el fondo. El segmento se rasteriza una vez por píxel para no multiplicar artificialmente la opacidad por el solapamiento de dabs. Levantar el dedo sin desplazamiento no aplica tinta otra vez. Pruebas de mezcla, borrador parcial, bordes suaves y punta cuadrada más APK verificados en `ff72e6ad3ae9f4529e95d97e788a03a769aa2689` (Actions 37976717112 y 37976717255). Quedan detalles transversales de selección y cancelación de gestos dentro del pulido del entregable 20.
 
-## Texto y formas (entregable 13, en validación)
+## Texto y formas (entregable 13, verificado)
 
 Texto multilínea colocado al tocar el lienzo, con tamaño de 4–256 px, negrita/cursiva y familias sans-serif/serif/monospace. Se rasteriza en la capa activa; se puede deshacer, seleccionar y mover, pero no reabrir como objeto tipográfico editable. Rectángulo redondeado y triángulo con variantes de contorno/relleno y alfa. Paleta de herramientas en tres columnas con desplazamiento; capas ocultables para dar espacio al lienzo en teléfonos. Recursos originales de Pinta adaptados como vectores Android para texto, selección libre, varita, movimiento y rectángulo redondeado; icono propio de triángulo.
+
+Validación de texto/formas: compilación Android y pruebas C++/Java/JNI del commit `c42c98c56e1106df744385e0715bec0daef442c2` (Actions 37977246850 y 37977246851). La prueba JNI comprueba transparencia, mezcla de los píxeles insertados y Undo/Redo; el aspecto y la interacción en pantalla quedan para revisión en Android.
+
+## Efectos (entregable 18, parcial)
+
+Siete efectos parametrizados sobre la capa activa: desenfoque de caja (premultiplicación de alfa para evitar halos), enfoque, detección de bordes, relieve, pixelado, ruido y viñeta. Se calculan en un hilo de trabajo con un único punto de Undo/Redo. Este bloque **no completa** el catálogo de Pinta: siguen pendientes los otros desenfoques, distorsiones, efectos artísticos y generadores. No puntúa como entregable 18 completo.
+
+## Correcciones transversales
+
+El pincel/borrador respeta selecciones rectangulares, elípticas, libres y de varita mediante una máscara. El primer toque de un gesto de dos dedos no modifica el documento ni añade un punto al historial; un toque de pintura se aplica al levantar el dedo. Los gestos iniciados después de un trazo ya dibujado conservan ese tramo. El límite acumulado de 24 millones de píxeles se comprueba también al añadir capas.
