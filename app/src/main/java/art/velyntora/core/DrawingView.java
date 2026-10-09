@@ -68,6 +68,35 @@ public final class DrawingView extends View {
  private static native float nativeLayerOpacity();
  private static native int[] nativeLayerThumbnail(int index);
  private static final int SIZE=800;
+ private final Viewport viewport=new Viewport(SIZE,SIZE);
+ private boolean navigating;
+ private float gestureX,gestureY,gestureDistance,gestureAngle;
+ private Runnable viewportChangedListener;
+ public void setOnViewportChangedListener(Runnable listener){viewportChangedListener=listener;}
+ public float zoomPercent(){return (float)(viewport.scale*100);}
+ public float rotationDegrees(){return (float)viewport.angle;}
+ private void viewportChanged(){invalidate();if(viewportChangedListener!=null)viewportChangedListener.run();}
+ public void fitCanvas(){viewport.fit(getWidth(),getHeight());viewportChanged();}
+ public void zoomBy(float factor){viewport.zoom(viewport.scale*factor,getWidth()/2.,getHeight()/2.);viewportChanged();}
+ public void setZoomPercent(float percent){viewport.zoom(percent/100.,getWidth()/2.,getHeight()/2.);viewportChanged();}
+ public void rotateView(float degrees){viewport.rotate(degrees,getWidth()/2.,getHeight()/2.);viewportChanged();}
+ @Override protected void onSizeChanged(int w,int h,int oldw,int oldh){
+  super.onSizeChanged(w,h,oldw,oldh);
+  if(oldw==0||oldh==0)viewport.fit(w,h);
+  else{viewport.centerX+=(w-oldw)/2.;viewport.centerY+=(h-oldh)/2.;}
+  viewportChanged();
+ }
+ private void recordGesture(MotionEvent event){
+  gestureX=(event.getX(0)+event.getX(1))/2f;gestureY=(event.getY(0)+event.getY(1))/2f;
+  float dx=event.getX(1)-event.getX(0),dy=event.getY(1)-event.getY(0);
+  gestureDistance=(float)Math.hypot(dx,dy);gestureAngle=(float)Math.toDegrees(Math.atan2(dy,dx));
+ }
+ private void cancelToolGesture(){
+  if(drawing&&(tool==SELECT_FREE||tool==SELECT_RECTANGLE||tool==SELECT_ELLIPSE))deselect();
+  if(movingSelection){selectionLeft=moveOriginalLeft;selectionTop=moveOriginalTop;selectionRight=moveOriginalRight;selectionBottom=moveOriginalBottom;}
+  drawing=false;movingSelection=false;movingPixels=false;
+ }
+
  public static final int BRUSH=0,RECTANGLE=1,ELLIPSE=2,LINE=3,BUCKET=4,ERASER=5,PICKER=6,FILLED_RECTANGLE=7,FILLED_ELLIPSE=8,SELECT_RECTANGLE=9,SELECT_ELLIPSE=10,MOVE_SELECTION=11,MOVE_PIXELS=12,SELECT_FREE=13,MAGIC_WAND=14;
  private final Paint paint=new Paint(Paint.FILTER_BITMAP_FLAG);
  private final Bitmap bitmap=Bitmap.createBitmap(SIZE,SIZE,Bitmap.Config.ARGB_8888);
@@ -372,35 +401,29 @@ public final class DrawingView extends View {
  @Override protected void onDraw(Canvas canvas){
   super.onDraw(canvas);
   if(getWidth()<=0||getHeight()<=0)return;
-  float scale=Math.min(getWidth()/(float)SIZE,getHeight()/(float)SIZE);
-  float x=(getWidth()-SIZE*scale)/2f,y=(getHeight()-SIZE*scale)/2f;
+  float scale=(float)viewport.scale;
   canvas.drawColor(0xFFE3E3E3);
-  // The checkerboard is drawn beneath the image, so transparent eraser
-  // strokes reveal transparency instead of looking like opaque gray paint.
   canvas.save();
-  canvas.clipRect(x,y,x+SIZE*scale,y+SIZE*scale);
+  canvas.translate((float)viewport.centerX,(float)viewport.centerY);
+  canvas.rotate((float)viewport.angle);
+  canvas.scale(scale,scale);
+  canvas.translate(-SIZE/2f,-SIZE/2f);
+  canvas.clipRect(0,0,SIZE,SIZE);
   checkerPaint.setColor(0xFFFFFFFF);
-  canvas.drawRect(x,y,x+SIZE*scale,y+SIZE*scale,checkerPaint);
-  final float tile=16f*scale;
-  if(tile>0f){
-   checkerPaint.setColor(0xFFD1D1D1);
-   for(int row=0;row<50;++row){
-    for(int col=(row&1);col<50;col+=2){
-     float left=x+col*tile,top=y+row*tile;
-     canvas.drawRect(left,top,left+tile,top+tile,checkerPaint);
-    }
-   }
-  }
-  canvas.drawBitmap(bitmap,null,new RectF(x,y,x+SIZE*scale,y+SIZE*scale),paint);
+  canvas.drawRect(0,0,SIZE,SIZE,checkerPaint);
+  checkerPaint.setColor(0xFFD1D1D1);
+  for(int row=0;row<50;++row)for(int col=(row&1);col<50;col+=2)
+   canvas.drawRect(col*16,row*16,(col+1)*16,(row+1)*16,checkerPaint);
+  canvas.drawBitmap(bitmap,0,0,paint);
   if(hasSelection()){
    selectionPaint.setColor(0xFF202020);
    selectionPaint.setStyle(Paint.Style.STROKE);
    selectionPaint.setStrokeWidth(Math.max(1f,1f/scale));
    selectionPaint.setPathEffect(new android.graphics.DashPathEffect(new float[]{6f/scale,4f/scale},0));
-   RectF bounds=new RectF(x+selectionLeft*scale,y+selectionTop*scale,x+selectionRight*scale,y+selectionBottom*scale);
+   RectF bounds=new RectF(selectionLeft,selectionTop,selectionRight,selectionBottom);
    if(selectionTool==SELECT_ELLIPSE)canvas.drawOval(bounds,selectionPaint);
-   else if(selectionTool==SELECT_FREE){canvas.save();canvas.translate(x,y);canvas.scale(scale,scale);canvas.drawPath(freePath,selectionPaint);canvas.restore();}
-   else if(selectionTool==MAGIC_WAND){canvas.save();canvas.translate(x,y);canvas.scale(scale,scale);canvas.drawPath(wandBoundary,selectionPaint);canvas.restore();}
+   else if(selectionTool==SELECT_FREE){canvas.save();canvas.drawPath(freePath,selectionPaint);canvas.restore();}
+   else if(selectionTool==MAGIC_WAND){canvas.save();canvas.drawPath(wandBoundary,selectionPaint);canvas.restore();}
    else canvas.drawRect(bounds,selectionPaint);
    selectionPaint.setPathEffect(null);
   }
@@ -466,10 +489,32 @@ public final class DrawingView extends View {
   selectionTop=Math.min(b,d);selectionBottom=Math.max(b,d);
   invalidate();
  }
- @Override public boolean onTouchEvent(MotionEvent event){float scale=Math.min(getWidth()/(float)SIZE,getHeight()/(float)SIZE);if(scale<=0)return false;float left=(getWidth()-SIZE*scale)/2f,top=(getHeight()-SIZE*scale)/2f;float x=(event.getX()-left)/scale,y=(event.getY()-top)/scale;
+ @Override public boolean onTouchEvent(MotionEvent event){
+  if(getWidth()<=0||getHeight()<=0)return false;
+  int action=event.getActionMasked();
+  if(action==MotionEvent.ACTION_POINTER_DOWN&&event.getPointerCount()>=2){
+   cancelToolGesture();navigating=true;recordGesture(event);
+   getParent().requestDisallowInterceptTouchEvent(true);return true;
+  }
+  if(navigating){
+   if(action==MotionEvent.ACTION_MOVE&&event.getPointerCount()==2){
+    float oldX=gestureX,oldY=gestureY,oldDistance=gestureDistance,oldAngle=gestureAngle;
+    recordGesture(event);
+    float delta=gestureAngle-oldAngle;while(delta>180)delta-=360;while(delta< -180)delta+=360;
+    if(oldDistance>1)viewport.gesture(oldX,oldY,gestureX,gestureY,gestureDistance/oldDistance,delta);
+    viewportChanged();
+   }else if(action==MotionEvent.ACTION_POINTER_UP&&event.getPointerCount()>2){gestureDistance=0;}
+   else if(action==MotionEvent.ACTION_UP||action==MotionEvent.ACTION_CANCEL){
+    navigating=false;getParent().requestDisallowInterceptTouchEvent(false);
+   }
+   return true;
+  }
+  float x=(float)viewport.documentX(event.getX(),event.getY());
+  float y=(float)viewport.documentY(event.getX(),event.getY());
  switch(event.getActionMasked()){
  case MotionEvent.ACTION_DOWN:
-  if(x<0||y<0||x>=SIZE||y>=SIZE)return false;
+  if(x<0||y<0||x>=SIZE||y>=SIZE)return true;
+  getParent().requestDisallowInterceptTouchEvent(true);
   drawing=true;startX=previousX=x;startY=previousY=y;
   if(tool==MAGIC_WAND){
    selectMatchingRegion((int)x,(int)y);drawing=false;return true;

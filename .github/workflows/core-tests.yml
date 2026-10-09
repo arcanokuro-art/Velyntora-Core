@@ -8,6 +8,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Viewport coordinate tests
+        run: |
+          mkdir -p build/java-tests
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/Viewport.java tests/ViewportTests.java
+          java -cp build/java-tests art.velyntora.core.ViewportTests
       - run: cmake -S tests -B build/tests -DCMAKE_BUILD_TYPE=Debug
       - run: cmake --build build/tests --parallel
       - run: ctest --test-dir build/tests --output-on-failure
