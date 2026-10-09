@@ -684,6 +684,7 @@ public final class MainActivity extends Activity {
         LinearLayout colors = row();
         TextView paletteLabel = text("COLORES  ");
         colors.addView(paletteLabel);
+        button(colors,"Elegir color…",this::configureColor);
         int[] palette = {Color.BLACK, Color.WHITE, Color.GRAY, Color.RED, 0xFFFF9800,
             Color.YELLOW, Color.GREEN, Color.CYAN, Color.BLUE, Color.MAGENTA,
             0xFF795548, 0xFF9C27B0};
@@ -706,6 +707,14 @@ public final class MainActivity extends Activity {
         drawing.setOnViewportChangedListener(() -> status.setText(String.format(java.util.Locale.US,
             "%d × %d px  |  Zoom: %.1f %%  |  Rotación: %.1f°", drawing.documentWidth(), drawing.documentHeight(), drawing.zoomPercent(), drawing.rotationDegrees())));
         setContentView(root);
+    }
+
+    private void configureColor(){
+        LinearLayout form=new LinearLayout(this);form.setOrientation(LinearLayout.VERTICAL);
+        View preview=new View(this);preview.setBackgroundColor(activeColor);preview.setContentDescription("Vista previa del color");form.addView(preview,new LinearLayout.LayoutParams(-1,dp(48)));
+        int[] values={activeColor>>>24,(activeColor>>>16)&255,(activeColor>>>8)&255,activeColor&255};String[] labels={"Alfa","Rojo","Verde","Azul"};
+        for(int index=0;index<4;index++){final int channel=index;TextView label=text(labels[index]+": "+values[index]);form.addView(label);SeekBar slider=new SeekBar(this);slider.setMax(255);slider.setProgress(values[index]);slider.setContentDescription(labels[index]);form.addView(slider);slider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){public void onProgressChanged(SeekBar s,int n,boolean user){values[channel]=n;label.setText(labels[channel]+": "+n);preview.setBackgroundColor(values[0]<<24|values[1]<<16|values[2]<<8|values[3]);}public void onStartTrackingTouch(SeekBar s){}public void onStopTrackingTouch(SeekBar s){}});}
+        new AlertDialog.Builder(this).setTitle("Color RGBA").setView(scrollForm(form)).setNegativeButton("Cancelar",null).setPositiveButton("Usar color",(d,w)->{activeColor=values[0]<<24|values[1]<<16|values[2]<<8|values[3];drawing.setColor(activeColor);}).show();
     }
 
     private void togglePanel(ScrollView panel){if(panel==null)return;boolean show=panel.getVisibility()!=View.VISIBLE;if(show&&!panelsInline){toolScroll.setVisibility(View.GONE);layerScroll.setVisibility(View.GONE);}panel.setVisibility(show?View.VISIBLE:View.GONE);}
@@ -755,6 +764,8 @@ public final class MainActivity extends Activity {
         button.setAllCaps(false);
         button.setMinWidth(0);
         button.setMinimumWidth(0);
+        String description=label.equals("+")?"Añadir capa":label.equals("−")?"Eliminar capa":label.equals("↑")?"Subir capa":label.equals("↓")?"Bajar capa":label;
+        button.setContentDescription(description);
         button.setOnClickListener(v -> action.run());
         parent.addView(button);
     }
