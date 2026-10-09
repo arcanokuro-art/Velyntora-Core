@@ -21,6 +21,7 @@ public final class DrawingView extends View {
  private static native int nativePickColor(int x,int y);
  private static native boolean nativeEraseSelection(int kind,int x0,int y0,int x1,int y1);
  private static native boolean nativeEraseMaskedSelection(int x,int y,int w,int h,byte[] mask);
+ private static native boolean nativeMoveMaskedSelection(int x,int y,int w,int h,byte[] mask,int dx,int dy);
  private static native int[] nativeCopySelection(int kind,int x0,int y0,int x1,int y1);
  private static native boolean nativePasteSelection(int[] data,int x,int y);
  private static native boolean nativeMovePixels(int kind,int x0,int y0,int x1,int y1,int dx,int dy);
@@ -146,13 +147,27 @@ public final class DrawingView extends View {
  public void deselect(){hasSelection=false;movingSelection=false;movingPixels=false;invalidate();}
  public void enableSelectionMove(){tool=MOVE_SELECTION;invalidate();}
  public boolean moveSelectedPixels(int dx,int dy){
-  if(!hasSelection()||selectionTool==SELECT_FREE||(dx==0&&dy==0))return false;
+  if(!hasSelection()||(dx==0&&dy==0))return false;
   int left=(int)Math.floor(selectionLeft),top=(int)Math.floor(selectionTop);
   int right=(int)Math.ceil(selectionRight),bottom=(int)Math.ceil(selectionBottom);
   dx=Math.max(-left,Math.min(SIZE-right,dx));
   dy=Math.max(-top,Math.min(SIZE-bottom,dy));
   if(dx==0&&dy==0)return false;
-  boolean ok=nativeMovePixels(selectionTool,left,top,right,bottom,dx,dy);
+  boolean ok;
+  if(selectionTool==SELECT_FREE){
+   int w=right-left,h=bottom-top;
+   if(w<=0||h<=0||((long)w*h)>SIZE*SIZE)return false;
+   byte[] mask=new byte[w*h];
+   for(int row=0;row<h;++row)for(int col=0;col<w;++col)
+    if(freeRegion.contains(left+col,top+row))mask[row*w+col]=1;
+   ok=nativeMoveMaskedSelection(left,top,w,h,mask,dx,dy);
+   if(ok){
+    android.graphics.Matrix matrix=new android.graphics.Matrix();
+    matrix.setTranslate(dx,dy);
+    freePath.transform(matrix);
+    freeRegion.translate(dx,dy);
+   }
+  }else ok=nativeMovePixels(selectionTool,left,top,right,bottom,dx,dy);
   if(ok){selectionLeft+=dx;selectionRight+=dx;selectionTop+=dy;selectionBottom+=dy;refresh();}
   return ok;
  }
@@ -236,7 +251,7 @@ public final class DrawingView extends View {
   }
   if(tool==MOVE_SELECTION||tool==MOVE_PIXELS){
    movingPixels=tool==MOVE_PIXELS;
-   if(selectionTool==SELECT_FREE){movingSelection=false;drawing=false;return true;}
+   if(selectionTool==SELECT_FREE&&tool==MOVE_SELECTION){movingSelection=false;drawing=false;return true;}
    movingSelection=hasSelection()&&selectionContains((int)x,(int)y);
    if(movingSelection){moveStartX=x;moveStartY=y;moveOriginalLeft=selectionLeft;moveOriginalTop=selectionTop;moveOriginalRight=selectionRight;moveOriginalBottom=selectionBottom;}
    else drawing=false;
