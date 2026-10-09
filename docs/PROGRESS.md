@@ -114,3 +114,10 @@ Fragmentar, desenfoque de lente mediante disco muestreado, abolladuras por ruido
 ## Cierre del entregable 18
 
 Cobertura funcional de las 37 familias del catálogo de referencia, con controles, selección e historial, agrupadas en un solo menú Efectos. Correspondencias y diferencias explícitas en [EFFECTS_PARITY.md](EFFECTS_PARITY.md). No se afirma igualdad píxel a píxel ni todos los rangos/métodos/opciones de Pinta. Compilación Android y pruebas C++/Java/JNI aprobadas para `c20cc4296a1f20dc7d5f09bd86dec1fca82baf7b` (Actions 37987595585 y 37987595653). Se suma el hito: 17/20 = **85.00 %**. Quedan 09, 16 y 20.
+
+
+## GIF y exportación en segundo plano (entregables 16 y 20, parciales)
+
+Exportación GIF89a de una sola imagen: paleta exacta hasta 255 colores visibles, reducción a un cubo RGB de 216 colores al excederla y transparencia binaria (alfa menor de 128 transparente). No exporta animaciones ni conserva semitransparencias. Compresión LZW con diccionario de 9–12 bits, reinicios y bloques de 255 bytes; memoria de trabajo proporcional al ancho de fila. Pruebas con el decodificador independiente de Java: paletas, reducción de colores, umbral alfa, límites del diccionario, reinicios e imagen de 4 millones de píxeles. El mensaje de exportación avisa de la reducción de colores/transparencia.
+
+PNG/JPEG/WebP usan ahora el mismo hilo de exportación que BMP/TGA/TIFF/GIF; compresión, escritura y composición blanca de JPEG ya no se ejecutan en el hilo de interfaz. Se bloquea la edición durante la operación y se liberan las imágenes al terminar. Estos cambios no cierran la gestión completa de formatos ni el pulido transversal; el avance sigue en **17/20 = 85.00 %**.

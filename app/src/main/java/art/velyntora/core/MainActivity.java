@@ -23,7 +23,7 @@ import java.io.OutputStream;
 
 /** Android workspace modeled after Pinta's tool, canvas, palette and status regions. */
 public final class MainActivity extends Activity {
-    private static final int SAVE_PROJECT = 43, OPEN_PROJECT = 44, SAVE_JPEG = 45, SAVE_WEBP = 46, SAVE_BMP = 47, SAVE_TGA = 48, OPEN_TGA = 49, SAVE_ORA = 50, OPEN_ORA = 51, SAVE_TIFF = 52, OPEN_TIFF = 53;
+    private static final int SAVE_PROJECT = 43, OPEN_PROJECT = 44, SAVE_JPEG = 45, SAVE_WEBP = 46, SAVE_BMP = 47, SAVE_TGA = 48, OPEN_TGA = 49, SAVE_ORA = 50, OPEN_ORA = 51, SAVE_TIFF = 52, OPEN_TIFF = 53, SAVE_GIF = 54;
     private static final int SAVE_PNG = 41;
     private static final int OPEN_IMAGE = 42;
     private DrawingView drawing;
@@ -545,8 +545,8 @@ public final class MainActivity extends Activity {
         root.setBackgroundColor(0xFFF1F1F1);
 
         LinearLayout menus = row();
-        menu(menus, "Archivo", new String[]{"Nuevo…", "Abrir imagen", "Abrir TGA", "Abrir TIFF", "Abrir OpenRaster", "Guardar OpenRaster", "Guardar PNG", "Guardar JPEG", "Guardar WebP", "Guardar BMP", "Guardar TGA", "Guardar TIFF", "Abrir proyecto", "Guardar proyecto"},
-            new Runnable[]{() -> configureDimensions(0), this::openImage, this::openTga, this::openTiff, () -> openRasterPicker(false), () -> openRasterPicker(true), this::savePng, () -> saveImage("image/jpeg", "dibujo.jpg", SAVE_JPEG), () -> saveImage("image/webp", "dibujo.webp", SAVE_WEBP), () -> saveImage("image/bmp", "dibujo.bmp", SAVE_BMP), () -> saveImage("image/x-tga", "dibujo.tga", SAVE_TGA), () -> saveImage("image/tiff", "dibujo.tiff", SAVE_TIFF), () -> projectPicker(false), () -> projectPicker(true)});
+        menu(menus, "Archivo", new String[]{"Nuevo…", "Abrir imagen", "Abrir TGA", "Abrir TIFF", "Abrir OpenRaster", "Guardar OpenRaster", "Guardar PNG", "Guardar JPEG", "Guardar WebP", "Guardar BMP", "Guardar TGA", "Guardar TIFF", "Guardar GIF (imagen fija)", "Abrir proyecto", "Guardar proyecto"},
+            new Runnable[]{() -> configureDimensions(0), this::openImage, this::openTga, this::openTiff, () -> openRasterPicker(false), () -> openRasterPicker(true), this::savePng, () -> saveImage("image/jpeg", "dibujo.jpg", SAVE_JPEG), () -> saveImage("image/webp", "dibujo.webp", SAVE_WEBP), () -> saveImage("image/bmp", "dibujo.bmp", SAVE_BMP), () -> saveImage("image/x-tga", "dibujo.tga", SAVE_TGA), () -> saveImage("image/tiff", "dibujo.tiff", SAVE_TIFF), () -> {message("GIF: colores reducidos y transparencia sin semitransparencias");saveImage("image/gif", "dibujo.gif", SAVE_GIF);}, () -> projectPicker(false), () -> projectPicker(true)});
         menu(menus, "Editar", new String[]{"Deshacer", "Rehacer", "Copiar selección", "Cortar selección", "Pegar selección", "Duplicar selección", "Mover contenido…", "Transformar selección…", "Seleccionar todo", "Invertir selección", "Expandir selección 1 px", "Contraer selección 1 px", "Borrar selección", "Deseleccionar"},
             new Runnable[]{this::undo, this::redo, this::copySelection, this::cutSelection, this::pasteSelection, this::duplicateSelection, this::moveSelectedContent, this::configureSelectionTransform, drawing::selectAll, () -> {if(!drawing.invertSelection())message("No se pudo invertir la selección");}, () -> {if(!drawing.expandSelectionOnePixel())message("No se pudo expandir la selección");}, () -> {if(!drawing.shrinkSelectionOnePixel())message("No se pudo contraer la selección");}, () -> {if(!drawing.eraseSelection())message("No hay selección válida");}, drawing::deselect});
         menu(menus, "Ver", new String[]{"Ajustar al lienzo", "Acercar", "Alejar", "Zoom 100 %", "Zoom 7000 %", "Rotar vista 15° derecha", "Rotar vista 15° izquierda", "Restablecer rotación"},
@@ -1097,7 +1097,18 @@ public final class MainActivity extends Activity {
                 if(output==null)throw new java.io.IOException("No output");
                 java.io.BufferedOutputStream buffered=new java.io.BufferedOutputStream(output);
                 RasterFileWriter.RowSource rows=(y,row)->image.getPixels(row,0,image.getWidth(),0,y,image.getWidth(),1);
-                if(request==SAVE_TIFF)TiffWriter.write(buffered,image.getWidth(),image.getHeight(),rows);else RasterFileWriter.write(buffered,image.getWidth(),image.getHeight(),request==SAVE_TGA,rows);buffered.flush();success=true;
+                if(request==SAVE_TIFF)TiffWriter.write(buffered,image.getWidth(),image.getHeight(),rows);
+                else if(request==SAVE_GIF)GifWriter.write(buffered,image.getWidth(),image.getHeight(),rows);
+                else if(request==SAVE_BMP||request==SAVE_TGA)RasterFileWriter.write(buffered,image.getWidth(),image.getHeight(),request==SAVE_TGA,rows);
+                else {
+                    Bitmap encoded=image;
+                    try {
+                        if(request==SAVE_JPEG){encoded=Bitmap.createBitmap(image.getWidth(),image.getHeight(),Bitmap.Config.ARGB_8888);android.graphics.Canvas canvas=new android.graphics.Canvas(encoded);canvas.drawColor(Color.WHITE);canvas.drawBitmap(image,0,0,null);}
+                        Bitmap.CompressFormat format=request==SAVE_JPEG?Bitmap.CompressFormat.JPEG:request==SAVE_WEBP?(android.os.Build.VERSION.SDK_INT>=30?Bitmap.CompressFormat.WEBP_LOSSLESS:Bitmap.CompressFormat.WEBP):Bitmap.CompressFormat.PNG;
+                        if(!encoded.compress(format,100,buffered))throw new java.io.IOException("No se pudo exportar la imagen");
+                    }finally{if(encoded!=image)encoded.recycle();}
+                }
+                buffered.flush();success=true;
             }catch(Exception e){success=false;}finally{image.recycle();}
             final boolean ok=success;runOnUiThread(()->{if(!isDestroyed()){progress.dismiss();projectProgress=null;drawing.setEnabled(true);message(ok?"Imagen guardada":"Error al guardar la imagen");}});
         },"velyntora-raster-export").start();
@@ -1151,27 +1162,8 @@ public final class MainActivity extends Activity {
             } catch (Exception e) {
                 message("No se pudo abrir la imagen");
             }
-        } else if (request == SAVE_BMP || request == SAVE_TGA || request == SAVE_TIFF) {
+        } else if (request == SAVE_BMP || request == SAVE_TGA || request == SAVE_TIFF || request == SAVE_GIF || request == SAVE_PNG || request == SAVE_JPEG || request == SAVE_WEBP) {
             exportRaster(uri,request);
-        } else if (request == SAVE_PNG || request == SAVE_JPEG || request == SAVE_WEBP) {
-            Bitmap image = drawing.snapshot();
-            if (request == SAVE_JPEG) {
-                Bitmap opaque = Bitmap.createBitmap(image.getWidth(), image.getHeight(), Bitmap.Config.ARGB_8888);
-                android.graphics.Canvas canvas = new android.graphics.Canvas(opaque);canvas.drawColor(Color.WHITE);canvas.drawBitmap(image, 0, 0, null);
-                image.recycle();image = opaque;
-            }
-            Bitmap.CompressFormat format = request == SAVE_JPEG ? Bitmap.CompressFormat.JPEG
-                : request == SAVE_WEBP ? (android.os.Build.VERSION.SDK_INT >= 30 ? Bitmap.CompressFormat.WEBP_LOSSLESS : Bitmap.CompressFormat.WEBP) : Bitmap.CompressFormat.PNG;
-            try (OutputStream out = getContentResolver().openOutputStream(uri, "wt")) {
-                if (out == null || !image.compress(format, 100, out))
-                    throw new IllegalStateException("No se pudo exportar la imagen");
-                out.flush();
-                message("Imagen guardada");
-            } catch (Exception e) {
-                message("Error al guardar la imagen");
-            } finally {
-                image.recycle();
-            }
         }
     }
 }

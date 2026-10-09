@@ -30,6 +30,10 @@ jobs:
           javac -d build/java-tests app/src/main/java/art/velyntora/core/RasterFileWriter.java tests/RasterFileWriterTests.java app/src/main/java/art/velyntora/core/TgaReader.java tests/TgaReaderTests.java
           java -cp build/java-tests art.velyntora.core.RasterFileWriterTests
           java -cp build/java-tests art.velyntora.core.TgaReaderTests
+      - name: GIF file export tests
+        run: |
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/{RasterFileWriter,GifWriter}.java tests/GifWriterTests.java
+          java -cp build/java-tests art.velyntora.core.GifWriterTests
       - name: TIFF file export tests
         run: |
           javac -d build/java-tests app/src/main/java/art/velyntora/core/RasterFileWriter.java app/src/main/java/art/velyntora/core/TiffWriter.java tests/TiffWriterTests.java
