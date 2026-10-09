@@ -164,6 +164,7 @@ public final class DrawingView extends View {
      android.graphics.Path.Direction.CW);
    selected.setPath(ellipse,new android.graphics.Region(0,0,SIZE,SIZE));
   }else return false;
+  selected.op(0,0,SIZE,SIZE,android.graphics.Region.Op.INTERSECT);
   android.graphics.Region inverted=new android.graphics.Region(0,0,SIZE,SIZE);
   inverted.op(selected,android.graphics.Region.Op.DIFFERENCE);
   if(inverted.isEmpty()){deselect();return true;}
