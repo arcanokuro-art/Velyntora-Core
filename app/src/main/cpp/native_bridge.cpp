@@ -527,3 +527,21 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
  if(!changed)return JNI_FALSE;
  checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;
 }
+
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeContrastActive(JNIEnv*,jclass,jint adjustment){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!canvas||!layers||adjustment==0||adjustment< -100||adjustment>100)return JNI_FALSE;
+ auto pixels=canvas->pixels();bool changed=false;
+ const double factor=adjustment>0?1.0+adjustment/100.0:1.0+adjustment/100.0;
+ const auto clamp=[](double v)->std::uint32_t{return static_cast<std::uint32_t>(std::min(255.0,std::max(0.0,std::floor(v+0.5))));};
+ for(auto& pixel:pixels){
+  const std::uint32_t alpha=pixel&0xFF000000u;
+  if(!alpha)continue;
+  const auto transform=[&](std::uint32_t channel){return clamp((static_cast<double>(channel)-127.5)*factor+127.5);};
+  const std::uint32_t r=transform((pixel>>16)&255u),g=transform((pixel>>8)&255u),b=transform(pixel&255u);
+  const std::uint32_t result=alpha|(r<<16)|(g<<8)|b;
+  if(result!=pixel){pixel=result;changed=true;}
+ }
+ if(!changed)return JNI_FALSE;
+ checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;
+}
