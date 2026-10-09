@@ -201,6 +201,7 @@ public final class DrawingView extends View {
   if(!hasSelection()||selectionTool!=SELECT_RECTANGLE)return false;
   int left=(int)Math.floor(selectionLeft),top=(int)Math.floor(selectionTop);
   int right=(int)Math.ceil(selectionRight),bottom=(int)Math.ceil(selectionBottom);
+  if(left<0||top<0||right>SIZE||bottom>SIZE||left>=right||top>=bottom)return false;
   if(!nativeCropActiveSelection(left,top,right,bottom))return false;
   deselect();refresh();return true;
  }
