@@ -89,11 +89,7 @@ public final class MainActivity extends Activity {
         tool(sidebar, "Rectángulo", DrawingView.RECTANGLE);
         tool(sidebar, "Elipse", DrawingView.ELLIPSE);
         tool(sidebar, "Cubeta", DrawingView.BUCKET);
-        button(sidebar, "Borrador", () -> {
-            drawing.setTool(DrawingView.BRUSH);
-            drawing.setColor(Color.WHITE);
-            selectedTool.setText("Borrador");
-        });
+        tool(sidebar, "Borrador", DrawingView.ERASER);
         selectedTool = text("Pincel");
         sidebar.addView(selectedTool);
         workspace.addView(sidebar, new LinearLayout.LayoutParams(dp(116), -1));

@@ -29,7 +29,7 @@ public final class DrawingView extends View {
  private static native float nativeLayerOpacity();
  private static native int[] nativeLayerThumbnail(int index);
  private static final int SIZE=800;
- public static final int BRUSH=0,RECTANGLE=1,ELLIPSE=2,LINE=3,BUCKET=4;
+ public static final int BRUSH=0,RECTANGLE=1,ELLIPSE=2,LINE=3,BUCKET=4,ERASER=5;
  private final Paint paint=new Paint(Paint.FILTER_BITMAP_FLAG);
  private final Bitmap bitmap=Bitmap.createBitmap(SIZE,SIZE,Bitmap.Config.ARGB_8888);
  private int color=0xFF202020,tool=BRUSH;
@@ -72,15 +72,15 @@ public final class DrawingView extends View {
   if(x<0||y<0||x>=SIZE||y>=SIZE)return false;
   drawing=true;startX=previousX=x;startY=previousY=y;nativeBeginEdit();
   if(tool==BUCKET){nativeFill((int)x,(int)y,color);drawing=false;refresh();}
-  else if(tool==BRUSH){nativeStroke(x,y,x,y,4f,color);refresh();}
+  else if(tool==BRUSH||tool==ERASER){nativeStroke(x,y,x,y,4f,tool==ERASER?0x00000000:color);refresh();}
   return true;
  case MotionEvent.ACTION_MOVE:
   if(!drawing)return true;
-  if(tool==BRUSH){nativeStroke(previousX,previousY,x,y,4f,color);refresh();}
+  if(tool==BRUSH||tool==ERASER){nativeStroke(previousX,previousY,x,y,4f,tool==ERASER?0x00000000:color);refresh();}
   previousX=x;previousY=y;return true;
  case MotionEvent.ACTION_UP:
   if(drawing){
-   if(tool==BRUSH)nativeStroke(previousX,previousY,x,y,4f,color);
+   if(tool==BRUSH||tool==ERASER)nativeStroke(previousX,previousY,x,y,4f,tool==ERASER?0x00000000:color);
    else nativeShape(tool,(int)startX,(int)startY,(int)x,(int)y,color);
    drawing=false;refresh();
   }return true;
