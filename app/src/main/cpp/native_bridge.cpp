@@ -112,6 +112,31 @@ extern "C" JNIEXPORT jintArray JNICALL Java_art_velyntora_core_DrawingView_nativ
  if(result)env->SetIntArrayRegion(result,0,static_cast<jsize>(pixels.size()),reinterpret_cast<const jint*>(pixels.data()));
  return result;
 }
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeMovePixels(JNIEnv*,jclass,jint kind,jint x0,jint y0,jint x1,jint y1,jint dx,jint dy){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!canvas||!layers||(kind!=9&&kind!=10))return JNI_FALSE;
+ const int left=std::max(0,std::min(x0,x1)),right=std::min(canvas->width(),std::max(x0,x1));
+ const int top=std::max(0,std::min(y0,y1)),bottom=std::min(canvas->height(),std::max(y0,y1));
+ if(left>=right||top>=bottom||(!dx&&!dy))return JNI_FALSE;
+ const int w=right-left,h=bottom-top;
+ const double cx=(left+right)/2.0,cy=(top+bottom)/2.0,rx=w/2.0,ry=h/2.0;
+ const auto before=canvas->pixels();
+ auto after=before;
+ for(int py=top;py<bottom;++py)for(int px=left;px<right;++px){
+  if(kind==10&&((px+0.5-cx)*(px+0.5-cx)/(rx*rx)+(py+0.5-cy)*(py+0.5-cy)/(ry*ry)>1.0))continue;
+  after[static_cast<std::size_t>(py)*canvas->width()+px]=0u;
+ }
+ for(int py=top;py<bottom;++py)for(int px=left;px<right;++px){
+  if(kind==10&&((px+0.5-cx)*(px+0.5-cx)/(rx*rx)+(py+0.5-cy)*(py+0.5-cy)/(ry*ry)>1.0))continue;
+  const std::int64_t tx=static_cast<std::int64_t>(px)+dx,ty=static_cast<std::int64_t>(py)+dy;
+  if(tx<0||ty<0||tx>=canvas->width()||ty>=canvas->height())continue;
+  after[static_cast<std::size_t>(ty)*canvas->width()+tx]=before[static_cast<std::size_t>(py)*canvas->width()+px];
+ }
+ checkpoint();
+ canvas->setPixels(after);
+ storeActive();
+ return JNI_TRUE;
+}
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativePasteSelection(JNIEnv* env,jclass,jintArray source,jint x,jint y){
  std::lock_guard<std::mutex> lock(guard);
  if(!canvas||!layers||!source)return JNI_FALSE;

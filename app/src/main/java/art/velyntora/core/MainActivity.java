@@ -43,6 +43,32 @@ public final class MainActivity extends Activity {
         message("Selección copiada a la memoria de Velyntora");
     }
 
+    private void moveSelectedContent() {
+        LinearLayout form = new LinearLayout(this);
+        form.setOrientation(LinearLayout.VERTICAL);
+        android.widget.EditText horizontal = new android.widget.EditText(this);
+        horizontal.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_SIGNED);
+        horizontal.setHint("Desplazamiento horizontal (px)");
+        horizontal.setText("0");
+        android.widget.EditText vertical = new android.widget.EditText(this);
+        vertical.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_SIGNED);
+        vertical.setHint("Desplazamiento vertical (px)");
+        vertical.setText("0");
+        form.addView(horizontal);
+        form.addView(vertical);
+        new AlertDialog.Builder(this).setTitle("Mover contenido seleccionado")
+            .setView(form).setNegativeButton("Cancelar", null)
+            .setPositiveButton("Mover", (dialog, which) -> {
+                try {
+                    int dx = Integer.parseInt(horizontal.getText().toString().trim());
+                    int dy = Integer.parseInt(vertical.getText().toString().trim());
+                    if (!drawing.moveSelectedPixels(dx,dy)) message("No se pudo mover la selección");
+                } catch (NumberFormatException error) {
+                    message("Introduce desplazamientos numéricos válidos");
+                }
+            }).show();
+    }
+
     private void pasteSelection() {
         if (selectionClipboard == null || selectionClipboard.isRecycled()) {
             message("No hay contenido copiado"); return;
@@ -79,8 +105,8 @@ public final class MainActivity extends Activity {
         LinearLayout menus = row();
         menu(menus, "Archivo", new String[]{"Nuevo", "Abrir imagen", "Guardar PNG"},
             new Runnable[]{drawing::clear, this::openImage, this::savePng});
-        menu(menus, "Editar", new String[]{"Deshacer", "Rehacer", "Copiar selección", "Cortar selección", "Pegar selección", "Borrar selección", "Deseleccionar"},
-            new Runnable[]{this::undo, this::redo, this::copySelection, this::cutSelection, this::pasteSelection, () -> {if(!drawing.eraseSelection())message("No hay selección válida");}, drawing::deselect});
+        menu(menus, "Editar", new String[]{"Deshacer", "Rehacer", "Copiar selección", "Cortar selección", "Pegar selección", "Mover contenido…", "Borrar selección", "Deseleccionar"},
+            new Runnable[]{this::undo, this::redo, this::copySelection, this::cutSelection, this::pasteSelection, this::moveSelectedContent, () -> {if(!drawing.eraseSelection())message("No hay selección válida");}, drawing::deselect});
         menu(menus, "Ver", new String[]{"Ajustar al lienzo"},
             new Runnable[]{drawing::invalidate});
         menu(menus, "Imagen", new String[]{"Nuevo lienzo"},

@@ -22,6 +22,7 @@ public final class DrawingView extends View {
  private static native boolean nativeEraseSelection(int kind,int x0,int y0,int x1,int y1);
  private static native int[] nativeCopySelection(int kind,int x0,int y0,int x1,int y1);
  private static native boolean nativePasteSelection(int[] data,int x,int y);
+ private static native boolean nativeMovePixels(int kind,int x0,int y0,int x1,int y1,int dx,int dy);
  private static native int nativeLayerCount();
  private static native int nativeActiveLayer();
  private static native boolean nativeAddLayer();
@@ -117,6 +118,17 @@ public final class DrawingView extends View {
  }
  public void deselect(){hasSelection=false;movingSelection=false;invalidate();}
  public void enableSelectionMove(){tool=MOVE_SELECTION;invalidate();}
+ public boolean moveSelectedPixels(int dx,int dy){
+  if(!hasSelection||(!dx&&!dy))return false;
+  int left=(int)Math.floor(selectionLeft),top=(int)Math.floor(selectionTop);
+  int right=(int)Math.ceil(selectionRight),bottom=(int)Math.ceil(selectionBottom);
+  dx=Math.max(-left,Math.min(SIZE-right,dx));
+  dy=Math.max(-top,Math.min(SIZE-bottom,dy));
+  if(!dx&&!dy)return false;
+  boolean ok=nativeMovePixels(selectionTool,left,top,right,bottom,dx,dy);
+  if(ok){selectionLeft+=dx;selectionRight+=dx;selectionTop+=dy;selectionBottom+=dy;refresh();}
+  return ok;
+ }
  public void undo(){if(nativeUndo())refresh();}
  public void redo(){if(nativeRedo())refresh();}
  public void loadBitmap(Bitmap source){
