@@ -37,7 +37,7 @@ std::vector<std::uint32_t> applyCurve(const std::vector<std::uint32_t>& pixels,c
  for(auto& p:out){if(!(p>>24))continue;int r=(p>>16)&255,g=(p>>8)&255,b=p&255;
   if(channel==0){r=curve[r];g=curve[g];b=curve[b];}
   else if(channel==1)r=curve[r];else if(channel==2)g=curve[g];else if(channel==3)b=curve[b];
-  else{int old=(299*r+587*g+114*b+500)/1000,value=curve[old];if(old==0)r=g=b=value;else{r=clamp((r*value+old/2)/old);g=clamp((g*value+old/2)/old);b=clamp((b*value+old/2)/old);}}
+  else{int old=(299*r+587*g+114*b+500)/1000,value=curve[old];if(value==old)continue;if(old==0)r=g=b=value;else{r=clamp((r*value+old/2)/old);g=clamp((g*value+old/2)/old);b=clamp((b*value+old/2)/old);}}
   p=(p&0xff000000)|(std::uint32_t(r)<<16)|(std::uint32_t(g)<<8)|std::uint32_t(b);
  }return out;
 }

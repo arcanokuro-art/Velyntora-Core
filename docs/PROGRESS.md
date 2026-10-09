@@ -70,3 +70,7 @@ Curvas suaves editables con hasta 32 puntos y canal RGB/R/G/B/luminosidad; nivel
 ## Exportación adicional (entregable 16, parcial)
 
 BMP de 24 bits con fondo blanco y TGA de 32 bits con alfa, escritos fila a fila en un hilo de trabajo. Se comprueban cabeceras, orden de filas, relleno, transparencia y composición mediante pruebas Java. Siguen pendientes formatos adicionales. Importación TGA de 24/32 bits, sin compresión o con RLE, con ambos orígenes y validación de paquetes truncados o fuera de límites antes de sustituir el documento. No se suma el entregable 16.
+
+## Desenfoques adicionales (entregable 18, parcial)
+
+Gaussiano separable con radio 0–32 px, movimiento con distancia y dirección, radial con centro configurable y arco, y zoom con centro e intensidad. Muestreo bilineal y mezcla premultiplicada por alfa para no contaminar bordes con RGB oculto de píxeles transparentes. Cada aplicación se ejecuta fuera de la interfaz y ocupa un solo paso del historial. Pruebas de simetría, constantes, identidad, direcciones, transparencia, parámetros inválidos y llamadas JNI con Undo/Redo. El catálogo completo de efectos sigue pendiente y no suma el entregable 18. Se corrigió también la curva de luminosidad identidad para colores próximos al negro.

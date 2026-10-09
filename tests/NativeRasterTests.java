@@ -10,6 +10,7 @@ class DrawingView {
  static native boolean nativeUndo();
  static native boolean nativeRedo();
  static native boolean nativeTransformSelection(int left,int top,int width,int height,byte[] mask,float degrees,float sx,float sy);
+ static native boolean nativeBlur(int kind,int amount,int angle,int cx,int cy);
  static native boolean nativeColorAdjustment(int kind,int[] values);
  static native boolean nativeEffect(int kind,int amount);
  static native void nativeSetBrushSelection(byte[] mask);
@@ -55,6 +56,9 @@ public final class NativeRasterTests {
   check(DrawingView.nativeColorAdjustment(3,new int[]{2,4,8}));check(DrawingView.nativeUndo());check(Arrays.equals(colors,DrawingView.nativePixels()));
   check(DrawingView.nativeColorAdjustment(5,new int[]{15,20}));check(DrawingView.nativeUndo());check(Arrays.equals(colors,DrawingView.nativePixels()));
   for(int kind=0;kind<3;kind++){check(DrawingView.nativeColorAdjustment(6,new int[]{kind}));check(DrawingView.nativeUndo());check(Arrays.equals(colors,DrawingView.nativePixels()));}
+  int[] impulse={0,0xffff0000,0};check(DrawingView.nativeLoadBitmap(3,1,impulse));
+  for(int kind=0;kind<4;kind++){check(DrawingView.nativeBlur(kind,kind==2?45:4,35,25,50));check(DrawingView.nativeUndo());check(Arrays.equals(impulse,DrawingView.nativePixels()));check(DrawingView.nativeRedo());check(DrawingView.nativeUndo());}
+  check(!DrawingView.nativeBlur(0,33,0,50,50));check(Arrays.equals(impulse,DrawingView.nativePixels()));
   System.out.println("JNI raster: transparency, source-over composition, atomic import, and undo/redo passed");
  }
 }

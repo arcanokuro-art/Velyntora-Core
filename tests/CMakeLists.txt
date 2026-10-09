@@ -30,3 +30,7 @@ add_test(NAME selection_transform_tests COMMAND selection_transform_tests)
 add_executable(color_tests color_tests.cpp)
 target_link_libraries(color_tests PRIVATE velyntora_engine)
 add_test(NAME color_tests COMMAND color_tests)
+
+add_executable(blur_tests blur_tests.cpp)
+target_link_libraries(blur_tests PRIVATE velyntora_engine)
+add_test(NAME blur_tests COMMAND blur_tests)

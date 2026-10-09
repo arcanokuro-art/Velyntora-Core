@@ -3,6 +3,7 @@
 #include <stdexcept>
 using namespace velyntora;
 int main(){
+ std::array<int,256> nearBlackIdentity{};for(int i=0;i<256;i++)nearBlackIdentity[i]=i;assert(applyCurve({0xff010000,0xff000001},nearBlackIdentity,4)==std::vector<std::uint32_t>({0xff010000,0xff000001}));
  std::vector<std::uint32_t> sample={0x80102030,0x00abcdef};
  assert(brightnessContrast(sample,0,0)==sample);
  assert(brightnessContrast(sample,100,0)[0]==0x80ffffff);
