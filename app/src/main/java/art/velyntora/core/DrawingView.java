@@ -205,10 +205,13 @@ public final class DrawingView extends View {
  }
  public Bitmap copySelection(){
   if(!hasSelection())return null;
+  int leftBound=(int)Math.floor(selectionLeft),topBound=(int)Math.floor(selectionTop);
+  int rightBound=(int)Math.ceil(selectionRight),bottomBound=(int)Math.ceil(selectionBottom);
+  if(leftBound<0||topBound<0||rightBound>SIZE||bottomBound>SIZE||rightBound<=leftBound||bottomBound<=topBound)return null;
   int[] data=nativeCopySelection((selectionTool==SELECT_FREE||selectionTool==MAGIC_WAND)?SELECT_RECTANGLE:selectionTool,(int)Math.floor(selectionLeft),(int)Math.floor(selectionTop),(int)Math.ceil(selectionRight),(int)Math.ceil(selectionBottom));
   if(data==null||data.length<3)return null;
   int w=data[0],h=data[1];
-  if(w<=0||h<=0||((long)w*h)!=data.length-2)return null;
+  if(w<=0||h<=0||w>SIZE||h>SIZE||((long)w*h)!=data.length-2)return null;
   if(selectionTool==SELECT_FREE||selectionTool==MAGIC_WAND){
    int left=(int)Math.floor(selectionLeft),top=(int)Math.floor(selectionTop);
    for(int row=0;row<h;++row)for(int col=0;col<w;++col){
