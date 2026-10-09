@@ -193,8 +193,10 @@ public final class DrawingView extends View {
   int[] data=new int[2+w*h];
   data[0]=w;data[1]=h;
   source.getPixels(data,2,w,0,0,w,h);
-  int x=hasSelection?(int)selectionLeft:(SIZE-w)/2;
-  int y=hasSelection?(int)selectionTop:(SIZE-h)/2;
+  int x=hasSelection()?(int)selectionLeft:(SIZE-w)/2;
+  int y=hasSelection()?(int)selectionTop:(SIZE-h)/2;
+  x=Math.max(0,Math.min(SIZE-w,x));
+  y=Math.max(0,Math.min(SIZE-h,y));
   boolean ok=nativePasteSelection(data,x,y);
   if(ok){hasSelection=false;refresh();}
   return ok;
@@ -234,7 +236,7 @@ public final class DrawingView extends View {
   selectionLeft=0f;selectionTop=0f;selectionRight=SIZE;selectionBottom=SIZE;
   hasSelection=true;invalidate();
  }
- public void deselect(){hasSelection=false;movingSelection=false;movingPixels=false;invalidate();}
+ public void deselect(){hasSelection=false;movingSelection=false;movingPixels=false;freeSelectionReady=false;freeRegion.setEmpty();freePath.reset();wandBoundary.reset();invalidate();}
  public void enableSelectionMove(){tool=MOVE_SELECTION;invalidate();}
  public boolean moveSelectedPixels(int dx,int dy){
   if(!hasSelection()||(dx==0&&dy==0))return false;
