@@ -439,12 +439,13 @@ public final class DrawingView extends View {
     freePath.lineTo(px,py);freePath.close();
     selectionLeft=Math.min(selectionLeft,px);selectionRight=Math.max(selectionRight,px);
     selectionTop=Math.min(selectionTop,py);selectionBottom=Math.max(selectionBottom,py);
-    hasSelection=hasSelection();
+    hasSelection=(selectionRight-selectionLeft>=1f&&selectionBottom-selectionTop>=1f);
     if(hasSelection){
      freeSelectionReady=freeRegion.setPath(freePath,new android.graphics.Region(0,0,SIZE,SIZE));
      hasSelection=freeSelectionReady&&!freeRegion.isEmpty();
      if(hasSelection){android.graphics.Rect actual=freeRegion.getBounds();selectionLeft=actual.left;selectionTop=actual.top;selectionRight=actual.right;selectionBottom=actual.bottom;}
     }
+    freeSelectionReady=hasSelection;
     drawing=false;invalidate();return true;
    }
    if(tool==SELECT_RECTANGLE||tool==SELECT_ELLIPSE){updateSelection(x,y);hasSelection=hasSelection();drawing=false;return true;}
