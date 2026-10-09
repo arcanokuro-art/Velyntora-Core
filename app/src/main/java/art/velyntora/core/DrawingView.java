@@ -119,12 +119,12 @@ public final class DrawingView extends View {
  public void deselect(){hasSelection=false;movingSelection=false;invalidate();}
  public void enableSelectionMove(){tool=MOVE_SELECTION;invalidate();}
  public boolean moveSelectedPixels(int dx,int dy){
-  if(!hasSelection||(!dx&&!dy))return false;
+  if(!hasSelection||(dx==0&&dy==0))return false;
   int left=(int)Math.floor(selectionLeft),top=(int)Math.floor(selectionTop);
   int right=(int)Math.ceil(selectionRight),bottom=(int)Math.ceil(selectionBottom);
   dx=Math.max(-left,Math.min(SIZE-right,dx));
   dy=Math.max(-top,Math.min(SIZE-bottom,dy));
-  if(!dx&&!dy)return false;
+  if(dx==0&&dy==0)return false;
   boolean ok=nativeMovePixels(selectionTool,left,top,right,bottom,dx,dy);
   if(ok){selectionLeft+=dx;selectionRight+=dx;selectionTop+=dy;selectionBottom+=dy;refresh();}
   return ok;
