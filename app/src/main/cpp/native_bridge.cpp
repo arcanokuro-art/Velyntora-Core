@@ -978,3 +978,8 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
   layers=std::move(imported);canvas=std::move(importedCanvas);resetHistory();return JNI_TRUE;
  }catch(...){return JNI_FALSE;}
 }
+
+extern "C" JNIEXPORT void JNICALL Java_art_velyntora_core_DrawingView_nativeStyledStroke(JNIEnv*,jclass,jfloat x0,jfloat y0,jfloat x1,jfloat y1,jfloat radius,jint color,jfloat opacity,jfloat hardness,jboolean square,jboolean eraser){
+ std::lock_guard<std::mutex> lock(guard);
+ if(canvas){canvas->strokeStyled(x0,y0,x1,y1,radius,static_cast<std::uint32_t>(color),opacity,hardness,square,eraser);storeActive();}
+}

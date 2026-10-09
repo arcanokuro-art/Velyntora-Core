@@ -10,6 +10,7 @@ public:
  const std::vector<std::uint32_t>& pixels() const noexcept {return pixels_;}
  void clear(std::uint32_t argb);
  void stroke(float x0,float y0,float x1,float y1,float radius,std::uint32_t argb);
+ void strokeStyled(float x0,float y0,float x1,float y1,float radius,std::uint32_t argb,float opacity,float hardness,bool square,bool eraser);
  void rectangle(int x0,int y0,int x1,int y1,std::uint32_t argb,bool filled);
  void ellipse(int x0,int y0,int x1,int y1,std::uint32_t argb,bool filled);
  void fill(int x,int y,std::uint32_t argb);

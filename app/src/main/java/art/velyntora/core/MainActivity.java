@@ -601,7 +601,7 @@ public final class MainActivity extends Activity {
         tool(sidebar, "Varita mágica (color exacto)", DrawingView.MAGIC_WAND);
         tool(sidebar, "Mover contorno", DrawingView.MOVE_SELECTION);
         tool(sidebar, "Mover píxeles", DrawingView.MOVE_PIXELS);
-        TextView brushSizeLabel = text("Tamaño: 4 px");
+        TextView brushSizeLabel = text("Radio: 4 px");
         sidebar.addView(brushSizeLabel);
         SeekBar brushSize = new SeekBar(this);
         brushSize.setMax(127);
@@ -609,13 +609,14 @@ public final class MainActivity extends Activity {
         brushSize.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
                 int size = progress + 1;
-                brushSizeLabel.setText("Tamaño: " + size + " px");
+                brushSizeLabel.setText("Radio: " + size + " px");
                 drawing.setBrushRadius(size);
             }
             @Override public void onStartTrackingTouch(SeekBar bar) {}
             @Override public void onStopTrackingTouch(SeekBar bar) {}
         });
         sidebar.addView(brushSize);
+        button(sidebar, "Configurar pincel", this::configureBrush);
         selectedTool = text("Pincel");
         sidebar.addView(selectedTool);
         workspace.addView(sidebar, new LinearLayout.LayoutParams(dp(116), -1));
@@ -865,6 +866,26 @@ public final class MainActivity extends Activity {
             if (decoded == null) throw new java.io.IOException("Imagen no compatible");
             return decoded;
         }
+    }
+
+    private void configureBrush() {
+        LinearLayout form = new LinearLayout(this);form.setOrientation(LinearLayout.VERTICAL);
+        SeekBar opacity = new SeekBar(this), hardness = new SeekBar(this);
+        opacity.setMax(100);opacity.setProgress(Math.round(drawing.brushOpacity()*100));hardness.setMax(100);hardness.setProgress(Math.round(drawing.brushHardness()*100));
+        TextView opacityLabel = text("Opacidad: " + opacity.getProgress() + " %"), hardnessLabel = text("Dureza: " + hardness.getProgress() + " %");
+        form.addView(opacityLabel);form.addView(opacity);form.addView(hardnessLabel);form.addView(hardness);
+        android.widget.CheckBox square = new android.widget.CheckBox(this), pressure = new android.widget.CheckBox(this);
+        square.setText("Punta cuadrada");square.setChecked(drawing.squareBrush());pressure.setText("Presión del lápiz: variar radio");pressure.setChecked(drawing.pressureBrush());form.addView(square);form.addView(pressure);
+        opacity.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            public void onProgressChanged(SeekBar s,int n,boolean u){opacityLabel.setText("Opacidad: " + n + " %");}
+            public void onStartTrackingTouch(SeekBar s){}public void onStopTrackingTouch(SeekBar s){}
+        });
+        hardness.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            public void onProgressChanged(SeekBar s,int n,boolean u){hardnessLabel.setText("Dureza: " + n + " %");}
+            public void onStartTrackingTouch(SeekBar s){}public void onStopTrackingTouch(SeekBar s){}
+        });
+        new AlertDialog.Builder(this).setTitle("Pincel y borrador").setView(form).setNegativeButton("Cancelar",null)
+            .setPositiveButton("Aplicar",(d,w)->drawing.configureBrush(opacity.getProgress()/100f,hardness.getProgress()/100f,square.isChecked(),pressure.isChecked())).show();
     }
 
     private void configureDimensions(int mode) {
