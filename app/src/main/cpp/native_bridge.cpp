@@ -868,3 +868,21 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
  if(!changed)return JNI_FALSE;
  checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;
 }
+
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeLiftShadowsActive(JNIEnv*,jclass,jint floor){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!canvas||!layers||floor<=0||floor>255)return JNI_FALSE;
+ auto pixels=canvas->pixels();bool changed=false;
+ const auto lift=[floor](std::uint32_t channel)->std::uint32_t{
+  return std::max(channel,static_cast<std::uint32_t>(floor));
+ };
+ for(auto& pixel:pixels){
+  const std::uint32_t alpha=pixel&0xFF000000u;
+  if(!alpha)continue;
+  const std::uint32_t r=lift((pixel>>16)&255u),g=lift((pixel>>8)&255u),b=lift(pixel&255u);
+  const std::uint32_t result=alpha|(r<<16)|(g<<8)|b;
+  if(result!=pixel){pixel=result;changed=true;}
+ }
+ if(!changed)return JNI_FALSE;
+ checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;
+}
