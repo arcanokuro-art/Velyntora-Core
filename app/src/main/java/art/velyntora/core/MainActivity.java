@@ -33,6 +33,24 @@ public final class MainActivity extends Activity {
     private android.os.Handler layerRefreshHandler = new android.os.Handler(android.os.Looper.getMainLooper());
     private SeekBar layerOpacity;
     private int activeColor = Color.BLACK;
+    private Bitmap selectionClipboard;
+
+    private void copySelection() {
+        Bitmap copy = drawing.copySelection();
+        if (copy == null) { message("No hay selección válida"); return; }
+        if (selectionClipboard != null && !selectionClipboard.isRecycled()) selectionClipboard.recycle();
+        selectionClipboard = copy;
+        message("Selección copiada a la memoria de Velyntora");
+    }
+
+    private void cutSelection() {
+        Bitmap copy = drawing.copySelection();
+        if (copy == null) { message("No hay selección válida"); return; }
+        if (!drawing.eraseSelection()) { copy.recycle(); message("No se pudo cortar la selección"); return; }
+        if (selectionClipboard != null && !selectionClipboard.isRecycled()) selectionClipboard.recycle();
+        selectionClipboard = copy;
+        message("Selección cortada");
+    }
 
     private int dp(int value) {
         return Math.round(getResources().getDisplayMetrics().density * value);
@@ -53,8 +71,8 @@ public final class MainActivity extends Activity {
         LinearLayout menus = row();
         menu(menus, "Archivo", new String[]{"Nuevo", "Abrir imagen", "Guardar PNG"},
             new Runnable[]{drawing::clear, this::openImage, this::savePng});
-        menu(menus, "Editar", new String[]{"Deshacer", "Rehacer", "Borrar selección", "Deseleccionar"},
-            new Runnable[]{this::undo, this::redo, () -> {if(!drawing.eraseSelection())message("No hay selección válida");}, drawing::deselect});
+        menu(menus, "Editar", new String[]{"Deshacer", "Rehacer", "Copiar selección", "Cortar selección", "Borrar selección", "Deseleccionar"},
+            new Runnable[]{this::undo, this::redo, this::copySelection, this::cutSelection, () -> {if(!drawing.eraseSelection())message("No hay selección válida");}, drawing::deselect});
         menu(menus, "Ver", new String[]{"Ajustar al lienzo"},
             new Runnable[]{drawing::invalidate});
         menu(menus, "Imagen", new String[]{"Nuevo lienzo"},

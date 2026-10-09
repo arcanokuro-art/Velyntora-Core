@@ -20,6 +20,7 @@ public final class DrawingView extends View {
  private static native boolean nativeImport(int[] pixels);
  private static native int nativePickColor(int x,int y);
  private static native boolean nativeEraseSelection(int kind,int x0,int y0,int x1,int y1);
+ private static native int[] nativeCopySelection(int kind,int x0,int y0,int x1,int y1);
  private static native int nativeLayerCount();
  private static native int nativeActiveLayer();
  private static native boolean nativeAddLayer();
@@ -84,6 +85,14 @@ public final class DrawingView extends View {
   return dx*dx+dy*dy<=1f;
  }
  public void clear(){if(nativeClear()){hasSelection=false;refresh();}}
+ public Bitmap copySelection(){
+  if(!hasSelection)return null;
+  int[] data=nativeCopySelection(selectionTool,(int)Math.floor(selectionLeft),(int)Math.floor(selectionTop),(int)Math.ceil(selectionRight),(int)Math.ceil(selectionBottom));
+  if(data==null||data.length<3)return null;
+  int w=data[0],h=data[1];
+  if(w<=0||h<=0||((long)w*h)!=data.length-2)return null;
+  return Bitmap.createBitmap(data,2,w,w,h,Bitmap.Config.ARGB_8888);
+ }
  public boolean eraseSelection(){
   if(!hasSelection)return false;
   boolean ok=nativeEraseSelection(selectionTool,(int)Math.floor(selectionLeft),(int)Math.floor(selectionTop),(int)Math.ceil(selectionRight),(int)Math.ceil(selectionBottom));
