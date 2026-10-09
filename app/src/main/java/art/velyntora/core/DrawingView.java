@@ -138,7 +138,7 @@ public final class DrawingView extends View {
   drawing=false;movingSelection=false;movingPixels=false;
  }
 
- public static final int BRUSH=0,RECTANGLE=1,ELLIPSE=2,LINE=3,BUCKET=4,ERASER=5,PICKER=6,FILLED_RECTANGLE=7,FILLED_ELLIPSE=8,SELECT_RECTANGLE=9,SELECT_ELLIPSE=10,MOVE_SELECTION=11,MOVE_PIXELS=12,SELECT_FREE=13,MAGIC_WAND=14,TEXT=15,ROUNDED_RECTANGLE=16,FILLED_ROUNDED_RECTANGLE=17,TRIANGLE=18,FILLED_TRIANGLE=19,PENCIL=20,PAN=21,ZOOM=22;
+ public static final int BRUSH=0,RECTANGLE=1,ELLIPSE=2,LINE=3,BUCKET=4,ERASER=5,PICKER=6,FILLED_RECTANGLE=7,FILLED_ELLIPSE=8,SELECT_RECTANGLE=9,SELECT_ELLIPSE=10,MOVE_SELECTION=11,MOVE_PIXELS=12,SELECT_FREE=13,MAGIC_WAND=14,TEXT=15,ROUNDED_RECTANGLE=16,FILLED_ROUNDED_RECTANGLE=17,TRIANGLE=18,FILLED_TRIANGLE=19,PENCIL=20,PAN=21,ZOOM=22,GRADIENT=23,FREEFORM=24,CIRCLE=25;
  private final Paint paint=new Paint(Paint.FILTER_BITMAP_FLAG);
  private Bitmap bitmap=Bitmap.createBitmap(canvasWidth,canvasHeight,Bitmap.Config.ARGB_8888);
  private java.util.function.BiConsumer<Integer,Integer> textPositionListener;
@@ -173,6 +173,17 @@ public final class DrawingView extends View {
    else{android.graphics.Path path=new android.graphics.Path();path.moveTo((left+right)/2,top);path.lineTo(right,bottom);path.lineTo(left,bottom);path.close();target.drawPath(path,style);}
    pasteAt(shape,x,y);
   }finally{shape.recycle();}
+ }
+ private final android.graphics.Path shapePath=new android.graphics.Path();
+ private void commitFreeform(){
+  Bitmap shape=Bitmap.createBitmap(canvasWidth,canvasHeight,Bitmap.Config.ARGB_8888);
+  try{
+   Paint style=new Paint(Paint.ANTI_ALIAS_FLAG);style.setColor(color);style.setAlpha(Math.round((color>>>24)*brushOpacity));style.setStrokeWidth(brushRadius*2);style.setStrokeJoin(Paint.Join.ROUND);style.setStyle(Paint.Style.STROKE);
+   shapePath.close();new Canvas(shape).drawPath(shapePath,style);
+   int[] data=new int[2+canvasWidth*canvasHeight];data[0]=canvasWidth;data[1]=canvasHeight;shape.getPixels(data,2,canvasWidth,0,0,canvasWidth,canvasHeight);
+   if(hasSelection())for(int row=0;row<canvasHeight;row++)for(int col=0;col<canvasWidth;col++)if(!selectionContains(col,row))data[2+row*canvasWidth+col]=0;
+   nativePasteSelection(data,0,0);
+  }finally{shape.recycle();shapePath.reset();}
  }
  private final NavigationTool navigationTool=new NavigationTool(4);
  private int color=0xFF202020,tool=BRUSH;
@@ -239,7 +250,7 @@ public final class DrawingView extends View {
  public float brushRadius(){return brushRadius;}
  public int currentTool(){return tool;}
  public void setTool(int value){
-  if(value<BRUSH||value>ZOOM)return;
+  if(value<BRUSH||value>CIRCLE)return;
   tool=value;
   // Switching away from a selection tool must not leave a selection
   // permanently active as an accidental overlay on subsequent drawings.
@@ -542,6 +553,7 @@ public final class DrawingView extends View {
   for(int row=0;row<(canvasHeight+15)/16;++row)for(int col=(row&1);col<(canvasWidth+15)/16;col+=2)
    canvas.drawRect(col*16,row*16,(col+1)*16,(row+1)*16,checkerPaint);
   canvas.drawBitmap(bitmap,0,0,paint);
+  if(drawing&&tool==FREEFORM){Paint preview=new Paint(Paint.ANTI_ALIAS_FLAG);preview.setColor(color);preview.setAlpha(Math.round((color>>>24)*brushOpacity));preview.setStyle(Paint.Style.STROKE);preview.setStrokeWidth(brushRadius*2);preview.setStrokeJoin(Paint.Join.ROUND);canvas.drawPath(shapePath,preview);}
   if(hasSelection()){
    selectionPaint.setColor(0xFF202020);
    selectionPaint.setStyle(Paint.Style.STROKE);
@@ -647,7 +659,7 @@ public final class DrawingView extends View {
    return true;
   }
   if(tool==PAN||tool==ZOOM){
-   int action=event.getActionMasked();if(action==MotionEvent.ACTION_DOWN){getParent().requestDisallowInterceptTouchEvent(true);navigationTool.begin(event.getX(),event.getY());}
+   if(action==MotionEvent.ACTION_DOWN){getParent().requestDisallowInterceptTouchEvent(true);navigationTool.begin(event.getX(),event.getY());}
    else if(action==MotionEvent.ACTION_MOVE){navigationTool.move(viewport,event.getX(),event.getY(),tool==ZOOM);viewportChanged();}
    else if(action==MotionEvent.ACTION_UP){navigationTool.finish(viewport,tool==ZOOM,event.getEventTime()-event.getDownTime()>=500);viewportChanged();getParent().requestDisallowInterceptTouchEvent(false);}
    else if(action==MotionEvent.ACTION_CANCEL)getParent().requestDisallowInterceptTouchEvent(false);
@@ -660,6 +672,7 @@ public final class DrawingView extends View {
   if(x<0||y<0||x>=canvasWidth||y>=canvasHeight)return true;
   getParent().requestDisallowInterceptTouchEvent(true);
   drawing=true;strokeEditing=false;startX=previousX=x;startY=previousY=y;
+  if(tool==FREEFORM){shapePath.reset();shapePath.moveTo(x,y);invalidate();return true;}
   if(tool==TEXT){drawing=false;if(textPositionListener!=null)textPositionListener.accept((int)x,(int)y);return true;}
   if(tool==MAGIC_WAND){
    selectMatchingRegion((int)x,(int)y);drawing=false;return true;
@@ -692,6 +705,7 @@ public final class DrawingView extends View {
   return true;
  case MotionEvent.ACTION_MOVE:
   if(!drawing)return true;
+  if(tool==FREEFORM){shapePath.lineTo(Math.max(0,Math.min(canvasWidth,x)),Math.max(0,Math.min(canvasHeight,y)));invalidate();return true;}
   if(tool==MOVE_SELECTION||tool==MOVE_PIXELS){if(movingSelection)updateMovedSelection(x,y);return true;}
   if(tool==SELECT_FREE){
    float px=Math.max(0f,Math.min(canvasWidth,x)),py=Math.max(0f,Math.min(canvasHeight,y));
@@ -735,12 +749,23 @@ public final class DrawingView extends View {
     drawing=false;invalidate();return true;
    }
    if(tool==SELECT_RECTANGLE||tool==SELECT_ELLIPSE){updateSelection(x,y);hasSelection=hasSelection();drawing=false;return true;}
-   if(tool==BRUSH||tool==ERASER||tool==PENCIL){if(!strokeEditing||x!=previousX||y!=previousY)paintStroke(previousX,previousY,x,y,event);}
+   if(tool==FREEFORM){shapePath.lineTo(Math.max(0,Math.min(canvasWidth,x)),Math.max(0,Math.min(canvasHeight,y)));commitFreeform();}
+   else if(tool==CIRCLE){
+    float size=Math.min(Math.abs(x-startX),Math.abs(y-startY));
+    nativeBeginEdit();nativeShape(ELLIPSE,(int)startX,(int)startY,(int)(startX+Math.copySign(size,x-startX)),(int)(startY+Math.copySign(size,y-startY)),color);
+   }
+   else if(tool==GRADIENT){
+    int[] data=GradientRaster.create(canvasWidth,canvasHeight,startX,startY,x,y,color);
+    if(hasSelection())for(int row=0;row<canvasHeight;row++)for(int col=0;col<canvasWidth;col++)if(!selectionContains(col,row))data[2+row*canvasWidth+col]=0;
+    nativePasteSelection(data,0,0);
+   }
+   else if(tool==BRUSH||tool==ERASER||tool==PENCIL){if(!strokeEditing||x!=previousX||y!=previousY)paintStroke(previousX,previousY,x,y,event);}
    else if(tool>=ROUNDED_RECTANGLE&&tool<=FILLED_TRIANGLE)additionalShape(tool,startX,startY,x,y);
    else nativeShape(tool,(int)startX,(int)startY,(int)x,(int)y,color);
    drawing=false;refresh();
   }return true;
  case MotionEvent.ACTION_CANCEL:
+  shapePath.reset();invalidate();
   if(drawing&&tool==SELECT_FREE){hasSelection=false;freeSelectionReady=false;freePath.reset();freeRegion.setEmpty();invalidate();}
   if(drawing&&(tool==SELECT_RECTANGLE||tool==SELECT_ELLIPSE)){hasSelection=false;invalidate();}
   if(movingSelection){restoreMovedSelection();invalidate();}
