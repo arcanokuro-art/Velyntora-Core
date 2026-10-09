@@ -34,6 +34,10 @@ jobs:
         run: |
           javac -d build/java-tests app/src/main/java/art/velyntora/core/RasterFileWriter.java app/src/main/java/art/velyntora/core/TiffWriter.java tests/TiffWriterTests.java
           java -cp build/java-tests art.velyntora.core.TiffWriterTests
+      - name: TIFF file import tests
+        run: |
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/{VlyProjectStream,OpenRasterArchive,RasterFileWriter,TiffWriter,TiffReader}.java tests/TiffReaderTests.java
+          java -cp build/java-tests art.velyntora.core.TiffReaderTests
       - name: OpenRaster project interchange tests
         run: |
           javac -d build/java-tests app/src/main/java/art/velyntora/core/VlyProjectStream.java app/src/main/java/art/velyntora/core/OpenRasterArchive.java tests/OpenRasterTests.java

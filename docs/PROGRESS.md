@@ -95,7 +95,7 @@ Validación OpenRaster: pruebas con PNG reales y compilación APK del commit `6a
 
 ## TIFF (entregable 16, parcial)
 
-Exportación TIFF RGB de 8 bits por canal con alfa no asociado, sin compresión, en orden de filas superior a inferior y escrita por bloques de fila en el hilo de exportación. Las pruebas verifican IFD, etiquetas, offsets, alfa e ida/vuelta con el decodificador TIFF de Java. La importación TIFF y otros formatos aún están pendientes, por lo que no se suma el entregable 16. La lectura de `stack.xml` OpenRaster valida UTF-8 y admite BOM.
+Exportación TIFF RGB de 8 bits por canal con alfa no asociado, sin compresión, en orden de filas superior a inferior y escrita por bloques de fila en el hilo de exportación. Las pruebas verifican IFD, etiquetas, offsets, alfa e ida/vuelta con el decodificador TIFF de Java. Importación TIFF de tiras RGB/gris/paleta de 8 bits, orden II/MM, orientaciones 1–8 y alfa asociado/no asociado. Admite sin compresión, LZW, PackBits y Deflate, además de predictor horizontal. Lectura en hilo de trabajo, archivo máximo de 64 MiB y 4 millones de píxeles; rechaza offsets, tamaños y códigos inválidos antes de modificar el documento. No admite BigTIFF, mosaicos, CMYK, 16 bits ni perfiles ICC; el gris se interpreta directamente como intensidad de 8 bits. Las pruebas usan 20 archivos de un codificador independiente y verifican ambos órdenes de bytes, las ocho orientaciones, alfa y entradas corruptas. Otros formatos siguen pendientes; no se suma el entregable 16. La lectura de `stack.xml` OpenRaster valida UTF-8 y admite BOM.
 
 ## Arte y fotografía (entregable 18, parcial)
 
