@@ -36,6 +36,7 @@ public final class DrawingView extends View {
  private static native boolean nativeExposureActive(int percent);
  private static native boolean nativeDesaturateChannelActive(int channel);
  private static native boolean nativeAdjustAlphaActive(int percent);
+ private static native boolean nativeRemoveChannelActive(int channel);
  private static native void nativeStroke(float x0,float y0,float x1,float y1,float radius,int color);
  private static native void nativeShape(int kind,int x0,int y0,int x1,int y1,int color);
  private static native void nativeFill(int x,int y,int color);
@@ -217,6 +218,7 @@ public final class DrawingView extends View {
  public boolean flipActiveVertical(){if(!nativeFlipActiveVertical())return false;deselect();refresh();return true;}
  public boolean rotateActive180(){if(!nativeRotateActive180())return false;deselect();refresh();return true;}
  public boolean rotateActive90(boolean clockwise){if(!nativeRotateActive90(clockwise))return false;deselect();refresh();return true;}
+ public boolean removeChannelActive(int channel){if(!nativeRemoveChannelActive(channel))return false;deselect();refresh();return true;}
  public boolean adjustAlphaActive(int percent){if(!nativeAdjustAlphaActive(percent))return false;deselect();refresh();return true;}
  public boolean grayscaleFromChannelActive(int channel){if(!nativeDesaturateChannelActive(channel))return false;deselect();refresh();return true;}
  public boolean exposureActive(int percent){if(!nativeExposureActive(percent))return false;deselect();refresh();return true;}

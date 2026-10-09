@@ -788,3 +788,16 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
  if(!changed)return JNI_FALSE;
  checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;
 }
+
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeRemoveChannelActive(JNIEnv*,jclass,jint channel){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!canvas||!layers||channel<0||channel>2)return JNI_FALSE;
+ auto pixels=canvas->pixels();bool changed=false;
+ const std::uint32_t mask=channel==0?0xFF00FFFFu:(channel==1?0xFFFF00FFu:0xFFFFFF00u);
+ for(auto& pixel:pixels){
+  const std::uint32_t result=pixel&mask;
+  if(result!=pixel){pixel=result;changed=true;}
+ }
+ if(!changed)return JNI_FALSE;
+ checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;
+}
