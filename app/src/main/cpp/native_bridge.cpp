@@ -152,6 +152,7 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
  env->GetIntArrayRegion(source,0,count,data.data());
  if(env->ExceptionCheck())return JNI_FALSE;
  auto pixels=canvas->pixels();
+ const auto original=pixels;
  for(int py=std::max(0,-y);py<h&&static_cast<std::int64_t>(y)+py<canvas->height();++py){
   for(int px=std::max(0,-x);px<w&&static_cast<std::int64_t>(x)+px<canvas->width();++px){
    const std::uint32_t src=static_cast<std::uint32_t>(data[2+static_cast<std::size_t>(py)*w+px]);
@@ -173,6 +174,7 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
    pixels[pos]=(outA<<24)|rgb;
   }
  }
+ if(pixels==original)return JNI_FALSE;
  checkpoint();
  canvas->setPixels(pixels);
  storeActive();
