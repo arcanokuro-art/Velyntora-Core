@@ -133,10 +133,12 @@ public final class MainActivity extends Activity {
         opacity.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar bar, int progress, boolean user) {
                 opacityLabel.setText("Opacidad: " + progress + "%");
-                if (user) drawing.setLayerOpacity(progress / 100f);
             }
             @Override public void onStartTrackingTouch(SeekBar bar) {}
-            @Override public void onStopTrackingTouch(SeekBar bar) {}
+            @Override public void onStopTrackingTouch(SeekBar bar) {
+                // One history checkpoint per gesture, not one per slider tick.
+                drawing.setLayerOpacity(bar.getProgress() / 100f);
+            }
         });
         layerPanel.addView(opacity);
         this.layerOpacity = opacity;
