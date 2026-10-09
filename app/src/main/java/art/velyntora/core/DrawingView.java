@@ -50,7 +50,8 @@ public final class DrawingView extends View {
  private final android.graphics.Path freePath=new android.graphics.Path();
  private boolean freeSelectionReady;
  private final android.graphics.Region freeRegion=new android.graphics.Region();
- private boolean magicSelection;
+ private int wandTolerance=0;
+ public void setWandTolerance(int value){wandTolerance=Math.max(0,Math.min(255,value));}
  private float moveStartX,moveStartY,moveOriginalLeft,moveOriginalTop,moveOriginalRight,moveOriginalBottom;
  private int selectionTool;
  private float selectionLeft,selectionTop,selectionRight,selectionBottom;
@@ -220,6 +221,13 @@ public final class DrawingView extends View {
   }
   canvas.restore();
  }
+ private static boolean withinTolerance(int color,int target,int tolerance){
+  int da=Math.abs((color>>>24)-(target>>>24));
+  int dr=Math.abs(((color>>>16)&255)-((target>>>16)&255));
+  int dg=Math.abs(((color>>>8)&255)-((target>>>8)&255));
+  int db=Math.abs((color&255)-(target&255));
+  return Math.max(Math.max(da,dr),Math.max(dg,db))<=tolerance;
+ }
  private void selectMatchingRegion(int sx,int sy){
   if(sx<0||sy<0||sx>=SIZE||sy>=SIZE)return;
   int[] pixels=new int[SIZE*SIZE];
@@ -233,13 +241,23 @@ public final class DrawingView extends View {
   freeRegion.setEmpty();freePath.reset();
   while(head<tail){
    int pos=queue[head++],px=pos%SIZE,py=pos/SIZE;
-   freeRegion.op(px,py,px+1,py+1,android.graphics.Region.Op.UNION);
+   visited[pos]=2;
    minX=Math.min(minX,px);maxX=Math.max(maxX,px);
    minY=Math.min(minY,py);maxY=Math.max(maxY,py);
-   if(px>0){int q=pos-1;if(visited[q]==0){visited[q]=1;if(pixels[q]==target)queue[tail++]=q;}}
-   if(px<SIZE-1){int q=pos+1;if(visited[q]==0){visited[q]=1;if(pixels[q]==target)queue[tail++]=q;}}
-   if(py>0){int q=pos-SIZE;if(visited[q]==0){visited[q]=1;if(pixels[q]==target)queue[tail++]=q;}}
-   if(py<SIZE-1){int q=pos+SIZE;if(visited[q]==0){visited[q]=1;if(pixels[q]==target)queue[tail++]=q;}}
+   if(px>0){int q=pos-1;if(visited[q]==0){visited[q]=1;if(withinTolerance(pixels[q],target,wandTolerance))queue[tail++]=q;}}
+   if(px<SIZE-1){int q=pos+1;if(visited[q]==0){visited[q]=1;if(withinTolerance(pixels[q],target,wandTolerance))queue[tail++]=q;}}
+   if(py>0){int q=pos-SIZE;if(visited[q]==0){visited[q]=1;if(withinTolerance(pixels[q],target,wandTolerance))queue[tail++]=q;}}
+   if(py<SIZE-1){int q=pos+SIZE;if(visited[q]==0){visited[q]=1;if(withinTolerance(pixels[q],target,wandTolerance))queue[tail++]=q;}}
+  }
+  // Union horizontal runs, not individual pixels, to reduce Region operations.
+  for(int row=minY;row<=maxY;++row){
+   int col=minX;
+   while(col<=maxX){
+    while(col<=maxX&&visited[row*SIZE+col]!=2)++col;
+    int left=col;
+    while(col<=maxX&&visited[row*SIZE+col]==2)++col;
+    if(left<col)freeRegion.op(left,row,col,row+1,android.graphics.Region.Op.UNION);
+   }
   }
   selectionTool=MAGIC_WAND;
   selectionLeft=minX;selectionTop=minY;selectionRight=maxX+1;selectionBottom=maxY+1;
