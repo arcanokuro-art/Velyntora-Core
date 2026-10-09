@@ -21,6 +21,7 @@ public final class DrawingView extends View {
  private static native boolean nativeInvertActiveColors();
  private static native boolean nativeGrayscaleActive();
  private static native boolean nativeSepiaActive();
+ private static native boolean nativeBrightnessActive(int adjustment);
  private static native void nativeStroke(float x0,float y0,float x1,float y1,float radius,int color);
  private static native void nativeShape(int kind,int x0,int y0,int x1,int y1,int color);
  private static native void nativeFill(int x,int y,int color);
@@ -202,6 +203,7 @@ public final class DrawingView extends View {
  public boolean flipActiveVertical(){if(!nativeFlipActiveVertical())return false;deselect();refresh();return true;}
  public boolean rotateActive180(){if(!nativeRotateActive180())return false;deselect();refresh();return true;}
  public boolean rotateActive90(boolean clockwise){if(!nativeRotateActive90(clockwise))return false;deselect();refresh();return true;}
+ public boolean brightnessActive(int adjustment){if(!nativeBrightnessActive(adjustment))return false;deselect();refresh();return true;}
  public boolean sepiaActive(){if(!nativeSepiaActive())return false;deselect();refresh();return true;}
  public boolean grayscaleActive(){if(!nativeGrayscaleActive())return false;deselect();refresh();return true;}
  public boolean invertActiveColors(){if(!nativeInvertActiveColors())return false;deselect();refresh();return true;}
