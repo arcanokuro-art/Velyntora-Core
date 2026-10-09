@@ -117,7 +117,13 @@ public final class DrawingView extends View {
   if(ok){hasSelection=false;refresh();}
   return ok;
  }
- public void deselect(){hasSelection=false;movingSelection=false;invalidate();}
+ public void selectAll(){
+  movingSelection=false;movingPixels=false;drawing=false;
+  selectionTool=SELECT_RECTANGLE;
+  selectionLeft=0f;selectionTop=0f;selectionRight=SIZE;selectionBottom=SIZE;
+  hasSelection=true;invalidate();
+ }
+ public void deselect(){hasSelection=false;movingSelection=false;movingPixels=false;invalidate();}
  public void enableSelectionMove(){tool=MOVE_SELECTION;invalidate();}
  public boolean moveSelectedPixels(int dx,int dy){
   if(!hasSelection()||(dx==0&&dy==0))return false;
