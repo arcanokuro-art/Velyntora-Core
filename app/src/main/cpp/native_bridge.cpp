@@ -429,8 +429,8 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
  if(left<0||top<0||right>w||bottom>h||left>=right||top>=bottom)return JNI_FALSE;
  auto pixels=canvas->pixels();
  bool changed=false;
- const double rx=(right-left)/2.0,ry=(bottom-top)/2.0;
- const double cx=(left+right)/2.0,cy=(top+bottom)/2.0;
+ const double rx=(static_cast<double>(right)-left)/2.0,ry=(static_cast<double>(bottom)-top)/2.0;
+ const double cx=(static_cast<double>(left)+right)/2.0,cy=(static_cast<double>(top)+bottom)/2.0;
  for(int y=0;y<h;++y)for(int x=0;x<w;++x){
   const double dx=(x+0.5-cx)/rx,dy=(y+0.5-cy)/ry;
   if(dx*dx+dy*dy<=1.0)continue;
