@@ -9,7 +9,7 @@ Objetivo: reproducir la experiencia y las funciones de Pinta 3.1.2 en Android. E
 - [x] 05. Capas básicas conectadas al lienzo.
 - [x] 06. Deshacer/rehacer multicapa básico.
 - [x] 07. Panel de capas con miniaturas y opacidad (funcionalidad básica programada).
-- [ ] 08. Iconos originales de Pinta integrados.
+- [x] 08. Iconos originales de Pinta integrados (siete herramientas básicas; otros recursos visuales pendientes).
 - [ ] 09. Diseño adaptable equivalente a Pinta.
 - [ ] 10. Selecciones rectangulares y elípticas.
 - [ ] 11. Selección libre y varita mágica.
@@ -23,7 +23,7 @@ Objetivo: reproducir la experiencia y las funciones de Pinta 3.1.2 en Android. E
 - [ ] 19. Guardar y abrir proyectos editables con capas.
 - [ ] 20. Pulido de interfaz, accesibilidad y corrección de defectos detectados durante desarrollo.
 
-**Avance provisional por entregables: 7/20 = 35.00%** tras CI verde del panel de capas con miniaturas y opacidad. La cifra **no equivale a paridad funcional del 30%** con todas las opciones de Pinta, sino al cumplimiento de estos hitos definidos. Las funcionalidades marcadas pueden tener limitaciones y defectos pendientes.
+**Avance provisional por entregables: 8/20 = 40.00%** tras CI verde de la integración de iconos de siete herramientas de Pinta. La cifra **no equivale a paridad funcional del 40%** con todas las opciones de Pinta, sino al cumplimiento de estos hitos definidos. Las funcionalidades marcadas pueden tener limitaciones y defectos pendientes.
 
 ## Regla del 100.00 %
 
