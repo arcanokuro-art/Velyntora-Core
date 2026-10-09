@@ -831,3 +831,22 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
  if(!changed)return JNI_FALSE;
  checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;
 }
+
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeQuantizeActive(JNIEnv*,jclass,jint step){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!canvas||!layers||step<2||step>128)return JNI_FALSE;
+ auto pixels=canvas->pixels();bool changed=false;
+ const auto quantize=[step](std::uint32_t channel)->std::uint32_t{
+  const std::uint32_t s=static_cast<std::uint32_t>(step);
+  return std::min(255u,((channel+s/2u)/s)*s);
+ };
+ for(auto& pixel:pixels){
+  const std::uint32_t alpha=pixel&0xFF000000u;
+  if(!alpha)continue;
+  const std::uint32_t r=quantize((pixel>>16)&255u),g=quantize((pixel>>8)&255u),b=quantize(pixel&255u);
+  const std::uint32_t result=alpha|(r<<16)|(g<<8)|b;
+  if(result!=pixel){pixel=result;changed=true;}
+ }
+ if(!changed)return JNI_FALSE;
+ checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;
+}
