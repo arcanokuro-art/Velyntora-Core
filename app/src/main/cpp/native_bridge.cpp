@@ -1,4 +1,8 @@
 #include <jni.h>
+#include <unistd.h>
+#include <cerrno>
+#include <stdexcept>
+#include "velyntora/ProjectIO.hpp"
 #include <cmath>
 #include <algorithm>
 #include <memory>
@@ -903,4 +907,33 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
  }
  if(!changed)return JNI_FALSE;
  checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;
+}
+
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeSaveProject(JNIEnv*,jclass,jint fd){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!layers||fd<0)return JNI_FALSE;
+ try{
+  velyntora::writeProject(*layers,[fd](const void* data,std::size_t size){
+   const char* cursor=static_cast<const char*>(data);
+   while(size){ssize_t n=::write(fd,cursor,size);if(n<0&&errno==EINTR)continue;
+    if(n<=0)throw std::runtime_error("Project write failed");cursor+=n;size-=n;}
+  });return JNI_TRUE;
+ }catch(...){return JNI_FALSE;}
+}
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeOpenProject(JNIEnv*,jclass,jint fd){
+ std::lock_guard<std::mutex> lock(guard);
+ if(fd<0)return JNI_FALSE;
+ try{
+  auto restored=std::make_unique<velyntora::LayerDocument>(velyntora::readProject([fd](void* data,std::size_t size){
+   char* cursor=static_cast<char*>(data);
+   while(size){ssize_t n=::read(fd,cursor,size);if(n<0&&errno==EINTR)continue;
+    if(n<=0)throw std::runtime_error("Truncated project");cursor+=n;size-=n;}
+  },800,800));
+  char trailing;ssize_t n;do{n=::read(fd,&trailing,1);}while(n<0&&errno==EINTR);
+  if(n!=0)return JNI_FALSE;
+  auto restoredCanvas=std::make_unique<velyntora::Canvas>(restored->width(),restored->height());
+  restoredCanvas->setPixels(restored->layer(restored->activeIndex()).pixels);
+  // Publish only after the entire file has been validated and allocated.
+  layers=std::move(restored);canvas=std::move(restoredCanvas);resetHistory();return JNI_TRUE;
+ }catch(...){return JNI_FALSE;}
 }

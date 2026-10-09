@@ -23,6 +23,7 @@ import java.io.OutputStream;
 
 /** Android workspace modeled after Pinta's tool, canvas, palette and status regions. */
 public final class MainActivity extends Activity {
+    private static final int SAVE_PROJECT = 43, OPEN_PROJECT = 44;
     private static final int SAVE_PNG = 41;
     private static final int OPEN_IMAGE = 42;
     private DrawingView drawing;
@@ -34,6 +35,7 @@ public final class MainActivity extends Activity {
     private SeekBar layerOpacity;
     private int activeColor = Color.BLACK;
     private Bitmap selectionClipboard;
+    private android.app.ProgressDialog projectProgress;
 
     private void copySelection() {
         Bitmap copy = drawing.copySelection();
@@ -539,8 +541,8 @@ public final class MainActivity extends Activity {
         root.setBackgroundColor(0xFFF1F1F1);
 
         LinearLayout menus = row();
-        menu(menus, "Archivo", new String[]{"Nuevo", "Abrir imagen", "Guardar PNG"},
-            new Runnable[]{drawing::clear, this::openImage, this::savePng});
+        menu(menus, "Archivo", new String[]{"Nuevo", "Abrir imagen", "Guardar PNG", "Abrir proyecto", "Guardar proyecto"},
+            new Runnable[]{drawing::clear, this::openImage, this::savePng, () -> projectPicker(false), () -> projectPicker(true)});
         menu(menus, "Editar", new String[]{"Deshacer", "Rehacer", "Copiar selección", "Cortar selección", "Pegar selección", "Duplicar selección", "Mover contenido…", "Seleccionar todo", "Invertir selección", "Expandir selección 1 px", "Contraer selección 1 px", "Borrar selección", "Deseleccionar"},
             new Runnable[]{this::undo, this::redo, this::copySelection, this::cutSelection, this::pasteSelection, this::duplicateSelection, this::moveSelectedContent, drawing::selectAll, () -> {if(!drawing.invertSelection())message("No se pudo invertir la selección");}, () -> {if(!drawing.expandSelectionOnePixel())message("No se pudo expandir la selección");}, () -> {if(!drawing.shrinkSelectionOnePixel())message("No se pudo contraer la selección");}, () -> {if(!drawing.eraseSelection())message("No hay selección válida");}, drawing::deselect});
         menu(menus, "Ver", new String[]{"Ajustar al lienzo", "Acercar", "Alejar", "Zoom 100 %", "Zoom 7000 %", "Rotar vista 15° derecha", "Rotar vista 15° izquierda", "Restablecer rotación"},
@@ -766,6 +768,7 @@ public final class MainActivity extends Activity {
     private final Runnable layerRefreshTask = this::refreshLayerPanel;
 
     @Override protected void onDestroy() {
+        if (projectProgress != null) { projectProgress.dismiss(); projectProgress = null; }
         layerRefreshHandler.removeCallbacks(layerRefreshTask);
         if (layerItems != null) layerItems.removeAllViews();
         for (Bitmap old : thumbnails) old.recycle();
@@ -864,6 +867,38 @@ public final class MainActivity extends Activity {
         }
     }
 
+    private void projectPicker(boolean save) {
+        Intent intent = new Intent(save ? Intent.ACTION_CREATE_DOCUMENT : Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("application/octet-stream");
+        if (save) intent.putExtra(Intent.EXTRA_TITLE, "dibujo.vlycore");
+        startActivityForResult(intent, save ? SAVE_PROJECT : OPEN_PROJECT);
+    }
+
+    private void transferProject(Uri uri, boolean save) {
+        android.app.ProgressDialog progress = new android.app.ProgressDialog(this);
+        progress.setMessage(save ? "Guardando proyecto…" : "Abriendo proyecto…");
+        progress.setCancelable(false);
+        projectProgress = progress;
+        progress.show();
+        drawing.setEnabled(false);
+        new Thread(() -> {
+            boolean success = false;
+            try (android.os.ParcelFileDescriptor file = getContentResolver().openFileDescriptor(uri, save ? "wt" : "r")) {
+                if (file != null) success = save ? drawing.writeProject(file.getFd()) : drawing.readProject(file.getFd());
+            } catch (Exception e) { success = false; }
+            final boolean ok = success;
+            runOnUiThread(() -> {
+                if (!isDestroyed()) {
+                    progress.dismiss();projectProgress = null;drawing.setEnabled(true);
+                    if (ok && !save) drawing.projectOpened();
+                    message(ok ? (save ? "Proyecto guardado con capas" : "Proyecto abierto con capas")
+                        : (save ? "No se pudo guardar el proyecto" : "Proyecto incompatible, incompleto o demasiado grande"));
+                }
+            });
+        }, "velyntora-project-io").start();
+    }
+
     private void savePng() {
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -883,7 +918,9 @@ public final class MainActivity extends Activity {
         super.onActivityResult(request, result, data);
         if (result != RESULT_OK || data == null || data.getData() == null) return;
         Uri uri = data.getData();
-        if (request == OPEN_IMAGE) {
+        if (request == SAVE_PROJECT || request == OPEN_PROJECT) {
+            transferProject(uri, request == SAVE_PROJECT);
+        } else if (request == OPEN_IMAGE) {
             try {
                 Bitmap bitmap = decodeImage(uri);
                 try {

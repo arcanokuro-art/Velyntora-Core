@@ -8,6 +8,11 @@ import android.view.MotionEvent;
 import android.view.View;
 public final class DrawingView extends View {
  static {System.loadLibrary("velyntora_jni");}
+ private static native boolean nativeSaveProject(int fd);
+ private static native boolean nativeOpenProject(int fd);
+ public boolean writeProject(int fd){return nativeSaveProject(fd);}
+ public boolean readProject(int fd){return nativeOpenProject(fd);}
+ public void projectOpened(){deselect();refresh();fitCanvas();}
  private static native boolean nativeCreate(int w,int h);
  private static native void nativeBeginEdit();
  private static native boolean nativeClear();
@@ -490,7 +495,7 @@ public final class DrawingView extends View {
   invalidate();
  }
  @Override public boolean onTouchEvent(MotionEvent event){
-  if(getWidth()<=0||getHeight()<=0)return false;
+  if(!isEnabled()||getWidth()<=0||getHeight()<=0)return false;
   int action=event.getActionMasked();
   if(action==MotionEvent.ACTION_POINTER_DOWN&&event.getPointerCount()>=2){
    cancelToolGesture();navigating=true;recordGesture(event);

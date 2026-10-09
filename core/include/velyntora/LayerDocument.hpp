@@ -20,6 +20,7 @@ public:
  std::size_t layerCount() const noexcept {return layers_.size();}
  std::size_t activeIndex() const noexcept {return active_;}
  const Layer& layer(std::size_t index) const {return layers_.at(index);}
+ bool renameLayer(std::size_t index,const std::string& name);
  void addLayer(const std::string& name);
  bool removeLayer(std::size_t index);
  bool selectLayer(std::size_t index);

@@ -9,6 +9,10 @@ LayerDocument::LayerDocument(int w,int h):width_(w),height_(h){
  if(w<=0||h<=0||static_cast<std::uint64_t>(w)*h>16000000ULL)throw std::invalid_argument("Invalid dimensions");
  layers_.push_back({"Fondo",std::vector<std::uint32_t>(static_cast<std::size_t>(w)*h,0xFFFFFFFFu),true,1.f});
 }
+bool LayerDocument::renameLayer(std::size_t index,const std::string& name){
+ if(index>=layers_.size())return false;
+ layers_[index].name=name;return true;
+}
 void LayerDocument::addLayer(const std::string& name){
  layers_.insert(layers_.begin()+static_cast<std::ptrdiff_t>(active_+1),
   Layer{name,std::vector<std::uint32_t>(static_cast<std::size_t>(width_)*height_,0u),true,1.f});
@@ -22,7 +26,8 @@ bool LayerDocument::removeLayer(std::size_t index){
  return true;
 }
 bool LayerDocument::selectLayer(std::size_t index){
- if(index>=layers_.size())return false;active_=index;return true;
+ if(index>=layers_.size())return false;
+ active_=index;return true;
 }
 bool LayerDocument::moveLayer(std::size_t from,std::size_t to){
  if(from>=layers_.size()||to>=layers_.size())return false;
@@ -36,7 +41,8 @@ bool LayerDocument::moveLayer(std::size_t from,std::size_t to){
  return true;
 }
 bool LayerDocument::setVisible(std::size_t index,bool visible){
- if(index>=layers_.size())return false;layers_[index].visible=visible;return true;
+ if(index>=layers_.size())return false;
+ layers_[index].visible=visible;return true;
 }
 bool LayerDocument::setOpacity(std::size_t index,float opacity){
  if(index>=layers_.size()||!std::isfinite(opacity)||opacity<0.f||opacity>1.f)return false;
