@@ -191,7 +191,7 @@ public final class DrawingView extends View {
  public boolean pasteBitmap(Bitmap source){
   if(source==null||source.isRecycled())return false;
   int w=source.getWidth(),h=source.getHeight();
-  if(w<=0||h<=0||((long)w*h)>SIZE*SIZE)return false;
+  if(w<=0||h<=0||w>SIZE||h>SIZE||((long)w*h)>SIZE*SIZE)return false;
   int[] data=new int[2+w*h];
   data[0]=w;data[1]=h;
   source.getPixels(data,2,w,0,0,w,h);
