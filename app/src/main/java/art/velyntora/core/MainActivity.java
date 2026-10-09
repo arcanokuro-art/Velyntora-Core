@@ -90,6 +90,21 @@ public final class MainActivity extends Activity {
         tool(sidebar, "Elipse", DrawingView.ELLIPSE);
         tool(sidebar, "Cubeta", DrawingView.BUCKET);
         tool(sidebar, "Borrador", DrawingView.ERASER);
+        TextView brushSizeLabel = text("Tamaño: 4 px");
+        sidebar.addView(brushSizeLabel);
+        SeekBar brushSize = new SeekBar(this);
+        brushSize.setMax(127);
+        brushSize.setProgress(3);
+        brushSize.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+                int size = progress + 1;
+                brushSizeLabel.setText("Tamaño: " + size + " px");
+                drawing.setBrushRadius(size);
+            }
+            @Override public void onStartTrackingTouch(SeekBar bar) {}
+            @Override public void onStopTrackingTouch(SeekBar bar) {}
+        });
+        sidebar.addView(brushSize);
         selectedTool = text("Pincel");
         sidebar.addView(selectedTool);
         workspace.addView(sidebar, new LinearLayout.LayoutParams(dp(116), -1));

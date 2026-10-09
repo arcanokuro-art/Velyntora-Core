@@ -33,6 +33,7 @@ public final class DrawingView extends View {
  private final Paint paint=new Paint(Paint.FILTER_BITMAP_FLAG);
  private final Bitmap bitmap=Bitmap.createBitmap(SIZE,SIZE,Bitmap.Config.ARGB_8888);
  private int color=0xFF202020,tool=BRUSH;
+ private float brushRadius=4f;
  private float previousX,previousY,startX,startY;
  private boolean drawing;
  private Runnable canvasChangedListener;
@@ -54,6 +55,8 @@ public final class DrawingView extends View {
  public boolean toggleLayer(){boolean ok=nativeToggleLayer();if(ok)refresh();return ok;}
  public boolean moveLayer(int direction){boolean ok=nativeMoveLayer(direction);if(ok)refresh();return ok;}
  public void setColor(int value){color=value;}
+ public void setBrushRadius(float radius){if(Float.isFinite(radius)&&radius>=1f&&radius<=128f)brushRadius=radius;}
+ public float brushRadius(){return brushRadius;}
  public void setTool(int value){tool=value;}
  public void clear(){if(nativeCreate(SIZE,SIZE))refresh();}
  public void undo(){if(nativeUndo())refresh();}
@@ -72,11 +75,11 @@ public final class DrawingView extends View {
   if(x<0||y<0||x>=SIZE||y>=SIZE)return false;
   drawing=true;startX=previousX=x;startY=previousY=y;nativeBeginEdit();
   if(tool==BUCKET){nativeFill((int)x,(int)y,color);drawing=false;refresh();}
-  else if(tool==BRUSH||tool==ERASER){nativeStroke(x,y,x,y,4f,tool==ERASER?0x00000000:color);refresh();}
+  else if(tool==BRUSH||tool==ERASER){nativeStroke(x,y,x,y,brushRadius,tool==ERASER?0x00000000:color);refresh();}
   return true;
  case MotionEvent.ACTION_MOVE:
   if(!drawing)return true;
-  if(tool==BRUSH||tool==ERASER){nativeStroke(previousX,previousY,x,y,4f,tool==ERASER?0x00000000:color);refresh();}
+  if(tool==BRUSH||tool==ERASER){nativeStroke(previousX,previousY,x,y,brushRadius,tool==ERASER?0x00000000:color);refresh();}
   previousX=x;previousY=y;return true;
  case MotionEvent.ACTION_UP:
   if(drawing){
