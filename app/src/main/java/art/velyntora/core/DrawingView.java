@@ -258,7 +258,7 @@ public final class DrawingView extends View {
     matrix.setTranslate(dx,dy);
     freePath.transform(matrix);
     freeRegion.translate(dx,dy);
-    if(selectionTool==MAGIC_WAND)wandBoundary.transform(matrix);
+    wandBoundary.transform(matrix);
    }
   }else ok=nativeMovePixels(selectionTool,left,top,right,bottom,dx,dy);
   if(ok){selectionLeft+=dx;selectionRight+=dx;selectionTop+=dy;selectionBottom+=dy;refresh();}
@@ -267,6 +267,7 @@ public final class DrawingView extends View {
  public void undo(){if(nativeUndo()){deselect();refresh();}}
  public void redo(){if(nativeRedo()){deselect();refresh();}}
  public void loadBitmap(Bitmap source){
+  if(source==null||source.isRecycled())return;
   Bitmap scaled=Bitmap.createScaledBitmap(source,SIZE,SIZE,true);
   try{int[] pixels=new int[SIZE*SIZE];scaled.getPixels(pixels,0,SIZE,0,0,SIZE,SIZE);if(nativeImport(pixels)){deselect();refresh();}}
   finally{if(scaled!=source)scaled.recycle();}
