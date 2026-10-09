@@ -88,6 +88,36 @@ public final class DrawingView extends View {
   if(value==SELECT_RECTANGLE||value==SELECT_ELLIPSE||value==SELECT_FREE)invalidate();
  }
  public boolean hasSelection(){return hasSelection&&selectionRight-selectionLeft>=1f&&selectionBottom-selectionTop>=1f;}
+ public boolean expandSelectionOnePixel(){
+  if(!hasSelection())return false;
+  android.graphics.Region region=new android.graphics.Region();
+  if(selectionTool==SELECT_FREE||selectionTool==MAGIC_WAND)region.set(freeRegion);
+  else if(selectionTool==SELECT_RECTANGLE)
+   region.set((int)Math.floor(selectionLeft),(int)Math.floor(selectionTop),
+     (int)Math.ceil(selectionRight),(int)Math.ceil(selectionBottom));
+  else if(selectionTool==SELECT_ELLIPSE){
+   android.graphics.Path ellipse=new android.graphics.Path();
+   ellipse.addOval(new RectF(selectionLeft,selectionTop,selectionRight,selectionBottom),
+     android.graphics.Path.Direction.CW);
+   region.setPath(ellipse,new android.graphics.Region(0,0,SIZE,SIZE));
+  }else return false;
+  android.graphics.Region grown=new android.graphics.Region(region);
+  android.graphics.Region offset=new android.graphics.Region();
+  for(int dx=-1;dx<=1;dx++)for(int dy=-1;dy<=1;dy++){
+   if(dx==0&&dy==0)continue;
+   region.translate(dx,dy,offset);
+   grown.op(offset,android.graphics.Region.Op.UNION);
+  }
+  grown.op(0,0,SIZE,SIZE,android.graphics.Region.Op.INTERSECT);
+  if(grown.isEmpty())return false;
+  freeRegion.set(grown);freePath.reset();
+  wandBoundary.set(freeRegion.getBoundaryPath());
+  android.graphics.Rect bounds=freeRegion.getBounds();
+  selectionLeft=bounds.left;selectionTop=bounds.top;
+  selectionRight=bounds.right;selectionBottom=bounds.bottom;
+  selectionTool=MAGIC_WAND;hasSelection=true;
+  invalidate();return true;
+ }
  public boolean invertSelection(){
   if(!hasSelection())return false;
   android.graphics.Region selected=new android.graphics.Region();
