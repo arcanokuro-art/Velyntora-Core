@@ -62,3 +62,7 @@ Movimiento por arrastre y desplazamiento numérico, recorte real del documento e
 Validación del entregable 12: pruebas C++ del remuestreo y máscaras, pruebas de llamadas JNI desde Java con reflejo/Undo/Redo y compilación APK del commit `453f8f1f76ced79c6ebeaddbe9aeb901f732ad6b` (Actions 37978432820 y 37978432930). Se corrigió una publicación incompleta y se verificó el árbol final completo frente a la revisión anterior: ningún archivo eliminado.
 
 **Resumen actual: 15 de 20 entregables verificados = 75.00 %.** Abiertos: 09 (paridad/adaptación completa de interfaz), 16 (todos los formatos), 17 (todos los ajustes y controles), 18 (catálogo completo de efectos), 20 (pulido/accesibilidad/defectos transversales). Los diálogos de parámetros usan desplazamiento para que todos los controles sean accesibles en pantallas pequeñas y con el teclado visible.
+
+## Ajustes de color avanzados (entregable 17, ampliación pendiente de validación)
+
+Curvas suaves editables con hasta 32 puntos y canal RGB/R/G/B/luminosidad; niveles independientes con entrada, salida y gamma por canal; niveles automáticos con recorte de histogramas; posterización RGB independiente y tono/saturación/luminosidad combinados. Procesamiento fuera del hilo de interfaz, alfa conservado, píxeles totalmente transparentes intactos y un solo paso de Undo/Redo. Los valores inválidos y operaciones sin cambios no alteran el historial. Se incluyen pruebas C++, interpolación Java e integración JNI. El porcentaje continúa en 75.00 %: esta ampliación todavía no completa todos los controles del entregable 17.

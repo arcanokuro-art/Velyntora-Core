@@ -10,6 +10,7 @@ class DrawingView {
  static native boolean nativeUndo();
  static native boolean nativeRedo();
  static native boolean nativeTransformSelection(int left,int top,int width,int height,byte[] mask,float degrees,float sx,float sy);
+ static native boolean nativeColorAdjustment(int kind,int[] values);
  static native boolean nativeEffect(int kind,int amount);
  static native void nativeSetBrushSelection(byte[] mask);
  static native void nativeStyledStroke(float x0,float y0,float x1,float y1,float radius,int color,float opacity,float hardness,boolean square,boolean eraser);
@@ -41,6 +42,17 @@ public final class NativeRasterTests {
   check(DrawingView.nativePixels()[0]==stripes[2]&&DrawingView.nativePixels()[2]==stripes[0]);
   check(DrawingView.nativeUndo());check(Arrays.equals(stripes,DrawingView.nativePixels()));
   check(DrawingView.nativeRedo());check(DrawingView.nativePixels()[0]==stripes[2]);
+  int[] colors={0x80ff0000,0xff204080,0};check(DrawingView.nativeLoadBitmap(3,1,colors));
+  int[] curve=new int[257];for(int i=0;i<256;i++)curve[i]=255-i;
+  check(DrawingView.nativeColorAdjustment(0,curve));check(DrawingView.nativePixels()[0]==0x8000ffff);
+  check(DrawingView.nativeUndo());check(Arrays.equals(colors,DrawingView.nativePixels()));
+  check(DrawingView.nativeRedo());check(DrawingView.nativePixels()[0]==0x8000ffff);
+  int[] adjusted=DrawingView.nativePixels();check(!DrawingView.nativeColorAdjustment(0,new int[2]));check(!DrawingView.nativeColorAdjustment(1,new int[15]));check(Arrays.equals(adjusted,DrawingView.nativePixels()));
+  check(DrawingView.nativeLoadBitmap(3,1,colors));check(DrawingView.nativeColorAdjustment(4,new int[]{120,100,0}));check(DrawingView.nativePixels()[0]==0x8000ff00);check(DrawingView.nativeUndo());check(Arrays.equals(colors,DrawingView.nativePixels()));
+  check(!DrawingView.nativeColorAdjustment(4,new int[]{0,100,0}));check(!DrawingView.nativeUndo());
+  check(DrawingView.nativeColorAdjustment(1,new int[]{0,255,100,0,255,0,255,100,0,255,0,255,100,20,255}));check(DrawingView.nativeUndo());check(Arrays.equals(colors,DrawingView.nativePixels()));
+  check(DrawingView.nativeColorAdjustment(2,new int[]{0}));check(DrawingView.nativeUndo());check(Arrays.equals(colors,DrawingView.nativePixels()));
+  check(DrawingView.nativeColorAdjustment(3,new int[]{2,4,8}));check(DrawingView.nativeUndo());check(Arrays.equals(colors,DrawingView.nativePixels()));
   System.out.println("JNI raster: transparency, source-over composition, atomic import, and undo/redo passed");
  }
 }
