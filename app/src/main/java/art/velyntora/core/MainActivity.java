@@ -147,13 +147,14 @@ public final class MainActivity extends Activity {
             new Runnable[]{this::undo, this::redo, this::copySelection, this::cutSelection, this::pasteSelection, this::duplicateSelection, this::moveSelectedContent, drawing::selectAll, () -> {if(!drawing.invertSelection())message("No se pudo invertir la selección");}, () -> {if(!drawing.expandSelectionOnePixel())message("No se pudo expandir la selección");}, () -> {if(!drawing.shrinkSelectionOnePixel())message("No se pudo contraer la selección");}, () -> {if(!drawing.eraseSelection())message("No hay selección válida");}, drawing::deselect});
         menu(menus, "Ver", new String[]{"Ajustar al lienzo"},
             new Runnable[]{drawing::invalidate});
-        menu(menus, "Imagen", new String[]{"Nuevo lienzo", "Voltear capa horizontalmente", "Voltear capa verticalmente", "Rotar capa 180°", "Rotar capa 90° derecha", "Rotar capa 90° izquierda", "Conservar solo selección rectangular (capa)"},
+        menu(menus, "Imagen", new String[]{"Nuevo lienzo", "Voltear capa horizontalmente", "Voltear capa verticalmente", "Rotar capa 180°", "Rotar capa 90° derecha", "Rotar capa 90° izquierda", "Conservar solo selección rectangular (capa)", "Conservar solo selección elíptica (capa)"},
             new Runnable[]{drawing::clear, () -> {if(!drawing.flipActiveHorizontal())message("La capa no tiene cambios para voltear");},
                 () -> {if(!drawing.flipActiveVertical())message("La capa no tiene cambios para voltear");},
                 () -> {if(!drawing.rotateActive180())message("La capa no tiene cambios para rotar");},
                 () -> {if(!drawing.rotateActive90(true))message("La capa no tiene cambios para rotar");},
                 () -> {if(!drawing.rotateActive90(false))message("La capa no tiene cambios para rotar");},
-                () -> {if(!drawing.trimActiveToRectSelection())message("Selecciona un rectángulo válido con contenido exterior");}});
+                () -> {if(!drawing.trimActiveToRectSelection())message("Selecciona un rectángulo válido con contenido exterior");},
+                () -> {if(!drawing.trimActiveToEllipseSelection())message("Selecciona una elipse válida con contenido exterior");}});
         menu(menus, "Capas", new String[]{"Añadir capa", "Seleccionar capa", "Eliminar capa", "Mostrar / ocultar", "Subir capa", "Bajar capa"},
             new Runnable[]{this::addLayer, this::chooseLayer, this::deleteLayer, this::toggleLayer,
                 () -> moveLayer(1), () -> moveLayer(-1)});
