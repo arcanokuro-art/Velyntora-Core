@@ -214,11 +214,34 @@ public final class MainActivity extends Activity {
     }
 
     private void tool(LinearLayout parent, String label, int tool) {
-        button(parent, label, () -> {
+        Button iconButton = new Button(this);
+        iconButton.setText(label);
+        iconButton.setTextSize(12);
+        iconButton.setAllCaps(false);
+        iconButton.setMinWidth(0);
+        iconButton.setMinimumWidth(0);
+        int icon = 0;
+        switch (tool) {
+            case DrawingView.BRUSH: icon = R.drawable.pinta_brush; break;
+            case DrawingView.LINE: icon = R.drawable.pinta_line; break;
+            case DrawingView.RECTANGLE:
+            case DrawingView.FILLED_RECTANGLE: icon = R.drawable.pinta_rectangle; break;
+            case DrawingView.ELLIPSE:
+            case DrawingView.FILLED_ELLIPSE: icon = R.drawable.pinta_ellipse; break;
+            case DrawingView.BUCKET: icon = R.drawable.pinta_bucket; break;
+            case DrawingView.PICKER: icon = R.drawable.pinta_picker; break;
+            case DrawingView.ERASER: icon = R.drawable.pinta_eraser; break;
+        }
+        if (icon != 0) {
+            iconButton.setCompoundDrawablesWithIntrinsicBounds(icon, 0, 0, 0);
+            iconButton.setCompoundDrawablePadding(dp(4));
+        }
+        iconButton.setOnClickListener(v -> {
             drawing.setTool(tool);
             drawing.setColor(activeColor);
             selectedTool.setText(label);
         });
+        parent.addView(iconButton);
     }
 
     private void menu(LinearLayout parent, String title, String[] labels, Runnable[] actions) {
