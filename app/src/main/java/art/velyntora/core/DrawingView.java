@@ -66,7 +66,23 @@ public final class DrawingView extends View {
  public void setColor(int value){color=value;}
  public void setBrushRadius(float radius){if(Float.isFinite(radius)&&radius>=1f&&radius<=128f)brushRadius=radius;}
  public float brushRadius(){return brushRadius;}
- public void setTool(int value){tool=value;}
+ public void setTool(int value){
+  if(value<BRUSH||value>SELECT_ELLIPSE)return;
+  tool=value;
+  // Switching away from a selection tool must not leave a selection
+  // permanently active as an accidental overlay on subsequent drawings.
+  if(value==SELECT_RECTANGLE||value==SELECT_ELLIPSE)invalidate();
+ }
+ public boolean hasSelection(){return hasSelection;}
+ public boolean selectionContains(int px,int py){
+  if(!hasSelection||px<selectionLeft||py<selectionTop||px>=selectionRight||py>=selectionBottom)return false;
+  if(selectionTool==SELECT_RECTANGLE)return true;
+  final float rx=(selectionRight-selectionLeft)/2f,ry=(selectionBottom-selectionTop)/2f;
+  if(rx<=0f||ry<=0f)return false;
+  final float cx=(selectionRight+selectionLeft)/2f,cy=(selectionBottom+selectionTop)/2f;
+  final float dx=(px+0.5f-cx)/rx,dy=(py+0.5f-cy)/ry;
+  return dx*dx+dy*dy<=1f;
+ }
  public void clear(){if(nativeClear()){hasSelection=false;refresh();}}
  public boolean eraseSelection(){
   if(!hasSelection)return false;
