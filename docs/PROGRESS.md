@@ -19,11 +19,11 @@ Objetivo: reproducir la experiencia y las funciones de Pinta 3.1.2 en Android. E
 - [x] 15. Zoom, panorámica y rotación del lienzo.
 - [ ] 16. Gestión completa de tamaños y formatos.
 - [x] 17. Ajustes de color de Pinta.
-- [ ] 18. Efectos y filtros de Pinta.
+- [x] 18. Efectos y filtros de Pinta (cobertura de las 37 familias; implementaciones y controles Core).
 - [x] 19. Guardar y abrir proyectos editables con capas.
 - [ ] 20. Pulido de interfaz, accesibilidad y corrección de defectos detectados durante desarrollo.
 
-**Avance verificado por entregables: 16/20 = 80.00%**. El entregable 15 incluye zoom de 1–7000 %, panorámica y rotación con dos dedos, controles del menú Ver y coordenadas inversas para las herramientas. Validado con pruebas Java y compilación Android del commit `e90a779f6c8dc8f6c5cea4a1bf33d7ae634e9507` (Actions 37975450908 y 37975450586). La cifra mide estos hitos y no representa paridad exhaustiva con cada comando de Pinta. Las funcionalidades marcadas pueden tener limitaciones y defectos pendientes.
+**Avance verificado por entregables: 17/20 = 85.00%**. El entregable 15 incluye zoom de 1–7000 %, panorámica y rotación con dos dedos, controles del menú Ver y coordenadas inversas para las herramientas. Validado con pruebas Java y compilación Android del commit `e90a779f6c8dc8f6c5cea4a1bf33d7ae634e9507` (Actions 37975450908 y 37975450586). La cifra mide estos hitos y no representa paridad exhaustiva con cada comando de Pinta. Las funcionalidades marcadas pueden tener limitaciones y defectos pendientes.
 
 ## Regla del 100.00 %
 
@@ -47,9 +47,9 @@ Texto multilínea colocado al tocar el lienzo, con tamaño de 4–256 px, negrit
 
 Validación de texto/formas: compilación Android y pruebas C++/Java/JNI del commit `c42c98c56e1106df744385e0715bec0daef442c2` (Actions 37977246850 y 37977246851). La prueba JNI comprueba transparencia, mezcla de los píxeles insertados y Undo/Redo; el aspecto y la interacción en pantalla quedan para revisión en Android.
 
-## Efectos (entregable 18, parcial)
+## Efectos básicos (familias del entregable 18)
 
-Siete efectos parametrizados sobre la capa activa: desenfoque de caja (premultiplicación de alfa para evitar halos), enfoque, detección de bordes, relieve, pixelado, ruido y viñeta. Se calculan en un hilo de trabajo con un único punto de Undo/Redo. Este bloque **no completa** el catálogo de Pinta: siguen pendientes los otros desenfoques, distorsiones, efectos artísticos y generadores. No puntúa como entregable 18 completo.
+Siete efectos parametrizados sobre la capa activa: desenfoque de caja (premultiplicación de alfa para evitar halos), enfoque, detección de bordes, relieve, pixelado, ruido y viñeta. Se calculan en un hilo de trabajo con un único punto de Undo/Redo. Este fue el primer grupo implementado. Los demás grupos y sus límites actuales se detallan en `EFFECTS_PARITY.md`.
 
 ## Correcciones transversales
 
@@ -61,7 +61,7 @@ Movimiento por arrastre y desplazamiento numérico, recorte real del documento e
 
 Validación del entregable 12: pruebas C++ del remuestreo y máscaras, pruebas de llamadas JNI desde Java con reflejo/Undo/Redo y compilación APK del commit `453f8f1f76ced79c6ebeaddbe9aeb901f732ad6b` (Actions 37978432820 y 37978432930). Se corrigió una publicación incompleta y se verificó el árbol final completo frente a la revisión anterior: ningún archivo eliminado.
 
-**Resumen actual: 16 de 20 entregables verificados = 80.00 %.** Abiertos: 09 (paridad/adaptación completa de interfaz), 16 (todos los formatos), 18 (catálogo completo de efectos), 20 (pulido/accesibilidad/defectos transversales). Los diálogos de parámetros usan desplazamiento para que todos los controles sean accesibles en pantallas pequeñas y con el teclado visible.
+**Resumen actual: 17 de 20 entregables verificados = 85.00 %.** Abiertos: 09 (paridad/adaptación completa de interfaz), 16 (todos los formatos), 20 (pulido/accesibilidad/defectos transversales). Los diálogos de parámetros usan desplazamiento para que todos los controles sean accesibles en pantallas pequeñas y con el teclado visible.
 
 ## Ajustes de color avanzados (entregable 17, verificado)
 
@@ -73,7 +73,7 @@ BMP de 24 bits con fondo blanco y TGA de 32 bits con alfa, escritos fila a fila 
 
 ## Desenfoques adicionales (entregable 18, parcial)
 
-Gaussiano separable con radio 0–32 px, movimiento con distancia y dirección, radial con centro configurable y arco, y zoom con centro e intensidad. Muestreo bilineal y mezcla premultiplicada por alfa para no contaminar bordes con RGB oculto de píxeles transparentes. Cada aplicación se ejecuta fuera de la interfaz y ocupa un solo paso del historial. Pruebas de simetría, constantes, identidad, direcciones, transparencia, parámetros inválidos y llamadas JNI con Undo/Redo. El catálogo completo de efectos sigue pendiente y no suma el entregable 18. Se corrigió también la curva de luminosidad identidad para colores próximos al negro.
+Gaussiano separable con radio 0–32 px, movimiento con distancia y dirección, radial con centro configurable y arco, y zoom con centro e intensidad. Muestreo bilineal y mezcla premultiplicada por alfa para no contaminar bordes con RGB oculto de píxeles transparentes. Cada aplicación se ejecuta fuera de la interfaz y ocupa un solo paso del historial. Pruebas de simetría, constantes, identidad, direcciones, transparencia, parámetros inválidos y llamadas JNI con Undo/Redo. Este grupo está integrado en el catálogo base verificado del entregable 18. Se corrigió también la curva de luminosidad identidad para colores próximos al negro.
 
 ## Espacio adaptable (entregable 09, parcial)
 
@@ -89,7 +89,7 @@ Abrir/guardar `.ora` con capas PNG normales, nombres UTF-8, orden, visibilidad, 
 
 ## Distorsiones y selecciones (entregable 18, parcial)
 
-Remolino, abombar/pellizcar, ondas radiales, cristales y escarcha con intensidad, radio/periodo, dirección y centro según el efecto. Interpolación bilineal premultiplicada por alfa; escarcha reproducible. Curvas, ajustes avanzados, los siete efectos iniciales, desenfoques y distorsiones respetan la máscara de selección capturada antes del hilo de trabajo y conservan el contorno. Los niveles automáticos usan sólo el histograma seleccionado. Las operaciones sin cambio no añaden historial; cada aplicación efectiva ocupa un solo paso de Undo/Redo. Los antiguos extras de color conservan su comportamiento sobre toda la capa. Estos avances no completan el catálogo: el porcentaje permanece en 80.00 %.
+Remolino, abombar/pellizcar, ondas radiales, cristales y escarcha con intensidad, radio/periodo, dirección y centro según el efecto. Interpolación bilineal premultiplicada por alfa; escarcha reproducible. Curvas, ajustes avanzados, los siete efectos iniciales, desenfoques y distorsiones respetan la máscara de selección capturada antes del hilo de trabajo y conservan el contorno. Los niveles automáticos usan sólo el histograma seleccionado. Las operaciones sin cambio no añaden historial; cada aplicación efectiva ocupa un solo paso de Undo/Redo. Los antiguos extras de color conservan su comportamiento sobre toda la capa. Estos avances forman parte del catálogo base verificado del entregable 18.
 
 Validación OpenRaster: pruebas con PNG reales y compilación APK del commit `6a8e771e4e27a91fc458064ce7d327fc89f07178` (Actions 37984360200 y 37984360235). Referencia de formato: https://www.openraster.org/baseline/file-layout-spec.html y https://www.openraster.org/baseline/layer-stack-spec.html . Las pruebas cubren orden, UTF-8, visibilidad, opacidad, capa activa, composición, miniatura y metadatos inválidos; la interacción visual en Android queda para la fase manual.
 
@@ -99,14 +99,18 @@ Exportación TIFF RGB de 8 bits por canal con alfa no asociado, sin compresión,
 
 ## Arte y fotografía (entregable 18, parcial)
 
-Pintura al óleo con radio y niveles de intensidad, boceto a lápiz, boceto a tinta con umbral de contorno, resplandor, retrato suave, mediana/percentil y reducción de ojos rojos. Conservan el alfa original y los píxeles totalmente transparentes; el óleo ignora los colores ocultos y pondera por alfa. Procesamiento fuera del hilo de interfaz, máscara de selección y un único punto de historial. Implementaciones propias: no se afirma igualdad numérica con Pinta. Pruebas del motor y llamadas JNI con Undo/Redo y máscara vacía. El catálogo completo sigue pendiente; avance global 16/20 = 80.00 %.
+Pintura al óleo con radio y niveles de intensidad, boceto a lápiz, boceto a tinta con umbral de contorno, resplandor, retrato suave, mediana/percentil y reducción de ojos rojos. Conservan el alfa original y los píxeles totalmente transparentes; el óleo ignora los colores ocultos y pondera por alfa. Procesamiento fuera del hilo de interfaz, máscara de selección y un único punto de historial. Implementaciones propias: no se afirma igualdad numérica con Pinta. Pruebas del motor y llamadas JNI con Undo/Redo y máscara vacía. Este grupo forma parte del catálogo base verificado; avance global 17/20 = 85.00 %.
 
 Validación de los siete efectos de arte/foto: pruebas C++ y JNI con Undo/Redo y APK del commit `37763930b6da60d1f571c45fd15389f57d23a37c` (Actions 37986391469 y 37986391407). Optimización de óleo y mediana mediante ventanas deslizantes; comparación exacta contra la implementación previa sobre dimensiones y radios variados, y prueba de percentiles contra una referencia independiente por ordenación. Medición local orientativa de 512×512, compilación `-O2`: óleo 347→95 ms; mediana 164→57 ms. Estas cifras no corresponden a un dispositivo Android y no forman parte del porcentaje global.
 
 ## Generadores (entregable 18, parcial)
 
-Nubes por ruido suave multiescala, Voronoi, celdas, Mandelbrot y Julia. Escala/zoom, octavas/iteraciones y semilla según el generador; primer color de dibujo y segundo blanco/negro/transparente. Interpolación de colores premultiplicada por alfa. Generan contenido nuevo en la capa activa o selección; los píxeles excluidos se conservan y el cambio se deshace en un solo paso. Pruebas de determinismo, semillas, paletas uniformes, transparencia, límites y JNI. El catálogo sigue parcial; avance 80.00 %.
+Nubes por ruido suave multiescala, Voronoi, celdas, Mandelbrot y Julia. Escala/zoom, octavas/iteraciones y semilla según el generador; primer color de dibujo y segundo blanco/negro/transparente. Interpolación de colores premultiplicada por alfa. Generan contenido nuevo en la capa activa o selección; los píxeles excluidos se conservan y el cambio se deshace en un solo paso. Pruebas de determinismo, semillas, paletas uniformes, transparencia, límites y JNI. Este grupo forma parte del catálogo base verificado; avance 85.00 %.
 
-## Resto del catálogo de filtros y objetos (entregable 18, pendiente de validación)
+## Resto del catálogo de filtros y objetos (entregable 18, verificado)
 
-Fragmentar, desenfoque de lente mediante disco muestreado, abolladuras por ruido suave, inversión polar, reducción de ruido con tolerancia de color, contorno de bordes, relieve direccional y tramado ordenado. Objetos: alinear en nueve posiciones dentro del lienzo/selección, suavizar alfa hacia dentro y dibujar un contorno detrás del objeto. La detección de objetos se basa en alfa, por lo que requiere fondo transparente. Distancias euclidianas calculadas en dos pasadas; no se realiza una búsqueda de todos los puntos de borde para cada píxel. Los efectos respetan selecciones y tienen Undo/Redo. Implementaciones propias con parámetros acotados para Android; no se promete reproducción píxel a píxel de Pinta ni sus opciones de previsualización. El entregable 18 todavía no se suma hasta verificar toda la integración y el APK.
+Fragmentar, desenfoque de lente mediante disco muestreado, abolladuras por ruido suave, inversión polar, reducción de ruido con tolerancia de color, contorno de bordes, relieve direccional y tramado ordenado. Objetos: alinear en nueve posiciones dentro del lienzo/selección, suavizar alfa hacia dentro y dibujar un contorno detrás del objeto. La detección de objetos se basa en alfa, por lo que requiere fondo transparente. Distancias euclidianas calculadas en dos pasadas; no se realiza una búsqueda de todos los puntos de borde para cada píxel. Los efectos respetan selecciones y tienen Undo/Redo. Implementaciones propias con parámetros acotados para Android; no se promete reproducción píxel a píxel de Pinta ni sus opciones de previsualización. La integración y el APK de estas familias están verificados.
+
+## Cierre del entregable 18
+
+Cobertura funcional de las 37 familias del catálogo de referencia, con controles, selección e historial, agrupadas en un solo menú Efectos. Correspondencias y diferencias explícitas en [EFFECTS_PARITY.md](EFFECTS_PARITY.md). No se afirma igualdad píxel a píxel ni todos los rangos/métodos/opciones de Pinta. Compilación Android y pruebas C++/Java/JNI aprobadas para `c20cc4296a1f20dc7d5f09bd86dec1fca82baf7b` (Actions 37987595585 y 37987595653). Se suma el hito: 17/20 = **85.00 %**. Quedan 09, 16 y 20.

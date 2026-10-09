@@ -53,3 +53,5 @@ Referencia de inventario: `Pinta.Effects/Effects` de [Pinta-2.0](https://github.
 - Los efectos actúan sobre la capa activa y respetan la selección. Los generadores reemplazan contenido; Deshacer restaura los píxeles anteriores.
 
 Pruebas: motor C++ por familia, propiedades de transparencia/determinismo/identidad/límites, referencia independiente para percentiles y llamadas reales Java→JNI con historial y selecciones. La revisión visual en el teléfono sigue siendo una fase independiente.
+
+Validación del catálogo: commit `c20cc4296a1f20dc7d5f09bd86dec1fca82baf7b`, Core tests 37987595585 y Android APK 37987595653, ambos aprobados.
