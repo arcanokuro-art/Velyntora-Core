@@ -696,3 +696,25 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
  if(!changed)return JNI_FALSE;
  checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;
 }
+
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeHueRotateActive(JNIEnv*,jclass,jint degrees){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!canvas||!layers||degrees< -180||degrees>180||degrees==0)return JNI_FALSE;
+ auto pixels=canvas->pixels();bool changed=false;
+ const double angle=static_cast<double>(degrees)*3.14159265358979323846/180.0;
+ const double cosine=std::cos(angle),sine=std::sin(angle);
+ const auto clamp=[](double value)->std::uint32_t{return static_cast<std::uint32_t>(std::min(255.0,std::max(0.0,std::floor(value+0.5))));};
+ for(auto& pixel:pixels){
+  const std::uint32_t alpha=pixel&0xFF000000u;
+  if(!alpha)continue;
+  const double r=(pixel>>16)&255u,g=(pixel>>8)&255u,b=pixel&255u;
+  const double y=0.299*r+0.587*g+0.114*b;
+  const double u=b-y,v=r-y;
+  const double rotatedU=u*cosine-v*sine,rotatedV=u*sine+v*cosine;
+  const std::uint32_t nr=clamp(y+rotatedV),nb=clamp(y+rotatedU),ng=clamp((y-0.299*(y+rotatedV)-0.114*(y+rotatedU))/0.587);
+  const std::uint32_t result=alpha|(nr<<16)|(ng<<8)|nb;
+  if(result!=pixel){pixel=result;changed=true;}
+ }
+ if(!changed)return JNI_FALSE;
+ checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;
+}
