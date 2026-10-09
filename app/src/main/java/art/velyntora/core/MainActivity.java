@@ -96,6 +96,17 @@ public final class MainActivity extends Activity {
             }).show();
     }
 
+    private void duplicateSelection() {
+        Bitmap copy = drawing.copySelection();
+        if (copy == null) { message("No hay selección válida para duplicar"); return; }
+        try {
+            if (!drawing.pasteBitmap(copy)) message("No se pudo duplicar la selección");
+            else message("Selección duplicada");
+        } finally {
+            copy.recycle();
+        }
+    }
+
     private void pasteSelection() {
         if (selectionClipboard == null || selectionClipboard.isRecycled()) {
             message("No hay contenido copiado"); return;
@@ -132,8 +143,8 @@ public final class MainActivity extends Activity {
         LinearLayout menus = row();
         menu(menus, "Archivo", new String[]{"Nuevo", "Abrir imagen", "Guardar PNG"},
             new Runnable[]{drawing::clear, this::openImage, this::savePng});
-        menu(menus, "Editar", new String[]{"Deshacer", "Rehacer", "Copiar selección", "Cortar selección", "Pegar selección", "Mover contenido…", "Seleccionar todo", "Invertir selección", "Expandir selección 1 px", "Contraer selección 1 px", "Borrar selección", "Deseleccionar"},
-            new Runnable[]{this::undo, this::redo, this::copySelection, this::cutSelection, this::pasteSelection, this::moveSelectedContent, drawing::selectAll, () -> {if(!drawing.invertSelection())message("No se pudo invertir la selección");}, () -> {if(!drawing.expandSelectionOnePixel())message("No se pudo expandir la selección");}, () -> {if(!drawing.shrinkSelectionOnePixel())message("No se pudo contraer la selección");}, () -> {if(!drawing.eraseSelection())message("No hay selección válida");}, drawing::deselect});
+        menu(menus, "Editar", new String[]{"Deshacer", "Rehacer", "Copiar selección", "Cortar selección", "Pegar selección", "Duplicar selección", "Mover contenido…", "Seleccionar todo", "Invertir selección", "Expandir selección 1 px", "Contraer selección 1 px", "Borrar selección", "Deseleccionar"},
+            new Runnable[]{this::undo, this::redo, this::copySelection, this::cutSelection, this::pasteSelection, this::duplicateSelection, this::moveSelectedContent, drawing::selectAll, () -> {if(!drawing.invertSelection())message("No se pudo invertir la selección");}, () -> {if(!drawing.expandSelectionOnePixel())message("No se pudo expandir la selección");}, () -> {if(!drawing.shrinkSelectionOnePixel())message("No se pudo contraer la selección");}, () -> {if(!drawing.eraseSelection())message("No hay selección válida");}, drawing::deselect});
         menu(menus, "Ver", new String[]{"Ajustar al lienzo"},
             new Runnable[]{drawing::invalidate});
         menu(menus, "Imagen", new String[]{"Nuevo lienzo"},
