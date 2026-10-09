@@ -235,6 +235,7 @@ public final class DrawingView extends View {
  public void setColor(int value){color=value;}
  public void setBrushRadius(float radius){if(Float.isFinite(radius)&&radius>=1f&&radius<=128f)brushRadius=radius;}
  public float brushRadius(){return brushRadius;}
+ public int currentTool(){return tool;}
  public void setTool(int value){
   if(value<BRUSH||value>FILLED_TRIANGLE)return;
   tool=value;

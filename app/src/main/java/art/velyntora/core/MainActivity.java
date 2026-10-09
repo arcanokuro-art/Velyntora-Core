@@ -33,6 +33,9 @@ public final class MainActivity extends Activity {
     private ScrollView layerScroll,toolScroll;
     private android.widget.FrameLayout workspaceFrame;
     private boolean panelsInline;
+    private HorizontalScrollView commandScroll,paletteScroll;
+    private Button currentColorButton;
+    private final android.util.SparseArray<Button> toolButtons=new android.util.SparseArray<>();
     private final java.util.ArrayList<Bitmap> thumbnails = new java.util.ArrayList<>();
     private android.os.Handler layerRefreshHandler = new android.os.Handler(android.os.Looper.getMainLooper());
     private SeekBar layerOpacity;
@@ -535,7 +538,7 @@ public final class MainActivity extends Activity {
         super.onCreate(state);
         drawing = new DrawingView(this);
         drawing.setOnTextPositionListener(this::configureText);
-        drawing.setOnColorPickedListener(color -> { activeColor = color; message("Color seleccionado"); });
+        drawing.setOnColorPickedListener(color -> {setActiveColor(color);message("Color seleccionado");});
         drawing.setOnCanvasChangedListener(() -> {
             layerRefreshHandler.removeCallbacks(layerRefreshTask);
             layerRefreshHandler.postDelayed(layerRefreshTask, 120);
@@ -549,11 +552,11 @@ public final class MainActivity extends Activity {
             new Runnable[]{() -> configureDimensions(0), this::openImage, this::openTga, this::openTiff, this::openIco, this::openPpm, () -> openRasterPicker(false), () -> openRasterPicker(true), this::savePng, () -> saveImage("image/jpeg", "dibujo.jpg", SAVE_JPEG), () -> saveImage("image/webp", "dibujo.webp", SAVE_WEBP), () -> saveImage("image/bmp", "dibujo.bmp", SAVE_BMP), () -> saveImage("image/x-tga", "dibujo.tga", SAVE_TGA), () -> saveImage("image/tiff", "dibujo.tiff", SAVE_TIFF), () -> {message("GIF: colores reducidos y transparencia sin semitransparencias");saveImage("image/gif", "dibujo.gif", SAVE_GIF);}, () -> saveImage("image/vnd.microsoft.icon", "dibujo.ico", SAVE_ICO), () -> saveImage("image/x-portable-pixmap", "dibujo.ppm", SAVE_PPM), () -> projectPicker(false), () -> projectPicker(true)});
         menu(menus, "Editar", new String[]{"Deshacer", "Rehacer", "Copiar selección", "Cortar selección", "Pegar selección", "Duplicar selección", "Mover contenido…", "Transformar selección…", "Seleccionar todo", "Invertir selección", "Expandir selección 1 px", "Contraer selección 1 px", "Borrar selección", "Deseleccionar"},
             new Runnable[]{this::undo, this::redo, this::copySelection, this::cutSelection, this::pasteSelection, this::duplicateSelection, this::moveSelectedContent, this::configureSelectionTransform, drawing::selectAll, () -> {if(!drawing.invertSelection())message("No se pudo invertir la selección");}, () -> {if(!drawing.expandSelectionOnePixel())message("No se pudo expandir la selección");}, () -> {if(!drawing.shrinkSelectionOnePixel())message("No se pudo contraer la selección");}, () -> {if(!drawing.eraseSelection())message("No hay selección válida");}, drawing::deselect});
-        menu(menus, "Ver", new String[]{"Ajustar al lienzo", "Acercar", "Alejar", "Zoom 100 %", "Zoom 7000 %", "Rotar vista 15° derecha", "Rotar vista 15° izquierda", "Restablecer rotación"},
+        menu(menus, "Ver", new String[]{"Ajustar al lienzo", "Acercar", "Alejar", "Zoom 100 %", "Zoom 7000 %", "Rotar vista 15° derecha", "Rotar vista 15° izquierda", "Restablecer rotación", "Mostrar / ocultar herramientas", "Mostrar / ocultar capas"},
             new Runnable[]{drawing::fitCanvas, () -> drawing.zoomBy(1.25f), () -> drawing.zoomBy(0.8f),
                 () -> drawing.setZoomPercent(100), () -> drawing.setZoomPercent(7000),
                 () -> drawing.rotateView(15), () -> drawing.rotateView(-15),
-                () -> drawing.rotateView(-drawing.rotationDegrees())});
+                () -> drawing.rotateView(-drawing.rotationDegrees()), () -> togglePanel(toolScroll), () -> togglePanel(layerScroll)});
         new AdjustmentDialogs(this,drawing).addMenu(menus);
         menu(menus, "Extras de color", new String[]{"Invertir colores de capa", "Escala de grises (capa)", "Sepia (capa)", "Aumentar brillo (+20)", "Reducir brillo (-20)", "Brillo personalizado…", "Aumentar contraste (+20)", "Reducir contraste (-20)", "Contraste personalizado…", "Blanco y negro (umbral 128)", "Umbral personalizado…", "Posterizar (4 niveles)", "Posterizar personalizado…", "Solarizar (umbral 128)", "Solarizar personalizado…", "Aumentar saturación (+20)", "Reducir saturación (-20)", "Saturación personalizada…", "Gamma clara (120 %)", "Gamma oscura (80 %)", "Gamma personalizada…", "Tono cálido (+15 rojo)", "Tono frío (+15 azul)", "Canales RGB personalizados…", "Intercambiar rojo y verde", "Intercambiar rojo y azul", "Intercambiar verde y azul", "Aumentar rojo (120 %)", "Aumentar verde (120 %)", "Aumentar azul (120 %)", "Balance RGB personalizado…", "Rotar tono (+30°)", "Rotar tono (-30°)", "Rotación de tono personalizada…", "Ajustar niveles (16–239)", "Niveles personalizados…", "Exposición +20 %", "Exposición -20 %", "Exposición personalizada…", "Escala de grises desde rojo", "Escala de grises desde verde", "Escala de grises desde azul", "Reducir alfa de píxeles (80 %)", "Aumentar alfa de píxeles (120 %)", "Eliminar canal rojo", "Eliminar canal verde", "Eliminar canal azul", "Normalizar colores de capa", "Cuantizar colores (paso 16)", "Cuantizar colores (paso 32)", "Cuantización personalizada…", "Limitar canales RGB a 224", "Límite de luces personalizado…", "Elevar canales RGB a 32", "Añadir rojo (+20)", "Añadir verde (+20)", "Añadir azul (+20)"}, new Runnable[]{() -> {if(!drawing.invertActiveColors())message("No hay colores visibles para invertir");}, () -> {if(!drawing.grayscaleActive())message("La capa ya está en escala de grises o está vacía");}, () -> {if(!drawing.sepiaActive())message("La capa no tiene cambios para aplicar sepia");}, () -> {if(!drawing.brightnessActive(20))message("No hay cambios de brillo");}, () -> {if(!drawing.brightnessActive(-20))message("No hay cambios de brillo");}, this::configureBrightness, () -> {if(!drawing.contrastActive(20))message("No hay cambios de contraste");}, () -> {if(!drawing.contrastActive(-20))message("No hay cambios de contraste");}, this::configureContrast, () -> {if(!drawing.thresholdActive(128))message("La capa ya es blanco y negro o está vacía");}, this::configureThreshold, () -> {if(!drawing.posterizeActive(4))message("La capa no tiene cambios para posterizar");}, this::configurePosterization, () -> {if(!drawing.solarizeActive(128))message("La capa no tiene cambios para solarizar");}, this::configureSolarization, () -> {if(!drawing.saturationActive(20))message("No hay cambios de saturación");}, () -> {if(!drawing.saturationActive(-20))message("No hay cambios de saturación");}, this::configureSaturation, () -> {if(!drawing.gammaActive(120))message("No hay cambios de gamma");}, () -> {if(!drawing.gammaActive(80))message("No hay cambios de gamma");}, this::configureGamma, () -> {if(!drawing.tintActive(15,0,0))message("No hay cambios de tono");}, () -> {if(!drawing.tintActive(0,0,15))message("No hay cambios de tono");}, this::configureRgbOffsets, () -> {if(!drawing.swapChannelsActive(0))message("No hay cambios de canales");}, () -> {if(!drawing.swapChannelsActive(1))message("No hay cambios de canales");}, () -> {if(!drawing.swapChannelsActive(2))message("No hay cambios de canales");}, () -> {if(!drawing.colorBalanceActive(120,100,100))message("No hay cambios de balance");}, () -> {if(!drawing.colorBalanceActive(100,120,100))message("No hay cambios de balance");}, () -> {if(!drawing.colorBalanceActive(100,100,120))message("No hay cambios de balance");}, this::configureRgbBalance, () -> {if(!drawing.hueRotateActive(30))message("No hay cambios de tono");}, () -> {if(!drawing.hueRotateActive(-30))message("No hay cambios de tono");}, this::configureHue, () -> {if(!drawing.levelsActive(16,239))message("No hay cambios de niveles");}, this::configureLevels, () -> {if(!drawing.exposureActive(120))message("No hay cambios de exposición");}, () -> {if(!drawing.exposureActive(80))message("No hay cambios de exposición");}, this::configureExposure, () -> {if(!drawing.grayscaleFromChannelActive(0))message("No hay cambios de escala de grises");}, () -> {if(!drawing.grayscaleFromChannelActive(1))message("No hay cambios de escala de grises");}, () -> {if(!drawing.grayscaleFromChannelActive(2))message("No hay cambios de escala de grises");}, () -> {if(!drawing.adjustAlphaActive(80))message("No hay cambios de alfa");}, () -> {if(!drawing.adjustAlphaActive(120))message("No hay cambios de alfa");}, () -> {if(!drawing.removeChannelActive(0))message("El canal rojo ya está vacío");}, () -> {if(!drawing.removeChannelActive(1))message("El canal verde ya está vacío");}, () -> {if(!drawing.removeChannelActive(2))message("El canal azul ya está vacío");}, () -> {if(!drawing.normalizeActive())message("No hay cambios para normalizar");}, () -> {if(!drawing.quantizeActive(16))message("No hay cambios al cuantizar");}, () -> {if(!drawing.quantizeActive(32))message("No hay cambios al cuantizar");}, this::configureQuantization, () -> {if(!drawing.clampHighlightsActive(224))message("No hay cambios al limitar colores");}, this::configureHighlightCeiling, () -> {if(!drawing.liftShadowsActive(32))message("No hay cambios al elevar sombras");}, () -> {if(!drawing.adjustChannelActive(0,20))message("No hay cambios en rojo");}, () -> {if(!drawing.adjustChannelActive(1,20))message("No hay cambios en verde");}, () -> {if(!drawing.adjustChannelActive(2,20))message("No hay cambios en azul");}});
         menu(menus, "Imagen", new String[]{"Nuevo lienzo…", "Cambiar tamaño de imagen…", "Cambiar tamaño de lienzo…", "Recortar documento a selección", "Voltear capa horizontalmente", "Voltear capa verticalmente", "Rotar capa 180°", "Rotar capa 90° derecha", "Rotar capa 90° izquierda", "Conservar solo selección rectangular (capa)", "Conservar solo selección elíptica (capa)", "Conservar selección libre o varita (capa)"},
@@ -568,8 +571,8 @@ public final class MainActivity extends Activity {
         menu(menus, "Capas", new String[]{"Añadir capa", "Seleccionar capa", "Eliminar capa", "Mostrar / ocultar", "Subir capa", "Bajar capa"},
             new Runnable[]{this::addLayer, this::chooseLayer, this::deleteLayer, this::toggleLayer,
                 () -> moveLayer(1), () -> moveLayer(-1)});
-        menu(menus, "Herramientas", new String[]{"Tolerancia de varita mágica", "Configurar pincel"},
-            new Runnable[]{this::configureWandTolerance, this::configureBrush});
+        menu(menus, "Herramientas", new String[]{"Tolerancia de varita mágica", "Configurar pincel", "Elegir color…"},
+            new Runnable[]{this::configureWandTolerance, this::configureBrush, this::configureColor});
         AdjustmentDialogs filters=new AdjustmentDialogs(this,drawing);
         menu(menus, "Efectos",new String[]{"Básicos","Desenfoques","Distorsiones","Arte y fotografía","Generadores","Más filtros","Objetos"},new Runnable[]{()->new AlertDialog.Builder(this).setTitle("Efectos básicos").setItems(new String[]{"Desenfoque de caja…","Enfocar…","Detectar bordes…","Repujado…","Pixelar…","Ruido…","Viñeta…"},(d,k)->configureEffect(k)).show(),filters::openBlurMenu,filters::openDistortionMenu,filters::openArtisticMenu,filters::openRenderMenu,filters::openUtilityMenu,filters::openObjectMenu});
         menu(menus, "Ayuda", new String[]{"Acerca de"},
@@ -584,7 +587,7 @@ public final class MainActivity extends Activity {
         button(commands, "Rehacer", this::redo);
         button(commands, "Herramientas", () -> togglePanel(toolScroll));
         button(commands, "Capas", () -> togglePanel(layerScroll));
-        addScrollable(root, commands);
+        commandScroll=addScrollable(root, commands);
 
         LinearLayout sidebar = new LinearLayout(this);
         sidebar.setOrientation(LinearLayout.VERTICAL);
@@ -610,12 +613,13 @@ public final class MainActivity extends Activity {
         tool(toolGrid, "Selección rectangular", DrawingView.SELECT_RECTANGLE);
         tool(toolGrid, "Selección elíptica", DrawingView.SELECT_ELLIPSE);
         tool(toolGrid, "Selección libre (contorno)", DrawingView.SELECT_FREE);
-        tool(toolGrid, "Varita mágica (color exacto)", DrawingView.MAGIC_WAND);
+        tool(toolGrid, "Varita mágica", DrawingView.MAGIC_WAND);
         tool(toolGrid, "Mover contorno", DrawingView.MOVE_SELECTION);
         tool(toolGrid, "Mover píxeles", DrawingView.MOVE_PIXELS);
         TextView brushSizeLabel = text("Radio: 4 px");
         sidebar.addView(brushSizeLabel);
         SeekBar brushSize = new SeekBar(this);
+        brushSize.setContentDescription("Radio del pincel en píxeles");
         brushSize.setMax(127);
         brushSize.setProgress(3);
         brushSize.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -652,6 +656,7 @@ public final class MainActivity extends Activity {
         opacityLabel.setPadding(dp(6), dp(8), dp(6), dp(2));
         layerPanel.addView(opacityLabel);
         SeekBar opacity = new SeekBar(this);
+        opacity.setContentDescription("Opacidad de la capa activa");
         opacity.setMax(100);
         opacity.setProgress(100);
         opacity.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -681,6 +686,8 @@ public final class MainActivity extends Activity {
         root.addView(workspaceFrame, new LinearLayout.LayoutParams(-1, 0, 1));
 
         LinearLayout colors = row();
+        currentColorButton=new Button(this);currentColorButton.setText("");currentColorButton.setPadding(0,0,0,0);currentColorButton.setBackgroundTintList(null);currentColorButton.setOnClickListener(v->configureColor());
+        colors.addView(currentColorButton,new LinearLayout.LayoutParams(dp(48),dp(48)));setActiveColor(activeColor);
         TextView paletteLabel = text("COLORES  ");
         colors.addView(paletteLabel);
         button(colors,"Elegir color…",this::configureColor);
@@ -689,17 +696,16 @@ public final class MainActivity extends Activity {
             0xFF795548, 0xFF9C27B0};
         for (int color : palette) {
             View swatch = new View(this);
-            swatch.setBackgroundColor(color);
+            swatch.setBackgroundColor(color);swatch.setFocusable(true);swatch.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
             swatch.setContentDescription(String.format(java.util.Locale.US,"Color #%06X",color & 0xffffff));
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(48), dp(48));
             params.setMargins(dp(3), dp(4), dp(3), dp(4));
             colors.addView(swatch, params);
             swatch.setOnClickListener(v -> {
-                activeColor = color;
-                drawing.setColor(color);
+                setActiveColor(color);
             });
         }
-        addScrollable(root, colors);
+        paletteScroll=addScrollable(root, colors);updateWorkspaceChrome();
         status = text("800 × 800 px  |  Zoom: ajustar  |  No guardado");
         status.setPadding(dp(10), dp(4), dp(10), dp(4));
         root.addView(status);
@@ -713,13 +719,21 @@ public final class MainActivity extends Activity {
         View preview=new View(this);preview.setBackgroundColor(activeColor);preview.setContentDescription("Vista previa del color");form.addView(preview,new LinearLayout.LayoutParams(-1,dp(48)));
         int[] values={activeColor>>>24,(activeColor>>>16)&255,(activeColor>>>8)&255,activeColor&255};String[] labels={"Alfa","Rojo","Verde","Azul"};
         for(int index=0;index<4;index++){final int channel=index;TextView label=text(labels[index]+": "+values[index]);form.addView(label);SeekBar slider=new SeekBar(this);slider.setMax(255);slider.setProgress(values[index]);slider.setContentDescription(labels[index]);form.addView(slider);slider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){public void onProgressChanged(SeekBar s,int n,boolean user){values[channel]=n;label.setText(labels[channel]+": "+n);preview.setBackgroundColor(values[0]<<24|values[1]<<16|values[2]<<8|values[3]);}public void onStartTrackingTouch(SeekBar s){}public void onStopTrackingTouch(SeekBar s){}});}
-        new AlertDialog.Builder(this).setTitle("Color RGBA").setView(scrollForm(form)).setNegativeButton("Cancelar",null).setPositiveButton("Usar color",(d,w)->{activeColor=values[0]<<24|values[1]<<16|values[2]<<8|values[3];drawing.setColor(activeColor);}).show();
+        new AlertDialog.Builder(this).setTitle("Color RGBA").setView(scrollForm(form)).setNegativeButton("Cancelar",null).setPositiveButton("Usar color",(d,w)->{setActiveColor(values[0]<<24|values[1]<<16|values[2]<<8|values[3]);}).show();
     }
 
+    private void setActiveColor(int color){
+        activeColor=color;drawing.setColor(color);
+        if(currentColorButton!=null){currentColorButton.setBackground(new ColorSwatchDrawable(color));String label=String.format(java.util.Locale.US,"Color activo: rojo %d, verde %d, azul %d, alfa %d. Elegir color",color>>>16&255,color>>>8&255,color&255,color>>>24);currentColorButton.setContentDescription(label);if(android.os.Build.VERSION.SDK_INT>=26)currentColorButton.setTooltipText(String.format(java.util.Locale.US,"Color activo #%08X",color));}
+    }
+    private void updateWorkspaceChrome(){
+        android.content.res.Configuration config=getResources().getConfiguration();WorkspaceLayout layout=new WorkspaceLayout(Math.max(1,config.screenWidthDp),Math.max(1,config.screenHeightDp),config.fontScale);
+        if(commandScroll!=null)commandScroll.setVisibility(layout.compact?View.GONE:View.VISIBLE);if(paletteScroll!=null)paletteScroll.setVisibility(layout.compact?View.GONE:View.VISIBLE);
+    }
     private void togglePanel(ScrollView panel){if(panel==null)return;boolean show=panel.getVisibility()!=View.VISIBLE;if(show&&!panelsInline){toolScroll.setVisibility(View.GONE);layerScroll.setVisibility(View.GONE);}panel.setVisibility(show?View.VISIBLE:View.GONE);}
     private void detach(View view){if(view.getParent() instanceof android.view.ViewGroup)((android.view.ViewGroup)view.getParent()).removeView(view);}
     private void layoutWorkspace(){
-        WorkspaceLayout layout=new WorkspaceLayout(Math.max(1,getResources().getConfiguration().screenWidthDp));panelsInline=layout.inline;
+        android.content.res.Configuration config=getResources().getConfiguration();WorkspaceLayout layout=new WorkspaceLayout(Math.max(1,config.screenWidthDp),Math.max(1,config.screenHeightDp),config.fontScale);panelsInline=layout.inline;updateWorkspaceChrome();
         detach(drawing);detach(toolScroll);detach(layerScroll);workspaceFrame.removeAllViews();
         if(panelsInline){LinearLayout row=row();row.addView(toolScroll,new LinearLayout.LayoutParams(dp(layout.toolsWidth),-1));row.addView(drawing,new LinearLayout.LayoutParams(0,-1,1));row.addView(layerScroll,new LinearLayout.LayoutParams(dp(layout.layersWidth),-1));workspaceFrame.addView(row,new android.widget.FrameLayout.LayoutParams(-1,-1));toolScroll.setVisibility(View.VISIBLE);layerScroll.setVisibility(View.VISIBLE);}
         else{workspaceFrame.addView(drawing,new android.widget.FrameLayout.LayoutParams(-1,-1));workspaceFrame.addView(toolScroll,new android.widget.FrameLayout.LayoutParams(dp(layout.toolsWidth),-1,Gravity.START));workspaceFrame.addView(layerScroll,new android.widget.FrameLayout.LayoutParams(dp(layout.layersWidth),-1,Gravity.END));toolScroll.setVisibility(View.GONE);layerScroll.setVisibility(View.GONE);}
@@ -749,24 +763,26 @@ public final class MainActivity extends Activity {
         return view;
     }
 
-    private void addScrollable(LinearLayout root, LinearLayout content) {
+    private HorizontalScrollView addScrollable(LinearLayout root, LinearLayout content) {
         HorizontalScrollView scroll = new HorizontalScrollView(this);
         scroll.setHorizontalScrollBarEnabled(false);
         scroll.addView(content);
         root.addView(scroll);
+        return scroll;
     }
 
-    private void button(LinearLayout parent, String label, Runnable action) {
+    private Button button(LinearLayout parent, String label, Runnable action) {
         Button button = new Button(this);
         button.setText(label);
         button.setTextSize(12);
         button.setAllCaps(false);
         button.setMinWidth(0);
-        button.setMinimumWidth(0);
+        button.setMinimumWidth(0);button.setMinHeight(dp(48));button.setMinimumHeight(dp(48));
         String description=label.equals("+")?"Añadir capa":label.equals("−")?"Eliminar capa":label.equals("↑")?"Subir capa":label.equals("↓")?"Bajar capa":label;
         button.setContentDescription(description);
         button.setOnClickListener(v -> action.run());
         parent.addView(button);
+        return button;
     }
 
     private void tool(android.widget.GridLayout parent, String label, int tool) {
@@ -775,7 +791,7 @@ public final class MainActivity extends Activity {
         iconButton.setTextSize(12);
         iconButton.setAllCaps(false);
         iconButton.setMinWidth(0);
-        iconButton.setMinimumWidth(0);
+        iconButton.setMinimumWidth(0);iconButton.setBackgroundResource(R.drawable.tool_button_background);iconButton.setBackgroundTintList(null);iconButton.setSelected(tool==drawing.currentTool());toolButtons.put(tool,iconButton);
         int icon = 0;
         switch (tool) {
             case DrawingView.BRUSH: icon = R.drawable.pinta_brush; break;
@@ -800,17 +816,20 @@ public final class MainActivity extends Activity {
             case DrawingView.MOVE_PIXELS: icon = R.drawable.pinta_move_pixels; break;
         }
         if (icon != 0) {
-            android.graphics.drawable.Drawable graphic = getDrawable(icon);graphic.setBounds(0,0,dp(24),dp(24));
-            iconButton.setCompoundDrawables(null,graphic,null,null);
+            android.graphics.drawable.Drawable graphic = getDrawable(icon);
             boolean filled = tool == DrawingView.FILLED_RECTANGLE || tool == DrawingView.FILLED_ELLIPSE || tool == DrawingView.FILLED_ROUNDED_RECTANGLE || tool == DrawingView.FILLED_TRIANGLE;
-            iconButton.setText(filled ? "●" : "");iconButton.setPadding(0,dp(5),0,0);
+            if(filled){android.graphics.drawable.GradientDrawable marker=new android.graphics.drawable.GradientDrawable();marker.setShape(android.graphics.drawable.GradientDrawable.OVAL);marker.setColor(0xff333333);android.graphics.drawable.LayerDrawable layers=new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{graphic,marker});layers.setLayerSize(1,dp(6),dp(6));layers.setLayerGravity(1,Gravity.BOTTOM|Gravity.RIGHT);graphic=layers;}
+            graphic.setBounds(0,0,dp(24),dp(24));iconButton.setCompoundDrawables(null,graphic,null,null);iconButton.setText("");iconButton.setPadding(0,dp(12),0,dp(12));
             iconButton.setContentDescription(label);
+            if(android.os.Build.VERSION.SDK_INT>=30)iconButton.setStateDescription(tool==drawing.currentTool()?"Activa":"");
             if (android.os.Build.VERSION.SDK_INT >= 26) iconButton.setTooltipText(label);
         }
         iconButton.setOnClickListener(v -> {
             drawing.setTool(tool);
             drawing.setColor(activeColor);
             selectedTool.setText(label);
+            for(int i=0;i<toolButtons.size();i++)toolButtons.valueAt(i).setSelected(toolButtons.keyAt(i)==tool);
+            if(android.os.Build.VERSION.SDK_INT>=30)for(int i=0;i<toolButtons.size();i++)toolButtons.valueAt(i).setStateDescription(toolButtons.keyAt(i)==tool?"Activa":"");
             if(!panelsInline&&toolScroll!=null)toolScroll.setVisibility(View.GONE);
         });
         android.widget.GridLayout.LayoutParams cell = new android.widget.GridLayout.LayoutParams();cell.width=dp(48);cell.height=dp(48);parent.addView(iconButton,cell);
@@ -845,21 +864,23 @@ public final class MainActivity extends Activity {
         if (layerOpacity != null) layerOpacity.setProgress(Math.round(drawing.layerOpacity() * 100));
         for (int i = drawing.layerCount() - 1; i >= 0; --i) {
             final int index = i;
-            String label = (index == drawing.activeLayer() ? "● " : "○ ") +
-                (drawing.layerVisible(index) ? "▣ " : "□ ") + "Capa " + (index + 1);
+            String label = "Capa " + (index + 1) + (drawing.layerVisible(index)?"":" · Oculta");
             LinearLayout item = row();
             Bitmap preview = drawing.layerThumbnail(index);
             if (preview != null) {
                 thumbnails.add(preview);
                 ImageView thumbnail = new ImageView(this);
-                thumbnail.setImageBitmap(preview);
+                thumbnail.setImageBitmap(preview);thumbnail.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
                 thumbnail.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 item.addView(thumbnail, new LinearLayout.LayoutParams(dp(48), dp(48)));
             }
-            button(item, label, () -> {
+            Button layerButton=button(item, label, () -> {
                 drawing.selectLayer(index);
                 refreshLayerPanel();
             });
+            layerButton.setSelected(index==drawing.activeLayer());layerButton.setBackgroundResource(R.drawable.tool_button_background);layerButton.setBackgroundTintList(null);
+            layerButton.setContentDescription("Capa "+(index+1)+(index==drawing.activeLayer()?", activa":"")+(drawing.layerVisible(index)?", visible":", oculta"));
+            if(android.os.Build.VERSION.SDK_INT>=30)layerButton.setStateDescription(index==drawing.activeLayer()?"Activa":"");
             item.setOnClickListener(view -> {
                 drawing.selectLayer(index);
                 refreshLayerPanel();
@@ -1003,6 +1024,7 @@ public final class MainActivity extends Activity {
     private void configureBrush() {
         LinearLayout form = new LinearLayout(this);form.setOrientation(LinearLayout.VERTICAL);
         SeekBar opacity = new SeekBar(this), hardness = new SeekBar(this);
+        opacity.setContentDescription("Opacidad de la capa activa");
         opacity.setMax(100);opacity.setProgress(Math.round(drawing.brushOpacity()*100));hardness.setMax(100);hardness.setProgress(Math.round(drawing.brushHardness()*100));
         TextView opacityLabel = text("Opacidad: " + opacity.getProgress() + " %"), hardnessLabel = text("Dureza: " + hardness.getProgress() + " %");
         form.addView(opacityLabel);form.addView(opacity);form.addView(hardnessLabel);form.addView(hardness);

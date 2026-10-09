@@ -16,6 +16,6 @@ Fuente revisada: conversación compartida https://chatgpt.com/share/6ac933b5-76e
 
 ## Cómo continuar
 
-Consultar `PROGRESS.md`, no aumentar el porcentaje por cantidad de commits. Completar los bloques abiertos 09, 12, 16, 17, 18 y 20. Las implementaciones parciales se describen expresamente y no puntúan como hitos cerrados. Para la paridad exhaustiva, comparar los comandos y herramientas con la referencia Pinta: el denominador de 20 hitos no es una lista de cada comando de Pinta.
+Consultar `PROGRESS.md`, no aumentar el porcentaje por cantidad de commits. Completar los bloques abiertos 09, 16 y 20. Las implementaciones parciales se describen expresamente y no puntúan como hitos cerrados. Para la paridad exhaustiva, comparar los comandos y herramientas con la referencia Pinta: el denominador de 20 hitos no es una lista de cada comando de Pinta.
 
 Comprobar las ejecuciones Android APK y Core tests del SHA publicado. Core tests incluye pruebas de píxeles, capas, proyectos, redimensionado, pinceles y efectos, coordenadas Java y pruebas del puente JNI con llamadas desde una JVM. Mantener el documento intacto al rechazar archivos o entradas inválidas.
