@@ -82,3 +82,7 @@ A partir de 720 dp, herramientas a la izquierda, lienzo central y capas a la der
 Validación de formatos BMP/TGA: pruebas Java y compilación Android del commit `35b9d6025eef758f0cbdef494de5ef522b7f8969` (Actions 37981022159 y 37981022107). Validación de los cuatro desenfoques y corrección de curvas: C++/Java/JNI y APK del commit `524e47a3c047f3f4d6336904428c51c515ee5b9d` (Actions 37981283105 y 37981283130).
 
 Pulido adicional: selector de color RGBA completo, controles de curva con entrada/salida numérica además del gráfico, etiquetas habladas en sliders y acciones de capas. Estos cambios no cierran la revisión transversal de accesibilidad del entregable 20.
+
+## OpenRaster (entregable 16, parcial)
+
+Abrir/guardar `.ora` con capas PNG normales, nombres UTF-8, orden, visibilidad, opacidad, desplazamiento de capas y capa activa. Archivo ZIP con `mimetype` primero y sin compresión, `stack.xml` y `mergedimage.png`. La conversión se realiza en un hilo de trabajo, con archivos temporales eliminados al finalizar. La importación se valida antes de reemplazar atómicamente el documento nativo. Grupos y modos de mezcla distintos de normal se rechazan; no se importan con una apariencia incorrecta. Límites de tamaño, número de capas, XML y entradas ZIP; no se extraen rutas ZIP al sistema de archivos. La gestión completa de formatos sigue pendiente: no se suma el entregable 16.

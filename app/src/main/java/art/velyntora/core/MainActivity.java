@@ -23,7 +23,7 @@ import java.io.OutputStream;
 
 /** Android workspace modeled after Pinta's tool, canvas, palette and status regions. */
 public final class MainActivity extends Activity {
-    private static final int SAVE_PROJECT = 43, OPEN_PROJECT = 44, SAVE_JPEG = 45, SAVE_WEBP = 46, SAVE_BMP = 47, SAVE_TGA = 48, OPEN_TGA = 49;
+    private static final int SAVE_PROJECT = 43, OPEN_PROJECT = 44, SAVE_JPEG = 45, SAVE_WEBP = 46, SAVE_BMP = 47, SAVE_TGA = 48, OPEN_TGA = 49, SAVE_ORA = 50, OPEN_ORA = 51;
     private static final int SAVE_PNG = 41;
     private static final int OPEN_IMAGE = 42;
     private DrawingView drawing;
@@ -545,8 +545,8 @@ public final class MainActivity extends Activity {
         root.setBackgroundColor(0xFFF1F1F1);
 
         LinearLayout menus = row();
-        menu(menus, "Archivo", new String[]{"Nuevo…", "Abrir imagen", "Abrir TGA", "Guardar PNG", "Guardar JPEG", "Guardar WebP", "Guardar BMP", "Guardar TGA", "Abrir proyecto", "Guardar proyecto"},
-            new Runnable[]{() -> configureDimensions(0), this::openImage, this::openTga, this::savePng, () -> saveImage("image/jpeg", "dibujo.jpg", SAVE_JPEG), () -> saveImage("image/webp", "dibujo.webp", SAVE_WEBP), () -> saveImage("image/bmp", "dibujo.bmp", SAVE_BMP), () -> saveImage("image/x-tga", "dibujo.tga", SAVE_TGA), () -> projectPicker(false), () -> projectPicker(true)});
+        menu(menus, "Archivo", new String[]{"Nuevo…", "Abrir imagen", "Abrir TGA", "Abrir OpenRaster", "Guardar OpenRaster", "Guardar PNG", "Guardar JPEG", "Guardar WebP", "Guardar BMP", "Guardar TGA", "Abrir proyecto", "Guardar proyecto"},
+            new Runnable[]{() -> configureDimensions(0), this::openImage, this::openTga, () -> openRasterPicker(false), () -> openRasterPicker(true), this::savePng, () -> saveImage("image/jpeg", "dibujo.jpg", SAVE_JPEG), () -> saveImage("image/webp", "dibujo.webp", SAVE_WEBP), () -> saveImage("image/bmp", "dibujo.bmp", SAVE_BMP), () -> saveImage("image/x-tga", "dibujo.tga", SAVE_TGA), () -> projectPicker(false), () -> projectPicker(true)});
         menu(menus, "Editar", new String[]{"Deshacer", "Rehacer", "Copiar selección", "Cortar selección", "Pegar selección", "Duplicar selección", "Mover contenido…", "Transformar selección…", "Seleccionar todo", "Invertir selección", "Expandir selección 1 px", "Contraer selección 1 px", "Borrar selección", "Deseleccionar"},
             new Runnable[]{this::undo, this::redo, this::copySelection, this::cutSelection, this::pasteSelection, this::duplicateSelection, this::moveSelectedContent, this::configureSelectionTransform, drawing::selectAll, () -> {if(!drawing.invertSelection())message("No se pudo invertir la selección");}, () -> {if(!drawing.expandSelectionOnePixel())message("No se pudo expandir la selección");}, () -> {if(!drawing.shrinkSelectionOnePixel())message("No se pudo contraer la selección");}, () -> {if(!drawing.eraseSelection())message("No hay selección válida");}, drawing::deselect});
         menu(menus, "Ver", new String[]{"Ajustar al lienzo", "Acercar", "Alejar", "Zoom 100 %", "Zoom 7000 %", "Rotar vista 15° derecha", "Rotar vista 15° izquierda", "Restablecer rotación"},
@@ -1055,6 +1055,13 @@ public final class MainActivity extends Activity {
         startActivityForResult(intent, save ? SAVE_PROJECT : OPEN_PROJECT);
     }
 
+    private void openRasterPicker(boolean save){Intent intent=new Intent(save?Intent.ACTION_CREATE_DOCUMENT:Intent.ACTION_OPEN_DOCUMENT);intent.addCategory(Intent.CATEGORY_OPENABLE);intent.setType(save?"image/openraster":"*/*");if(save)intent.putExtra(Intent.EXTRA_TITLE,"dibujo.ora");startActivityForResult(intent,save?SAVE_ORA:OPEN_ORA);}
+    private void transferOpenRaster(Uri uri,boolean save){
+        if(projectProgress!=null){message("Espera a que termine la operación actual");return;}
+        android.app.ProgressDialog progress=new android.app.ProgressDialog(this);progress.setMessage(save?"Guardando OpenRaster…":"Abriendo OpenRaster…");progress.setCancelable(false);projectProgress=progress;progress.show();drawing.setEnabled(false);
+        new Thread(()->{boolean success=false;try{OpenRasterProjects.transfer(this,drawing,uri,save);success=true;}catch(Exception e){success=false;}final boolean ok=success;runOnUiThread(()->{if(!isDestroyed()){progress.dismiss();projectProgress=null;drawing.setEnabled(true);if(ok&&!save)drawing.projectOpened();message(ok?"Proyecto OpenRaster listo": "OpenRaster incompatible, incompleto o demasiado grande; se admiten capas normales sin grupos");}});},"velyntora-openraster").start();
+    }
+
     private void transferProject(Uri uri, boolean save) {
         if(projectProgress!=null){message("Espera a que termine la operación actual");return;}
         android.app.ProgressDialog progress = new android.app.ProgressDialog(this);
@@ -1117,7 +1124,9 @@ public final class MainActivity extends Activity {
         super.onActivityResult(request, result, data);
         if (result != RESULT_OK || data == null || data.getData() == null) return;
         Uri uri = data.getData();
-        if (request == SAVE_PROJECT || request == OPEN_PROJECT) {
+        if (request == SAVE_ORA || request == OPEN_ORA) {
+            transferOpenRaster(uri,request==SAVE_ORA);
+        } else if (request == SAVE_PROJECT || request == OPEN_PROJECT) {
             transferProject(uri, request == SAVE_PROJECT);
         } else if (request == OPEN_TGA) {
             importTga(uri);

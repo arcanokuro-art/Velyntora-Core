@@ -30,6 +30,10 @@ jobs:
           javac -d build/java-tests app/src/main/java/art/velyntora/core/RasterFileWriter.java tests/RasterFileWriterTests.java app/src/main/java/art/velyntora/core/TgaReader.java tests/TgaReaderTests.java
           java -cp build/java-tests art.velyntora.core.RasterFileWriterTests
           java -cp build/java-tests art.velyntora.core.TgaReaderTests
+      - name: OpenRaster project interchange tests
+        run: |
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/VlyProjectStream.java app/src/main/java/art/velyntora/core/OpenRasterArchive.java tests/OpenRasterTests.java
+          java -cp build/java-tests art.velyntora.core.OpenRasterTests
       - run: cmake -S tests -B build/tests -DCMAKE_BUILD_TYPE=Debug
       - run: cmake --build build/tests --parallel
       - run: ctest --test-dir build/tests --output-on-failure
