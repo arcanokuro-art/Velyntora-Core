@@ -934,7 +934,9 @@ public final class MainActivity extends Activity {
     }
 
     private void runEffect(int kind,int amount) {runColorOperation(() -> drawing.applyEffect(kind,amount));}
-    void runColorOperation(java.util.function.BooleanSupplier operation) {
+    interface ColorOperation { boolean getAsBoolean(); }
+    void runColorOperation(ColorOperation operation) {
+        if(projectProgress!=null){message("Espera a que termine la operación actual");return;}
         android.app.ProgressDialog progress = new android.app.ProgressDialog(this);
         progress.setMessage("Aplicando efecto…");progress.setCancelable(false);projectProgress=progress;progress.show();drawing.setEnabled(false);
         new Thread(() -> {

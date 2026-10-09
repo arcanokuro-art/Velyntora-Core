@@ -15,6 +15,21 @@ std::vector<std::uint32_t> remap(const std::vector<std::uint32_t>& pixels,const 
  auto out=pixels;for(auto& pixel:out){if(!(pixel>>24))continue;pixel=(pixel&0xff000000)|std::uint32_t(maps[0][(pixel>>16)&255])<<16|std::uint32_t(maps[1][(pixel>>8)&255])<<8|std::uint32_t(maps[2][pixel&255]);}return out;
 }
 }
+std::vector<std::uint32_t> brightnessContrast(const std::vector<std::uint32_t>& pixels,int brightness,int contrast){
+ if(brightness< -100||brightness>100||contrast< -100||contrast>100)throw std::invalid_argument("Invalid brightness/contrast");
+ std::array<int,256> map{};double c=contrast*2.55,factor=(259*(c+255))/(255*(259-c));
+ for(int i=0;i<256;++i)map[i]=clamp(int(std::lround(factor*(i-128)+128+brightness*2.55)));
+ return remap(pixels,{map,map,map});
+}
+std::vector<std::uint32_t> basicColor(const std::vector<std::uint32_t>& pixels,int kind){
+ if(kind<0||kind>2)throw std::invalid_argument("Invalid basic adjustment");
+ auto out=pixels;for(auto& p:out){if(!(p>>24))continue;int r=(p>>16)&255,g=(p>>8)&255,b=p&255;
+ if(kind==0){r=g=b=(299*r+587*g+114*b+500)/1000;}
+ else if(kind==1){r=255-r;g=255-g;b=255-b;}
+ else{int nr=clamp((393*r+769*g+189*b+500)/1000),ng=clamp((349*r+686*g+168*b+500)/1000),nb=clamp((272*r+534*g+131*b+500)/1000);r=nr;g=ng;b=nb;}
+ p=(p&0xff000000)|(std::uint32_t(r)<<16)|(std::uint32_t(g)<<8)|std::uint32_t(b);
+ }return out;
+}
 std::vector<std::uint32_t> applyCurve(const std::vector<std::uint32_t>& pixels,const std::array<int,256>& curve,int channel){
  if(channel<0||channel>4)throw std::invalid_argument("Invalid curve channel");
  for(auto v:curve)if(v<0||v>255)throw std::invalid_argument("Invalid curve value");

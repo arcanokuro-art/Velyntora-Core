@@ -1020,12 +1020,14 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
  std::lock_guard<std::mutex> lock(guard);
  if(!canvas || !values)return JNI_FALSE;
  try {
-  int n=env->GetArrayLength(values);std::vector<int> v(n);env->GetIntArrayRegion(values,0,n,v.data());if(env->ExceptionCheck())return JNI_FALSE;
+  int n=env->GetArrayLength(values);if(n<1||n>257)return JNI_FALSE;std::vector<int> v(n);env->GetIntArrayRegion(values,0,n,v.data());if(env->ExceptionCheck())return JNI_FALSE;
   std::vector<std::uint32_t> pixels;
   if(kind==0 && n==257){std::array<int,256> curve;std::copy_n(v.begin(),256,curve.begin());pixels=velyntora::applyCurve(canvas->pixels(),curve,v[256]);}
   else if(kind==1 && n==15){std::array<velyntora::ChannelLevels,3> levels;for(int i=0;i<3;i++)levels[i]={v[i*5],v[i*5+1],v[i*5+2],v[i*5+3],v[i*5+4]};pixels=velyntora::applyLevels(canvas->pixels(),levels);}
   else if(kind==2 && n==1)pixels=velyntora::autoLevels(canvas->pixels(),v[0]);
   else if(kind==3 && n==3)pixels=velyntora::posterizeRgb(canvas->pixels(),{v[0],v[1],v[2]});
+  else if(kind==5 && n==2)pixels=velyntora::brightnessContrast(canvas->pixels(),v[0],v[1]);
+  else if(kind==6 && n==1)pixels=velyntora::basicColor(canvas->pixels(),v[0]);
   else if(kind==4 && n==3)pixels=velyntora::hueSaturation(canvas->pixels(),v[0],v[1],v[2]);
   else return JNI_FALSE;
   if(pixels==canvas->pixels())return JNI_FALSE;

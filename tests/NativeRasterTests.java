@@ -53,6 +53,8 @@ public final class NativeRasterTests {
   check(DrawingView.nativeColorAdjustment(1,new int[]{0,255,100,0,255,0,255,100,0,255,0,255,100,20,255}));check(DrawingView.nativeUndo());check(Arrays.equals(colors,DrawingView.nativePixels()));
   check(DrawingView.nativeColorAdjustment(2,new int[]{0}));check(DrawingView.nativeUndo());check(Arrays.equals(colors,DrawingView.nativePixels()));
   check(DrawingView.nativeColorAdjustment(3,new int[]{2,4,8}));check(DrawingView.nativeUndo());check(Arrays.equals(colors,DrawingView.nativePixels()));
+  check(DrawingView.nativeColorAdjustment(5,new int[]{15,20}));check(DrawingView.nativeUndo());check(Arrays.equals(colors,DrawingView.nativePixels()));
+  for(int kind=0;kind<3;kind++){check(DrawingView.nativeColorAdjustment(6,new int[]{kind}));check(DrawingView.nativeUndo());check(Arrays.equals(colors,DrawingView.nativePixels()));}
   System.out.println("JNI raster: transparency, source-over composition, atomic import, and undo/redo passed");
  }
 }

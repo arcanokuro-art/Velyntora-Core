@@ -3,6 +3,8 @@
 #include <vector>
 #include <cstdint>
 namespace velyntora {
+std::vector<std::uint32_t> brightnessContrast(const std::vector<std::uint32_t>& pixels,int brightness,int contrast);
+std::vector<std::uint32_t> basicColor(const std::vector<std::uint32_t>& pixels,int kind);
 struct ChannelLevels {int inputBlack=0,inputWhite=255,gamma=100,outputBlack=0,outputWhite=255;};
 std::vector<std::uint32_t> applyCurve(const std::vector<std::uint32_t>& pixels,const std::array<int,256>& curve,int channel);
 std::vector<std::uint32_t> applyLevels(const std::vector<std::uint32_t>& pixels,const std::array<ChannelLevels,3>& levels);

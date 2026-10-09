@@ -3,6 +3,13 @@
 #include <stdexcept>
 using namespace velyntora;
 int main(){
+ std::vector<std::uint32_t> sample={0x80102030,0x00abcdef};
+ assert(brightnessContrast(sample,0,0)==sample);
+ assert(brightnessContrast(sample,100,0)[0]==0x80ffffff);
+ assert(brightnessContrast(sample,-100,0)[0]==0x80000000);
+ assert(basicColor(sample,1)[0]==0x80efdfcf);
+ for(int kind=0;kind<3;kind++){auto result=basicColor(sample,kind);assert(result[1]==sample[1]);assert((result[0]>>24)==0x80);}
+
  std::vector<std::uint32_t> pixels={0x80123456,0xff4080c0,0x00112233};std::array<int,256> identity{},inverse{};for(int i=0;i<256;++i){identity[i]=i;inverse[i]=255-i;}
  assert(applyCurve(pixels,identity,0)==pixels);auto inverted=applyCurve(pixels,inverse,0);assert(inverted[0]==0x80edcba9&&inverted[2]==pixels[2]);
  auto red=applyCurve(pixels,inverse,1);assert(red[0]==0x80ed3456);
