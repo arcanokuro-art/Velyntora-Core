@@ -11,6 +11,7 @@ public final class DrawingView extends View {
  private static native boolean nativeCreate(int w,int h);
  private static native void nativeBeginEdit();
  private static native boolean nativeClear();
+ private static native boolean nativeFlipActiveHorizontal();
  private static native void nativeStroke(float x0,float y0,float x1,float y1,float radius,int color);
  private static native void nativeShape(int kind,int x0,int y0,int x1,int y1,int color);
  private static native void nativeFill(int x,int y,int color);
@@ -188,6 +189,7 @@ public final class DrawingView extends View {
   final float dx=(px+0.5f-cx)/rx,dy=(py+0.5f-cy)/ry;
   return dx*dx+dy*dy<=1f;
  }
+ public boolean flipActiveHorizontal(){if(!nativeFlipActiveHorizontal())return false;deselect();refresh();return true;}
  public void clear(){if(nativeClear()){deselect();refresh();}}
  public boolean pasteBitmap(Bitmap source){
   if(source==null||source.isRecycled())return false;

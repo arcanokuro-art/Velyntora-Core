@@ -339,3 +339,20 @@ extern "C" JNIEXPORT jintArray JNICALL Java_art_velyntora_core_DrawingView_nativ
  if(result)env->SetIntArrayRegion(result,0,side*side,preview.data());
  return result;
 }
+
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeFlipActiveHorizontal(JNIEnv*,jclass){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!canvas||!layers)return JNI_FALSE;
+ const int w=canvas->width(),h=canvas->height();
+ if(w<=1||h<=0)return JNI_FALSE;
+ auto pixels=canvas->pixels();
+ bool changed=false;
+ for(int y=0;y<h;++y)for(int x=0;x<w/2;++x){
+  const std::size_t a=static_cast<std::size_t>(y)*w+x;
+  const std::size_t b=static_cast<std::size_t>(y)*w+(w-1-x);
+  if(pixels[a]!=pixels[b])changed=true;
+  std::swap(pixels[a],pixels[b]);
+ }
+ if(!changed)return JNI_FALSE;
+ checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;
+}
