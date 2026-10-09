@@ -14,12 +14,36 @@ std::unique_ptr<velyntora::LayerDocument> layers;
 struct Snapshot { velyntora::LayerDocument layers; };
 std::vector<Snapshot> undoStack, redoStack;
 constexpr std::size_t limit=15;
+// Cap history memory across both stacks to avoid exhausting Android heap
+// when many full-resolution layers are present.
+constexpr std::size_t historyBudget=96ULL*1024*1024;
+std::size_t snapshotBytes(const Snapshot& snapshot){
+ std::size_t total=0;
+ for(std::size_t i=0;i<snapshot.layers.layerCount();++i)
+  total+=snapshot.layers.layer(i).pixels.size()*sizeof(std::uint32_t);
+ return total;
+}
+std::size_t historyBytes(){
+ std::size_t total=0;
+ for(const auto& s:undoStack)total+=snapshotBytes(s);
+ for(const auto& s:redoStack)total+=snapshotBytes(s);
+ return total;
+}
+void trimHistory(){
+ while(undoStack.size()>limit)undoStack.erase(undoStack.begin());
+ while(redoStack.size()>limit)redoStack.erase(redoStack.begin());
+ while(historyBytes()>historyBudget){
+  if(!undoStack.empty())undoStack.erase(undoStack.begin());
+  else if(!redoStack.empty())redoStack.erase(redoStack.begin());
+  else break;
+ }
+}
 
 void checkpoint(){
  if(!canvas)return;
- if(undoStack.size()==limit)undoStack.erase(undoStack.begin());
  undoStack.push_back({*layers});
  redoStack.clear();
+ trimHistory();
 }
 void storeActive(){
  if(layers&&canvas)layers->replaceActivePixels(canvas->pixels());
@@ -60,12 +84,12 @@ extern "C" JNIEXPORT void JNICALL Java_art_velyntora_core_DrawingView_nativeFill
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeUndo(JNIEnv*,jclass){
  std::lock_guard<std::mutex> lock(guard);if(!canvas||undoStack.empty())return JNI_FALSE;
  if(redoStack.size()==limit)redoStack.erase(redoStack.begin());
- redoStack.push_back({*layers});restore(undoStack.back());undoStack.pop_back();return JNI_TRUE;
+ redoStack.push_back({*layers});restore(undoStack.back());undoStack.pop_back();trimHistory();return JNI_TRUE;
 }
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeRedo(JNIEnv*,jclass){
  std::lock_guard<std::mutex> lock(guard);if(!canvas||redoStack.empty())return JNI_FALSE;
  if(undoStack.size()==limit)undoStack.erase(undoStack.begin());
- undoStack.push_back({*layers});restore(redoStack.back());redoStack.pop_back();return JNI_TRUE;
+ undoStack.push_back({*layers});restore(redoStack.back());redoStack.pop_back();trimHistory();return JNI_TRUE;
 }
 extern "C" JNIEXPORT jintArray JNICALL Java_art_velyntora_core_DrawingView_nativePixels(JNIEnv* env,jclass){
  std::lock_guard<std::mutex> lock(guard);if(!layers)return nullptr;
