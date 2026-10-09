@@ -275,7 +275,7 @@ public final class DrawingView extends View {
   finally{if(scaled!=source)scaled.recycle();}
  }
  public Bitmap snapshot(){return bitmap.copy(Bitmap.Config.ARGB_8888,false);}
- private void refresh(){int[] pixels=nativePixels();if(pixels!=null)bitmap.setPixels(pixels,0,SIZE,0,0,SIZE,SIZE);invalidate();if(canvasChangedListener!=null)canvasChangedListener.run();}
+ private void refresh(){int[] pixels=nativePixels();if(pixels==null||pixels.length!=SIZE*SIZE)return;bitmap.setPixels(pixels,0,SIZE,0,0,SIZE,SIZE);invalidate();if(canvasChangedListener!=null)canvasChangedListener.run();}
  private final Paint checkerPaint=new Paint();
  @Override protected void onDraw(Canvas canvas){
   super.onDraw(canvas);
