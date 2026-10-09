@@ -45,8 +45,9 @@ public final class MainActivity extends Activity {
             new Runnable[]{drawing::invalidate});
         menu(menus, "Imagen", new String[]{"Nuevo lienzo"},
             new Runnable[]{drawing::clear});
-        menu(menus, "Capas", new String[]{"Información"},
-            new Runnable[]{() -> message("El sistema de capas está en desarrollo.")});
+        menu(menus, "Capas", new String[]{"Añadir capa", "Seleccionar capa", "Eliminar capa", "Mostrar / ocultar", "Subir capa", "Bajar capa"},
+            new Runnable[]{this::addLayer, this::chooseLayer, this::deleteLayer, this::toggleLayer,
+                () -> moveLayer(1), () -> moveLayer(-1)});
         menu(menus, "Ajustes", new String[]{"Información"},
             new Runnable[]{() -> message("Los ajustes avanzados están en desarrollo.")});
         menu(menus, "Efectos", new String[]{"Información"},
@@ -156,6 +157,34 @@ public final class MainActivity extends Activity {
             .setTitle(title)
             .setItems(labels, (dialog, index) -> actions[index].run())
             .show());
+    }
+
+    private void addLayer() {
+        if (!drawing.addLayer()) message("Límite de 32 capas alcanzado");
+        else message("Capa creada: " + (drawing.activeLayer() + 1));
+    }
+
+    private void chooseLayer() {
+        int count = drawing.layerCount();
+        String[] items = new String[count];
+        for (int i = 0; i < count; ++i) {
+            items[i] = (i == drawing.activeLayer() ? "● " : "  ") +
+                "Capa " + (i + 1) + (drawing.layerVisible(i) ? "" : " (oculta)");
+        }
+        new AlertDialog.Builder(this).setTitle("Capas").setItems(items,
+            (dialog, index) -> drawing.selectLayer(index)).show();
+    }
+
+    private void deleteLayer() {
+        if (!drawing.deleteLayer()) message("No se puede eliminar la única capa");
+    }
+
+    private void toggleLayer() {
+        if (!drawing.toggleLayer()) message("No se pudo cambiar la visibilidad");
+    }
+
+    private void moveLayer(int direction) {
+        if (!drawing.moveLayer(direction)) message("La capa ya está en el extremo");
     }
 
     private void message(String text) {

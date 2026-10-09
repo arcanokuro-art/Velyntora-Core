@@ -17,6 +17,14 @@ public final class DrawingView extends View {
  private static native boolean nativeRedo();
  private static native int[] nativePixels();
  private static native boolean nativeImport(int[] pixels);
+ private static native int nativeLayerCount();
+ private static native int nativeActiveLayer();
+ private static native boolean nativeAddLayer();
+ private static native boolean nativeSelectLayer(int index);
+ private static native boolean nativeDeleteLayer();
+ private static native boolean nativeToggleLayer();
+ private static native boolean nativeLayerVisible(int index);
+ private static native boolean nativeMoveLayer(int direction);
  private static final int SIZE=800;
  public static final int BRUSH=0,RECTANGLE=1,ELLIPSE=2,LINE=3,BUCKET=4;
  private final Paint paint=new Paint(Paint.FILTER_BITMAP_FLAG);
@@ -25,6 +33,14 @@ public final class DrawingView extends View {
  private float previousX,previousY,startX,startY;
  private boolean drawing;
  public DrawingView(Context context){super(context);if(!nativeCreate(SIZE,SIZE))throw new IllegalStateException("Canvas error");refresh();}
+ public int layerCount(){return nativeLayerCount();}
+ public int activeLayer(){return nativeActiveLayer();}
+ public boolean layerVisible(int index){return nativeLayerVisible(index);}
+ public boolean addLayer(){boolean ok=nativeAddLayer();if(ok)refresh();return ok;}
+ public boolean selectLayer(int index){boolean ok=nativeSelectLayer(index);if(ok)refresh();return ok;}
+ public boolean deleteLayer(){boolean ok=nativeDeleteLayer();if(ok)refresh();return ok;}
+ public boolean toggleLayer(){boolean ok=nativeToggleLayer();if(ok)refresh();return ok;}
+ public boolean moveLayer(int direction){boolean ok=nativeMoveLayer(direction);if(ok)refresh();return ok;}
  public void setColor(int value){color=value;}
  public void setTool(int value){tool=value;}
  public void clear(){if(nativeCreate(SIZE,SIZE))refresh();}
