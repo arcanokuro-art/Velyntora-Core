@@ -774,3 +774,17 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
  if(!changed)return JNI_FALSE;
  checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;
 }
+
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeAdjustAlphaActive(JNIEnv*,jclass,jint percent){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!canvas||!layers||percent<0||percent>200||percent==100)return JNI_FALSE;
+ auto pixels=canvas->pixels();bool changed=false;
+ for(auto& pixel:pixels){
+  const std::uint32_t oldAlpha=(pixel>>24)&255u;
+  const std::uint32_t newAlpha=std::min(255u,(oldAlpha*static_cast<std::uint32_t>(percent)+50u)/100u);
+  const std::uint32_t result=(pixel&0x00FFFFFFu)|(newAlpha<<24);
+  if(result!=pixel){pixel=result;changed=true;}
+ }
+ if(!changed)return JNI_FALSE;
+ checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;
+}
