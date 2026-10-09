@@ -14,6 +14,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 import java.io.OutputStream;
@@ -25,6 +26,7 @@ public final class MainActivity extends Activity {
     private DrawingView drawing;
     private TextView status;
     private TextView selectedTool;
+    private LinearLayout layerItems;
     private int activeColor = Color.BLACK;
 
     private int dp(int value) {
@@ -42,7 +44,7 @@ public final class MainActivity extends Activity {
         menu(menus, "Archivo", new String[]{"Nuevo", "Abrir imagen", "Guardar PNG"},
             new Runnable[]{drawing::clear, this::openImage, this::savePng});
         menu(menus, "Editar", new String[]{"Deshacer", "Rehacer"},
-            new Runnable[]{drawing::undo, drawing::redo});
+            new Runnable[]{this::undo, this::redo});
         menu(menus, "Ver", new String[]{"Ajustar al lienzo"},
             new Runnable[]{drawing::invalidate});
         menu(menus, "Imagen", new String[]{"Nuevo lienzo"},
@@ -62,8 +64,8 @@ public final class MainActivity extends Activity {
         button(commands, "Nuevo", drawing::clear);
         button(commands, "Abrir", this::openImage);
         button(commands, "Guardar", this::savePng);
-        button(commands, "↶", drawing::undo);
-        button(commands, "↷", drawing::redo);
+        button(commands, "↶", this::undo);
+        button(commands, "↷", this::redo);
         addScrollable(root, commands);
 
         LinearLayout workspace = row();
@@ -87,6 +89,29 @@ public final class MainActivity extends Activity {
         sidebar.addView(selectedTool);
         workspace.addView(sidebar, new LinearLayout.LayoutParams(dp(116), -1));
         workspace.addView(drawing, new LinearLayout.LayoutParams(0, -1, 1));
+        LinearLayout layerPanel = new LinearLayout(this);
+        layerPanel.setOrientation(LinearLayout.VERTICAL);
+        layerPanel.setBackgroundColor(0xFFE6E6E6);
+        TextView layerTitle = text("CAPAS");
+        layerTitle.setPadding(dp(6), dp(8), dp(6), dp(8));
+        layerPanel.addView(layerTitle);
+        LinearLayout layerCommands = row();
+        button(layerCommands, "+", this::addLayer);
+        button(layerCommands, "−", this::deleteLayer);
+        layerPanel.addView(layerCommands);
+        LinearLayout layerOrder = row();
+        button(layerOrder, "↑", () -> moveLayer(1));
+        button(layerOrder, "↓", () -> moveLayer(-1));
+        layerPanel.addView(layerOrder);
+        button(layerPanel, "👁 Mostrar / ocultar", this::toggleLayer);
+        LinearLayout layerItems = new LinearLayout(this);
+        layerItems.setOrientation(LinearLayout.VERTICAL);
+        layerPanel.addView(layerItems);
+        ScrollView layerScroll = new ScrollView(this);
+        layerScroll.addView(layerPanel);
+        workspace.addView(layerScroll, new LinearLayout.LayoutParams(dp(152), -1));
+        this.layerItems = layerItems;
+        refreshLayerPanel();
         root.addView(workspace, new LinearLayout.LayoutParams(-1, 0, 1));
 
         LinearLayout colors = row();
@@ -161,9 +186,27 @@ public final class MainActivity extends Activity {
             .show());
     }
 
+    private void undo(){drawing.undo();refreshLayerPanel();}
+    private void redo(){drawing.redo();refreshLayerPanel();}
+
+    private void refreshLayerPanel() {
+        if (layerItems == null) return;
+        layerItems.removeAllViews();
+        for (int i = drawing.layerCount() - 1; i >= 0; --i) {
+            final int index = i;
+            String label = (index == drawing.activeLayer() ? "● " : "○ ") +
+                (drawing.layerVisible(index) ? "▣ " : "□ ") + "Capa " + (index + 1);
+            button(layerItems, label, () -> {
+                drawing.selectLayer(index);
+                refreshLayerPanel();
+            });
+        }
+    }
+
     private void addLayer() {
         if (!drawing.addLayer()) message("Límite de 32 capas alcanzado");
         else message("Capa creada: " + (drawing.activeLayer() + 1));
+        refreshLayerPanel();
     }
 
     private void chooseLayer() {
@@ -174,19 +217,22 @@ public final class MainActivity extends Activity {
                 "Capa " + (i + 1) + (drawing.layerVisible(i) ? "" : " (oculta)");
         }
         new AlertDialog.Builder(this).setTitle("Capas").setItems(items,
-            (dialog, index) -> drawing.selectLayer(index)).show();
+            (dialog, index) -> {drawing.selectLayer(index); refreshLayerPanel();}).show();
     }
 
     private void deleteLayer() {
         if (!drawing.deleteLayer()) message("No se puede eliminar la única capa");
+        refreshLayerPanel();
     }
 
     private void toggleLayer() {
         if (!drawing.toggleLayer()) message("No se pudo cambiar la visibilidad");
+        refreshLayerPanel();
     }
 
     private void moveLayer(int direction) {
         if (!drawing.moveLayer(direction)) message("La capa ya está en el extremo");
+        refreshLayerPanel();
     }
 
     private void message(String text) {
