@@ -134,11 +134,11 @@ public final class DrawingView extends View {
  }
  private void cancelToolGesture(){
   if(drawing&&(tool==SELECT_FREE||tool==SELECT_RECTANGLE||tool==SELECT_ELLIPSE))deselect();
-  if(movingSelection){selectionLeft=moveOriginalLeft;selectionTop=moveOriginalTop;selectionRight=moveOriginalRight;selectionBottom=moveOriginalBottom;}
+  if(movingSelection)restoreMovedSelection();
   drawing=false;movingSelection=false;movingPixels=false;
  }
 
- public static final int BRUSH=0,RECTANGLE=1,ELLIPSE=2,LINE=3,BUCKET=4,ERASER=5,PICKER=6,FILLED_RECTANGLE=7,FILLED_ELLIPSE=8,SELECT_RECTANGLE=9,SELECT_ELLIPSE=10,MOVE_SELECTION=11,MOVE_PIXELS=12,SELECT_FREE=13,MAGIC_WAND=14,TEXT=15,ROUNDED_RECTANGLE=16,FILLED_ROUNDED_RECTANGLE=17,TRIANGLE=18,FILLED_TRIANGLE=19;
+ public static final int BRUSH=0,RECTANGLE=1,ELLIPSE=2,LINE=3,BUCKET=4,ERASER=5,PICKER=6,FILLED_RECTANGLE=7,FILLED_ELLIPSE=8,SELECT_RECTANGLE=9,SELECT_ELLIPSE=10,MOVE_SELECTION=11,MOVE_PIXELS=12,SELECT_FREE=13,MAGIC_WAND=14,TEXT=15,ROUNDED_RECTANGLE=16,FILLED_ROUNDED_RECTANGLE=17,TRIANGLE=18,FILLED_TRIANGLE=19,PENCIL=20,PAN=21,ZOOM=22;
  private final Paint paint=new Paint(Paint.FILTER_BITMAP_FLAG);
  private Bitmap bitmap=Bitmap.createBitmap(canvasWidth,canvasHeight,Bitmap.Config.ARGB_8888);
  private java.util.function.BiConsumer<Integer,Integer> textPositionListener;
@@ -174,6 +174,7 @@ public final class DrawingView extends View {
    pasteAt(shape,x,y);
   }finally{shape.recycle();}
  }
+ private final NavigationTool navigationTool=new NavigationTool(4);
  private int color=0xFF202020,tool=BRUSH;
  private float brushRadius=4f,brushOpacity=1f,brushHardness=1f;
  private boolean squareBrush,pressureBrush=true,strokeEditing;
@@ -194,7 +195,8 @@ public final class DrawingView extends View {
    nativeSetBrushSelection(mask);nativeBeginEdit();strokeEditing=true;
   }
   float pressure=pressureBrush&&event.getToolType(0)==MotionEvent.TOOL_TYPE_STYLUS?Math.max(.1f,Math.min(1f,event.getPressure())):1f;
-  nativeStyledStroke(x0,y0,x1,y1,brushRadius*pressure,color,brushOpacity,brushHardness,squareBrush,tool==ERASER);
+  if(tool==PENCIL)nativeStyledStroke((float)Math.floor(x0)+.5f,(float)Math.floor(y0)+.5f,(float)Math.floor(x1)+.5f,(float)Math.floor(y1)+.5f,.5f,color,1,1,true,false);
+  else nativeStyledStroke(x0,y0,x1,y1,brushRadius*pressure,color,brushOpacity,brushHardness,squareBrush,tool==ERASER);
  }
 
  private float previousX,previousY,startX,startY;
@@ -237,7 +239,7 @@ public final class DrawingView extends View {
  public float brushRadius(){return brushRadius;}
  public int currentTool(){return tool;}
  public void setTool(int value){
-  if(value<BRUSH||value>FILLED_TRIANGLE)return;
+  if(value<BRUSH||value>ZOOM)return;
   tool=value;
   // Switching away from a selection tool must not leave a selection
   // permanently active as an accidental overlay on subsequent drawings.
@@ -599,10 +601,20 @@ public final class DrawingView extends View {
   invalidate();
  }
  private void nativeBeginEditIfNeeded(){if(tool!=BRUSH&&tool!=ERASER&&tool!=PICKER&&tool<=FILLED_ELLIPSE)nativeBeginEdit();}
+ private void translateSelectionMask(int dx,int dy){
+  if(selectionTool!=SELECT_FREE&&selectionTool!=MAGIC_WAND)return;
+  android.graphics.Matrix translation=new android.graphics.Matrix();translation.setTranslate(dx,dy);
+  freePath.transform(translation);freeRegion.translate(dx,dy);wandBoundary.transform(translation);
+ }
+ private void restoreMovedSelection(){
+  if(!movingPixels)translateSelectionMask(Math.round(moveOriginalLeft-selectionLeft),Math.round(moveOriginalTop-selectionTop));
+  selectionLeft=moveOriginalLeft;selectionTop=moveOriginalTop;selectionRight=moveOriginalRight;selectionBottom=moveOriginalBottom;
+ }
  private void updateMovedSelection(float x,float y){
-  float dx=x-moveStartX,dy=y-moveStartY;
+  float dx=Math.round(x-moveStartX),dy=Math.round(y-moveStartY);
   dx=Math.max(-moveOriginalLeft,Math.min(canvasWidth-moveOriginalRight,dx));
   dy=Math.max(-moveOriginalTop,Math.min(canvasHeight-moveOriginalBottom,dy));
+  if(!movingPixels)translateSelectionMask(Math.round(moveOriginalLeft+dx-selectionLeft),Math.round(moveOriginalTop+dy-selectionTop));
   selectionLeft=moveOriginalLeft+dx;selectionRight=moveOriginalRight+dx;
   selectionTop=moveOriginalTop+dy;selectionBottom=moveOriginalBottom+dy;
   invalidate();
@@ -634,6 +646,13 @@ public final class DrawingView extends View {
    }
    return true;
   }
+  if(tool==PAN||tool==ZOOM){
+   int action=event.getActionMasked();if(action==MotionEvent.ACTION_DOWN){getParent().requestDisallowInterceptTouchEvent(true);navigationTool.begin(event.getX(),event.getY());}
+   else if(action==MotionEvent.ACTION_MOVE){navigationTool.move(viewport,event.getX(),event.getY(),tool==ZOOM);viewportChanged();}
+   else if(action==MotionEvent.ACTION_UP){navigationTool.finish(viewport,tool==ZOOM,event.getEventTime()-event.getDownTime()>=500);viewportChanged();getParent().requestDisallowInterceptTouchEvent(false);}
+   else if(action==MotionEvent.ACTION_CANCEL)getParent().requestDisallowInterceptTouchEvent(false);
+   return true;
+  }
   float x=(float)viewport.documentX(event.getX(),event.getY());
   float y=(float)viewport.documentY(event.getX(),event.getY());
  switch(event.getActionMasked()){
@@ -658,7 +677,6 @@ public final class DrawingView extends View {
   }
   if(tool==MOVE_SELECTION||tool==MOVE_PIXELS){
    movingPixels=tool==MOVE_PIXELS;
-   if((selectionTool==SELECT_FREE||selectionTool==MAGIC_WAND)&&tool==MOVE_SELECTION){movingSelection=false;drawing=false;return true;}
    movingSelection=hasSelection()&&selectionContains((int)x,(int)y);
    if(movingSelection){moveStartX=x;moveStartY=y;moveOriginalLeft=selectionLeft;moveOriginalTop=selectionTop;moveOriginalRight=selectionRight;moveOriginalBottom=selectionBottom;}
    else drawing=false;
@@ -670,7 +688,7 @@ public final class DrawingView extends View {
    drawing=false;
    if(pickedColorListener!=null)pickedColorListener.accept(color);
   }else if(tool==BUCKET){nativeFill((int)x,(int)y,color);drawing=false;refresh();}
-  else if(tool==BRUSH||tool==ERASER){invalidate();}
+  else if(tool==BRUSH||tool==ERASER||tool==PENCIL){invalidate();}
   return true;
  case MotionEvent.ACTION_MOVE:
   if(!drawing)return true;
@@ -685,7 +703,7 @@ public final class DrawingView extends View {
   if(tool==SELECT_RECTANGLE||tool==SELECT_ELLIPSE){
    updateSelection(x,y);return true;
   }
-  if((tool==BRUSH||tool==ERASER)&&(x!=previousX||y!=previousY)){paintStroke(previousX,previousY,x,y,event);refresh();}
+  if((tool==BRUSH||tool==ERASER||tool==PENCIL)&&(x!=previousX||y!=previousY)){paintStroke(previousX,previousY,x,y,event);refresh();}
   previousX=x;previousY=y;return true;
  case MotionEvent.ACTION_UP:
   if(drawing){
@@ -717,7 +735,7 @@ public final class DrawingView extends View {
     drawing=false;invalidate();return true;
    }
    if(tool==SELECT_RECTANGLE||tool==SELECT_ELLIPSE){updateSelection(x,y);hasSelection=hasSelection();drawing=false;return true;}
-   if(tool==BRUSH||tool==ERASER){if(!strokeEditing||x!=previousX||y!=previousY)paintStroke(previousX,previousY,x,y,event);}
+   if(tool==BRUSH||tool==ERASER||tool==PENCIL){if(!strokeEditing||x!=previousX||y!=previousY)paintStroke(previousX,previousY,x,y,event);}
    else if(tool>=ROUNDED_RECTANGLE&&tool<=FILLED_TRIANGLE)additionalShape(tool,startX,startY,x,y);
    else nativeShape(tool,(int)startX,(int)startY,(int)x,(int)y,color);
    drawing=false;refresh();
@@ -725,7 +743,7 @@ public final class DrawingView extends View {
  case MotionEvent.ACTION_CANCEL:
   if(drawing&&tool==SELECT_FREE){hasSelection=false;freeSelectionReady=false;freePath.reset();freeRegion.setEmpty();invalidate();}
   if(drawing&&(tool==SELECT_RECTANGLE||tool==SELECT_ELLIPSE)){hasSelection=false;invalidate();}
-  if(movingSelection){selectionLeft=moveOriginalLeft;selectionTop=moveOriginalTop;selectionRight=moveOriginalRight;selectionBottom=moveOriginalBottom;invalidate();}
+  if(movingSelection){restoreMovedSelection();invalidate();}
   movingSelection=false;movingPixels=false;drawing=false;return true;
  default:return true;}
  }

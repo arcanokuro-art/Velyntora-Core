@@ -597,6 +597,9 @@ public final class MainActivity extends Activity {
         sidebar.addView(toolsTitle);
         android.widget.GridLayout toolGrid = new android.widget.GridLayout(this);toolGrid.setColumnCount(3);sidebar.addView(toolGrid);
         tool(toolGrid, "Pincel", DrawingView.BRUSH);
+        tool(toolGrid, "Lápiz (1 píxel)", DrawingView.PENCIL);
+        tool(toolGrid, "Desplazamiento", DrawingView.PAN);
+        tool(toolGrid, "Zoom: toque acerca; toque largo aleja; arrastre vertical", DrawingView.ZOOM);
         tool(toolGrid, "Línea", DrawingView.LINE);
         tool(toolGrid, "Rectángulo", DrawingView.RECTANGLE);
         tool(toolGrid, "Elipse", DrawingView.ELLIPSE);
@@ -794,6 +797,9 @@ public final class MainActivity extends Activity {
         iconButton.setMinimumWidth(0);iconButton.setBackgroundResource(R.drawable.tool_button_background);iconButton.setBackgroundTintList(null);iconButton.setSelected(tool==drawing.currentTool());toolButtons.put(tool,iconButton);
         int icon = 0;
         switch (tool) {
+            case DrawingView.PENCIL: icon = R.drawable.pinta_pencil; break;
+            case DrawingView.PAN: icon = R.drawable.pinta_pan; break;
+            case DrawingView.ZOOM: icon = R.drawable.pinta_zoom; break;
             case DrawingView.BRUSH: icon = R.drawable.pinta_brush; break;
             case DrawingView.LINE: icon = R.drawable.pinta_line; break;
             case DrawingView.RECTANGLE:

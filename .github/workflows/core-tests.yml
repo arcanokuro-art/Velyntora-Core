@@ -17,6 +17,10 @@ jobs:
           mkdir -p build/java-tests
           javac -d build/java-tests app/src/main/java/art/velyntora/core/Viewport.java tests/ViewportTests.java
           java -cp build/java-tests art.velyntora.core.ViewportTests
+      - name: Dedicated navigation tool tests
+        run: |
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/Viewport.java app/src/main/java/art/velyntora/core/NavigationTool.java tests/NavigationToolTests.java
+          java -cp build/java-tests art.velyntora.core.NavigationToolTests
       - name: Document dimension controls tests
         run: |
           javac -d build/java-tests app/src/main/java/art/velyntora/core/DocumentDimensions.java tests/DocumentDimensionsTests.java
