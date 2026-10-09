@@ -122,6 +122,7 @@ public final class MainActivity extends Activity {
         tool(sidebar, "Borrador", DrawingView.ERASER);
         tool(sidebar, "Selección rectangular", DrawingView.SELECT_RECTANGLE);
         tool(sidebar, "Selección elíptica", DrawingView.SELECT_ELLIPSE);
+        tool(sidebar, "Mover contorno", DrawingView.MOVE_SELECTION);
         TextView brushSizeLabel = text("Tamaño: 4 px");
         sidebar.addView(brushSizeLabel);
         SeekBar brushSize = new SeekBar(this);
