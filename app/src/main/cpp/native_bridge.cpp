@@ -718,3 +718,25 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
  if(!changed)return JNI_FALSE;
  checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;
 }
+
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeLevelsActive(JNIEnv*,jclass,jint blackPoint,jint whitePoint){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!canvas||!layers||blackPoint<0||whitePoint>255||blackPoint>=whitePoint||(blackPoint==0&&whitePoint==255))return JNI_FALSE;
+ auto pixels=canvas->pixels();bool changed=false;
+ const auto remap=[blackPoint,whitePoint](std::uint32_t channel)->std::uint32_t{
+  const int value=static_cast<int>(channel);
+  if(value<=blackPoint)return 0u;
+  if(value>=whitePoint)return 255u;
+  const int range=whitePoint-blackPoint;
+  return static_cast<std::uint32_t>(((value-blackPoint)*255+range/2)/range);
+ };
+ for(auto& pixel:pixels){
+  const std::uint32_t alpha=pixel&0xFF000000u;
+  if(!alpha)continue;
+  const std::uint32_t r=remap((pixel>>16)&255u),g=remap((pixel>>8)&255u),b=remap(pixel&255u);
+  const std::uint32_t result=alpha|(r<<16)|(g<<8)|b;
+  if(result!=pixel){pixel=result;changed=true;}
+ }
+ if(!changed)return JNI_FALSE;
+ checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;
+}
