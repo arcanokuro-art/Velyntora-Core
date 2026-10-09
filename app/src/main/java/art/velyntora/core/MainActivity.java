@@ -53,8 +53,8 @@ public final class MainActivity extends Activity {
         LinearLayout menus = row();
         menu(menus, "Archivo", new String[]{"Nuevo", "Abrir imagen", "Guardar PNG"},
             new Runnable[]{drawing::clear, this::openImage, this::savePng});
-        menu(menus, "Editar", new String[]{"Deshacer", "Rehacer"},
-            new Runnable[]{this::undo, this::redo});
+        menu(menus, "Editar", new String[]{"Deshacer", "Rehacer", "Borrar selección", "Deseleccionar"},
+            new Runnable[]{this::undo, this::redo, () -> {if(!drawing.eraseSelection())message("No hay selección válida");}, drawing::deselect});
         menu(menus, "Ver", new String[]{"Ajustar al lienzo"},
             new Runnable[]{drawing::invalidate});
         menu(menus, "Imagen", new String[]{"Nuevo lienzo"},

@@ -19,6 +19,7 @@ public final class DrawingView extends View {
  private static native int[] nativePixels();
  private static native boolean nativeImport(int[] pixels);
  private static native int nativePickColor(int x,int y);
+ private static native boolean nativeEraseSelection(int kind,int x0,int y0,int x1,int y1);
  private static native int nativeLayerCount();
  private static native int nativeActiveLayer();
  private static native boolean nativeAddLayer();
@@ -67,6 +68,13 @@ public final class DrawingView extends View {
  public float brushRadius(){return brushRadius;}
  public void setTool(int value){tool=value;}
  public void clear(){if(nativeClear()){hasSelection=false;refresh();}}
+ public boolean eraseSelection(){
+  if(!hasSelection)return false;
+  boolean ok=nativeEraseSelection(selectionTool,(int)Math.floor(selectionLeft),(int)Math.floor(selectionTop),(int)Math.ceil(selectionRight),(int)Math.ceil(selectionBottom));
+  if(ok){hasSelection=false;refresh();}
+  return ok;
+ }
+ public void deselect(){hasSelection=false;invalidate();}
  public void undo(){if(nativeUndo())refresh();}
  public void redo(){if(nativeRedo())refresh();}
  public void loadBitmap(Bitmap source){

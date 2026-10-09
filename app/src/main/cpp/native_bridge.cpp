@@ -1,5 +1,6 @@
 #include <jni.h>
 #include <cmath>
+#include <algorithm>
 #include <memory>
 #include <mutex>
 #include <vector>
@@ -110,6 +111,24 @@ extern "C" JNIEXPORT jintArray JNICALL Java_art_velyntora_core_DrawingView_nativ
  jintArray result=env->NewIntArray(static_cast<jsize>(pixels.size()));
  if(result)env->SetIntArrayRegion(result,0,static_cast<jsize>(pixels.size()),reinterpret_cast<const jint*>(pixels.data()));
  return result;
+}
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeEraseSelection(JNIEnv*,jclass,jint kind,jint x0,jint y0,jint x1,jint y1){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!canvas||!layers||!(kind==9||kind==10))return JNI_FALSE;
+ const int left=std::max(0,std::min(x0,x1)),right=std::min(canvas->width(),std::max(x0,x1));
+ const int top=std::max(0,std::min(y0,y1)),bottom=std::min(canvas->height(),std::max(y0,y1));
+ if(left>=right||top>=bottom)return JNI_FALSE;
+ checkpoint();
+ auto pixels=canvas->pixels();
+ const double cx=(left+right)/2.0,cy=(top+bottom)/2.0;
+ const double rx=(right-left)/2.0,ry=(bottom-top)/2.0;
+ for(int py=top;py<bottom;++py)for(int px=left;px<right;++px){
+  if(kind==9||((px+0.5-cx)*(px+0.5-cx)/(rx*rx)+(py+0.5-cy)*(py+0.5-cy)/(ry*ry)<=1.0))
+   pixels[static_cast<std::size_t>(py)*canvas->width()+px]=0u;
+ }
+ canvas->setPixels(pixels);
+ storeActive();
+ return JNI_TRUE;
 }
 extern "C" JNIEXPORT jint JNICALL Java_art_velyntora_core_DrawingView_nativePickColor(JNIEnv*,jclass,jint x,jint y){
  std::lock_guard<std::mutex> lock(guard);
