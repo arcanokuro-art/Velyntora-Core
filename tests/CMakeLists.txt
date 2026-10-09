@@ -38,3 +38,7 @@ add_test(NAME blur_tests COMMAND blur_tests)
 add_executable(distortion_tests distortion_tests.cpp)
 target_link_libraries(distortion_tests PRIVATE velyntora_engine)
 add_test(NAME distortion_tests COMMAND distortion_tests)
+
+add_executable(artistic_tests artistic_tests.cpp)
+target_link_libraries(artistic_tests PRIVATE velyntora_engine)
+add_test(NAME artistic_tests COMMAND artistic_tests)

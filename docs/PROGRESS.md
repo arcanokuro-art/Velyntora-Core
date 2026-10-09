@@ -96,3 +96,7 @@ Validación OpenRaster: pruebas con PNG reales y compilación APK del commit `6a
 ## TIFF (entregable 16, parcial)
 
 Exportación TIFF RGB de 8 bits por canal con alfa no asociado, sin compresión, en orden de filas superior a inferior y escrita por bloques de fila en el hilo de exportación. Las pruebas verifican IFD, etiquetas, offsets, alfa e ida/vuelta con el decodificador TIFF de Java. La importación TIFF y otros formatos aún están pendientes, por lo que no se suma el entregable 16. La lectura de `stack.xml` OpenRaster valida UTF-8 y admite BOM.
+
+## Arte y fotografía (entregable 18, parcial)
+
+Pintura al óleo con radio y niveles de intensidad, boceto a lápiz, boceto a tinta con umbral de contorno, resplandor, retrato suave, mediana/percentil y reducción de ojos rojos. Conservan el alfa original y los píxeles totalmente transparentes; el óleo ignora los colores ocultos y pondera por alfa. Procesamiento fuera del hilo de interfaz, máscara de selección y un único punto de historial. Implementaciones propias: no se afirma igualdad numérica con Pinta. Pruebas del motor y llamadas JNI con Undo/Redo y máscara vacía. El catálogo completo sigue pendiente; avance global 16/20 = 80.00 %.

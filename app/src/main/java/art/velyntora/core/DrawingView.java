@@ -10,6 +10,8 @@ public final class DrawingView extends View {
  static {System.loadLibrary("velyntora_jni");}
  private static native boolean nativeTransformSelection(int left,int top,int width,int height,byte[] mask,float degrees,float sx,float sy);
  private static native boolean nativeEffect(int kind,int amount);
+ private static native boolean nativeArtistic(int kind,int strength,int radius,int threshold);
+ public boolean artistic(int kind,int strength,int radius,int threshold){return nativeArtistic(kind,strength,radius,threshold);}
  private static native boolean nativeDistortion(int kind,int amount,int size,int angle,int cx,int cy);
  public boolean distortion(int kind,int amount,int size,int angle,int cx,int cy){return nativeDistortion(kind,amount,size,angle,cx,cy);}
  private static native boolean nativeBlur(int kind,int amount,int angle,int cx,int cy);

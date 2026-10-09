@@ -11,6 +11,7 @@ class DrawingView {
  static native boolean nativeRedo();
  static native boolean nativeTransformSelection(int left,int top,int width,int height,byte[] mask,float degrees,float sx,float sy);
  static native boolean nativeSetEffectSelection(byte[] mask);
+ static native boolean nativeArtistic(int kind,int strength,int radius,int threshold);
  static native boolean nativeDistortion(int kind,int amount,int size,int angle,int cx,int cy);
  static native boolean nativeBlur(int kind,int amount,int angle,int cx,int cy);
  static native boolean nativeColorAdjustment(int kind,int[] values);
@@ -65,6 +66,9 @@ public final class NativeRasterTests {
   for(int kind=0;kind<5;kind++){check(DrawingView.nativeDistortion(kind,60,70,25,50,50));check(DrawingView.nativeUndo());check(Arrays.equals(pattern,DrawingView.nativePixels()));check(DrawingView.nativeRedo());check(DrawingView.nativeUndo());}
   byte[] effectMask=new byte[81];effectMask[40]=1;check(DrawingView.nativeSetEffectSelection(effectMask));check(DrawingView.nativeColorAdjustment(6,new int[]{1}));int[] masked=DrawingView.nativePixels();check(masked[40]!=pattern[40]);for(int i=0;i<81;i++)if(i!=40)check(masked[i]==pattern[i]);check(DrawingView.nativeUndo());check(Arrays.equals(pattern,DrawingView.nativePixels()));
   effectMask[40]=0;check(DrawingView.nativeSetEffectSelection(effectMask));check(!DrawingView.nativeBlur(0,4,0,50,50));check(!DrawingView.nativeDistortion(4,60,50,0,50,50));check(Arrays.equals(pattern,DrawingView.nativePixels()));check(DrawingView.nativeSetEffectSelection(null));check(!DrawingView.nativeSetEffectSelection(new byte[2]));
+  check(DrawingView.nativeLoadBitmap(9,9,pattern));
+  for(int kind=0;kind<7;kind++){if(kind==5){pattern[40]=0xffffffff;check(DrawingView.nativeLoadBitmap(9,9,pattern));}check(DrawingView.nativeArtistic(kind,kind==0?8:kind==5?50:100,2,20));check(DrawingView.nativeUndo());check(Arrays.equals(pattern,DrawingView.nativePixels()));check(DrawingView.nativeRedo());check(DrawingView.nativeUndo());}
+  check(DrawingView.nativeSetEffectSelection(new byte[81]));check(!DrawingView.nativeArtistic(3,100,2,20));check(Arrays.equals(pattern,DrawingView.nativePixels()));check(DrawingView.nativeSetEffectSelection(null));check(!DrawingView.nativeArtistic(0,1,2,20));
   System.out.println("JNI raster: transparency, source-over composition, atomic import, and undo/redo passed");
  }
 }
