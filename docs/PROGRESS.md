@@ -54,3 +54,7 @@ Siete efectos parametrizados sobre la capa activa: desenfoque de caja (premultip
 ## Correcciones transversales
 
 El pincel/borrador respeta selecciones rectangulares, elípticas, libres y de varita mediante una máscara. El primer toque de un gesto de dos dedos no modifica el documento ni añade un punto al historial; un toque de pintura se aplica al levantar el dedo. Los gestos iniciados después de un trazo ya dibujado conservan ese tramo. El límite acumulado de 24 millones de píxeles se comprueba también al añadir capas.
+
+## Selecciones: mover, recortar y transformar (entregable 12, en validación)
+
+Movimiento por arrastre y desplazamiento numérico, recorte real del documento en todas las capas, escalado horizontal/vertical de 10–400 %, rotación de −180 a +180° y reflejos. Se aplica la máscara de cualquier tipo de selección, conserva los píxeles excluidos y mezcla el alfa sobre el destino. El resultado mantiene una máscara de selección transformada y usa un solo punto de Undo/Redo. Remuestreo por píxel cercano; la parte que salga del documento se recorta, recuperable mediante Deshacer.

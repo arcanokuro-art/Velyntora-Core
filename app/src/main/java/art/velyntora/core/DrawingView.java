@@ -8,6 +8,7 @@ import android.view.MotionEvent;
 import android.view.View;
 public final class DrawingView extends View {
  static {System.loadLibrary("velyntora_jni");}
+ private static native boolean nativeTransformSelection(int left,int top,int width,int height,byte[] mask,float degrees,float sx,float sy);
  private static native boolean nativeEffect(int kind,int amount);
  public boolean applyEffect(int kind,int amount){return nativeEffect(kind,amount);}
  public void effectApplied(){deselect();refresh();}
@@ -220,6 +221,23 @@ public final class DrawingView extends View {
   // Switching away from a selection tool must not leave a selection
   // permanently active as an accidental overlay on subsequent drawings.
   invalidate();
+ }
+ public boolean transformSelection(float degrees,float sx,float sy){
+  if(!hasSelection())return false;
+  int left=(int)Math.floor(selectionLeft),top=(int)Math.floor(selectionTop),right=(int)Math.ceil(selectionRight),bottom=(int)Math.ceil(selectionBottom);
+  int w=right-left,h=bottom-top;if(w<=0||h<=0||left<0||top<0||right>canvasWidth||bottom>canvasHeight)return false;
+  byte[] mask=new byte[w*h];android.graphics.Region selected=new android.graphics.Region();
+  for(int y=0;y<h;++y){int run=-1;
+   for(int x=0;x<=w;++x){boolean inside=x<w&&selectionContains(left+x,top+y);if(inside){mask[y*w+x]=1;if(run<0)run=x;}
+    else if(run>=0){selected.op(left+run,top+y,left+x,top+y+1,android.graphics.Region.Op.UNION);run=-1;}
+   }
+  }
+  android.graphics.Path transformed=selected.getBoundaryPath();float cx=left+w/2f,cy=top+h/2f;
+  android.graphics.Matrix matrix=new android.graphics.Matrix();matrix.setTranslate(-cx,-cy);matrix.postScale(sx,sy);matrix.postRotate(degrees);matrix.postTranslate(cx,cy);transformed.transform(matrix);
+  android.graphics.Region region=new android.graphics.Region();region.setPath(transformed,new android.graphics.Region(0,0,canvasWidth,canvasHeight));
+  if(!nativeTransformSelection(left,top,w,h,mask,degrees,sx,sy))return false;
+  deselect();if(!region.isEmpty()){freeRegion.set(region);wandBoundary.set(region.getBoundaryPath());android.graphics.Rect bounds=region.getBounds();selectionLeft=bounds.left;selectionTop=bounds.top;selectionRight=bounds.right;selectionBottom=bounds.bottom;selectionTool=MAGIC_WAND;hasSelection=true;}
+  refresh();return true;
  }
  public boolean hasSelection(){return hasSelection&&selectionRight-selectionLeft>=1f&&selectionBottom-selectionTop>=1f;}
  public boolean shrinkSelectionOnePixel(){

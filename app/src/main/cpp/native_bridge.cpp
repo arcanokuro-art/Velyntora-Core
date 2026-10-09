@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include "velyntora/ProjectIO.hpp"
 #include "velyntora/PixelEffects.hpp"
+#include "velyntora/SelectionTransform.hpp"
 #include <cmath>
 #include <algorithm>
 #include <memory>
@@ -1002,4 +1003,14 @@ extern "C" JNIEXPORT void JNICALL Java_art_velyntora_core_DrawingView_nativeSetB
  auto size=env->GetArrayLength(source);if(size!=static_cast<jsize>(canvas->pixels().size()))return;
  try{brushMask.resize(size);env->GetByteArrayRegion(source,0,size,reinterpret_cast<jbyte*>(brushMask.data()));if(env->ExceptionCheck())brushMask.clear();}
  catch(...){brushMask.clear();}
+}
+
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeTransformSelection(JNIEnv* env,jclass,jint left,jint top,jint w,jint h,jbyteArray source,jfloat degrees,jfloat sx,jfloat sy){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!canvas||!layers||!source||w<=0||h<=0||std::int64_t(w)*h>4000000||env->GetArrayLength(source)!=std::int64_t(w)*h)return JNI_FALSE;
+ try{
+  std::vector<std::uint8_t> mask(std::size_t(w)*h);env->GetByteArrayRegion(source,0,mask.size(),reinterpret_cast<jbyte*>(mask.data()));if(env->ExceptionCheck())return JNI_FALSE;
+  auto pixels=velyntora::transformSelection(canvas->pixels(),canvas->width(),canvas->height(),left,top,w,h,mask,degrees,sx,sy);
+  if(pixels==canvas->pixels())return JNI_FALSE;checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;
+ }catch(...){return JNI_FALSE;}
 }

@@ -9,6 +9,7 @@ class DrawingView {
  static native int[] nativePixels();
  static native boolean nativeUndo();
  static native boolean nativeRedo();
+ static native boolean nativeTransformSelection(int left,int top,int width,int height,byte[] mask,float degrees,float sx,float sy);
  static native boolean nativeEffect(int kind,int amount);
  static native void nativeSetBrushSelection(byte[] mask);
  static native void nativeStyledStroke(float x0,float y0,float x1,float y1,float radius,int color,float opacity,float hardness,boolean square,boolean eraser);
@@ -35,6 +36,11 @@ public final class NativeRasterTests {
   check(DrawingView.nativeEffect(0,1));check(DrawingView.nativePixels()[1]==0x55ff0000);
   check(DrawingView.nativeUndo());check(Arrays.equals(red,DrawingView.nativePixels()));
   check(DrawingView.nativeRedo());check(DrawingView.nativePixels()[1]==0x55ff0000);
+  int[] stripes={0xffff0000,0xff00ff00,0xff0000ff};check(DrawingView.nativeLoadBitmap(3,1,stripes));
+  check(DrawingView.nativeTransformSelection(0,0,3,1,new byte[]{1,1,1},0,-1,1));
+  check(DrawingView.nativePixels()[0]==stripes[2]&&DrawingView.nativePixels()[2]==stripes[0]);
+  check(DrawingView.nativeUndo());check(Arrays.equals(stripes,DrawingView.nativePixels()));
+  check(DrawingView.nativeRedo());check(DrawingView.nativePixels()[0]==stripes[2]);
   System.out.println("JNI raster: transparency, source-over composition, atomic import, and undo/redo passed");
  }
 }

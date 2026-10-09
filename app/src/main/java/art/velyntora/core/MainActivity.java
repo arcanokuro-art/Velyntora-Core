@@ -545,8 +545,8 @@ public final class MainActivity extends Activity {
         LinearLayout menus = row();
         menu(menus, "Archivo", new String[]{"Nuevo…", "Abrir imagen", "Guardar PNG", "Guardar JPEG", "Guardar WebP", "Abrir proyecto", "Guardar proyecto"},
             new Runnable[]{() -> configureDimensions(0), this::openImage, this::savePng, () -> saveImage("image/jpeg", "dibujo.jpg", SAVE_JPEG), () -> saveImage("image/webp", "dibujo.webp", SAVE_WEBP), () -> projectPicker(false), () -> projectPicker(true)});
-        menu(menus, "Editar", new String[]{"Deshacer", "Rehacer", "Copiar selección", "Cortar selección", "Pegar selección", "Duplicar selección", "Mover contenido…", "Seleccionar todo", "Invertir selección", "Expandir selección 1 px", "Contraer selección 1 px", "Borrar selección", "Deseleccionar"},
-            new Runnable[]{this::undo, this::redo, this::copySelection, this::cutSelection, this::pasteSelection, this::duplicateSelection, this::moveSelectedContent, drawing::selectAll, () -> {if(!drawing.invertSelection())message("No se pudo invertir la selección");}, () -> {if(!drawing.expandSelectionOnePixel())message("No se pudo expandir la selección");}, () -> {if(!drawing.shrinkSelectionOnePixel())message("No se pudo contraer la selección");}, () -> {if(!drawing.eraseSelection())message("No hay selección válida");}, drawing::deselect});
+        menu(menus, "Editar", new String[]{"Deshacer", "Rehacer", "Copiar selección", "Cortar selección", "Pegar selección", "Duplicar selección", "Mover contenido…", "Transformar selección…", "Seleccionar todo", "Invertir selección", "Expandir selección 1 px", "Contraer selección 1 px", "Borrar selección", "Deseleccionar"},
+            new Runnable[]{this::undo, this::redo, this::copySelection, this::cutSelection, this::pasteSelection, this::duplicateSelection, this::moveSelectedContent, this::configureSelectionTransform, drawing::selectAll, () -> {if(!drawing.invertSelection())message("No se pudo invertir la selección");}, () -> {if(!drawing.expandSelectionOnePixel())message("No se pudo expandir la selección");}, () -> {if(!drawing.shrinkSelectionOnePixel())message("No se pudo contraer la selección");}, () -> {if(!drawing.eraseSelection())message("No hay selección válida");}, drawing::deselect});
         menu(menus, "Ver", new String[]{"Ajustar al lienzo", "Acercar", "Alejar", "Zoom 100 %", "Zoom 7000 %", "Rotar vista 15° derecha", "Rotar vista 15° izquierda", "Restablecer rotación"},
             new Runnable[]{drawing::fitCanvas, () -> drawing.zoomBy(1.25f), () -> drawing.zoomBy(0.8f),
                 () -> drawing.setZoomPercent(100), () -> drawing.setZoomPercent(7000),
@@ -891,6 +891,24 @@ public final class MainActivity extends Activity {
             if (decoded == null) throw new java.io.IOException("Imagen no compatible");
             return decoded;
         }
+    }
+
+    private void configureSelectionTransform() {
+        if (!drawing.hasSelection()) {message("Crea una selección primero");return;}
+        LinearLayout form = new LinearLayout(this);form.setOrientation(LinearLayout.VERTICAL);
+        SeekBar angle = new SeekBar(this), scaleX = new SeekBar(this), scaleY = new SeekBar(this);
+        angle.setMax(360);angle.setProgress(180);scaleX.setMax(390);scaleX.setProgress(90);scaleY.setMax(390);scaleY.setProgress(90);
+        TextView label = text("Rotación: 0°  |  Escala X/Y: 100 % / 100 %");form.addView(label);
+        form.addView(text("Rotación"));form.addView(angle);form.addView(text("Escala horizontal"));form.addView(scaleX);form.addView(text("Escala vertical"));form.addView(scaleY);
+        SeekBar.OnSeekBarChangeListener listener = new SeekBar.OnSeekBarChangeListener(){
+            public void onProgressChanged(SeekBar s,int n,boolean u){label.setText("Rotación: " + (angle.getProgress()-180) + "°  |  X/Y: " + (scaleX.getProgress()+10) + " % / " + (scaleY.getProgress()+10) + " %");}
+            public void onStartTrackingTouch(SeekBar s){}public void onStopTrackingTouch(SeekBar s){}
+        };angle.setOnSeekBarChangeListener(listener);scaleX.setOnSeekBarChangeListener(listener);scaleY.setOnSeekBarChangeListener(listener);
+        android.widget.CheckBox flipX = new android.widget.CheckBox(this), flipY = new android.widget.CheckBox(this);
+        flipX.setText("Reflejar horizontalmente");flipY.setText("Reflejar verticalmente");form.addView(flipX);form.addView(flipY);
+        form.addView(text("Gira alrededor del centro de la selección. El contenido exterior al lienzo se recorta."));
+        new AlertDialog.Builder(this).setTitle("Transformar selección").setView(form).setNegativeButton("Cancelar",null)
+            .setPositiveButton("Aplicar",(d,w)->{if(!drawing.transformSelection(angle.getProgress()-180,(scaleX.getProgress()+10)/100f*(flipX.isChecked()?-1:1),(scaleY.getProgress()+10)/100f*(flipY.isChecked()?-1:1)))message("La transformación no cambia el contenido de la selección");}).show();
     }
 
     private void configureEffect(int kind) {
