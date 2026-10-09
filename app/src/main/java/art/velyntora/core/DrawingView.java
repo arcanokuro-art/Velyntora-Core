@@ -17,6 +17,7 @@ public final class DrawingView extends View {
  private static native boolean nativeRotateActive90(boolean clockwise);
  private static native boolean nativeCropActiveSelection(int left,int top,int right,int bottom);
  private static native boolean nativeCropActiveEllipse(int left,int top,int right,int bottom);
+ private static native boolean nativeTrimActiveMasked(int left,int top,int width,int height,byte[] mask);
  private static native void nativeStroke(float x0,float y0,float x1,float y1,float radius,int color);
  private static native void nativeShape(int kind,int x0,int y0,int x1,int y1,int color);
  private static native void nativeFill(int x,int y,int color);
@@ -198,6 +199,18 @@ public final class DrawingView extends View {
  public boolean flipActiveVertical(){if(!nativeFlipActiveVertical())return false;deselect();refresh();return true;}
  public boolean rotateActive180(){if(!nativeRotateActive180())return false;deselect();refresh();return true;}
  public boolean rotateActive90(boolean clockwise){if(!nativeRotateActive90(clockwise))return false;deselect();refresh();return true;}
+ public boolean trimActiveToFreeSelection(){
+  if(!hasSelection()||(selectionTool!=SELECT_FREE&&selectionTool!=MAGIC_WAND))return false;
+  int left=(int)Math.floor(selectionLeft),top=(int)Math.floor(selectionTop);
+  int right=(int)Math.ceil(selectionRight),bottom=(int)Math.ceil(selectionBottom);
+  if(left<0||top<0||right>SIZE||bottom>SIZE||left>=right||top>=bottom)return false;
+  int width=right-left,height=bottom-top;
+  byte[] mask=new byte[width*height];
+  for(int y=0;y<height;++y)for(int x=0;x<width;++x)
+   if(freeRegion.contains(left+x,top+y))mask[y*width+x]=1;
+  if(!nativeTrimActiveMasked(left,top,width,height,mask))return false;
+  deselect();refresh();return true;
+ }
  public boolean trimActiveToEllipseSelection(){
   if(!hasSelection()||selectionTool!=SELECT_ELLIPSE)return false;
   int left=(int)Math.floor(selectionLeft),top=(int)Math.floor(selectionTop);

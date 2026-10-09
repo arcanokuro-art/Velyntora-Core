@@ -440,3 +440,24 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
  if(!changed)return JNI_FALSE;
  checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;
 }
+
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeTrimActiveMasked(JNIEnv* env,jclass,jint left,jint top,jint width,jint height,jbyteArray mask){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!canvas||!layers||!mask||width<=0||height<=0||left<0||top<0)return JNI_FALSE;
+ const int w=canvas->width(),h=canvas->height();
+ if(static_cast<std::int64_t>(left)+width>w||static_cast<std::int64_t>(top)+height>h)return JNI_FALSE;
+ if(static_cast<std::int64_t>(width)*height!=env->GetArrayLength(mask))return JNI_FALSE;
+ std::vector<jbyte> bits(static_cast<std::size_t>(width)*height);
+ env->GetByteArrayRegion(mask,0,static_cast<jsize>(bits.size()),bits.data());
+ if(env->ExceptionCheck())return JNI_FALSE;
+ if(std::none_of(bits.begin(),bits.end(),[](jbyte bit){return bit!=0;}))return JNI_FALSE;
+ auto pixels=canvas->pixels();bool changed=false;
+ for(int y=0;y<h;++y)for(int x=0;x<w;++x){
+  const bool inside=x>=left&&y>=top&&x<left+width&&y<top+height;
+  if(inside&&bits[static_cast<std::size_t>(y-top)*width+x-left])continue;
+  auto& pixel=pixels[static_cast<std::size_t>(y)*w+x];
+  if(pixel!=0u){pixel=0u;changed=true;}
+ }
+ if(!changed)return JNI_FALSE;
+ checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;
+}
