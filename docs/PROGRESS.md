@@ -121,3 +121,10 @@ Cobertura funcional de las 37 familias del catálogo de referencia, con controle
 Exportación GIF89a de una sola imagen: paleta exacta hasta 255 colores visibles, reducción a un cubo RGB de 216 colores al excederla y transparencia binaria (alfa menor de 128 transparente). No exporta animaciones ni conserva semitransparencias. Compresión LZW con diccionario de 9–12 bits, reinicios y bloques de 255 bytes; memoria de trabajo proporcional al ancho de fila. Pruebas con el decodificador independiente de Java: paletas, reducción de colores, umbral alfa, límites del diccionario, reinicios e imagen de 4 millones de píxeles. El mensaje de exportación avisa de la reducción de colores/transparencia.
 
 PNG/JPEG/WebP usan ahora el mismo hilo de exportación que BMP/TGA/TIFF/GIF; compresión, escritura y composición blanca de JPEG ya no se ejecutan en el hilo de interfaz. Se bloquea la edición durante la operación y se liberan las imágenes al terminar. Estos cambios no cierran la gestión completa de formatos ni el pulido transversal; el avance sigue en **17/20 = 85.00 %**.
+
+
+## ICO (entregable 16, parcial)
+
+Abrir iconos Windows con imágenes PNG embebidas o DIB sin compresión de 1/4/8/24/32 bits. Selecciona la mayor representación compatible y usa profundidad de color como desempate; valida entradas, offsets, paletas, dimensiones y máscaras AND. Admite el alfa de 32 bits y la convención antigua de alfa completamente cero más máscara. Importación fuera del hilo de interfaz y sin reemplazar el documento ante un error.
+
+Guardar ICO de una imagen DIB de 32 bits con semitransparencias y máscara AND. El dibujo se reduce proporcionalmente a un máximo de 256 px por lado, sin modificar el documento. Límites de lectura: 16 MiB y 64 representaciones. No admite CUR, DIB comprimidos ni BI_BITFIELDS. Pruebas Java y lectura independiente con Pillow del archivo exportado. Este avance no suma aún el entregable 16; progreso **85.00 %**.

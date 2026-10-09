@@ -23,7 +23,7 @@ import java.io.OutputStream;
 
 /** Android workspace modeled after Pinta's tool, canvas, palette and status regions. */
 public final class MainActivity extends Activity {
-    private static final int SAVE_PROJECT = 43, OPEN_PROJECT = 44, SAVE_JPEG = 45, SAVE_WEBP = 46, SAVE_BMP = 47, SAVE_TGA = 48, OPEN_TGA = 49, SAVE_ORA = 50, OPEN_ORA = 51, SAVE_TIFF = 52, OPEN_TIFF = 53, SAVE_GIF = 54;
+    private static final int SAVE_PROJECT = 43, OPEN_PROJECT = 44, SAVE_JPEG = 45, SAVE_WEBP = 46, SAVE_BMP = 47, SAVE_TGA = 48, OPEN_TGA = 49, SAVE_ORA = 50, OPEN_ORA = 51, SAVE_TIFF = 52, OPEN_TIFF = 53, SAVE_GIF = 54, OPEN_ICO = 55, SAVE_ICO = 56;
     private static final int SAVE_PNG = 41;
     private static final int OPEN_IMAGE = 42;
     private DrawingView drawing;
@@ -545,8 +545,8 @@ public final class MainActivity extends Activity {
         root.setBackgroundColor(0xFFF1F1F1);
 
         LinearLayout menus = row();
-        menu(menus, "Archivo", new String[]{"Nuevo…", "Abrir imagen", "Abrir TGA", "Abrir TIFF", "Abrir OpenRaster", "Guardar OpenRaster", "Guardar PNG", "Guardar JPEG", "Guardar WebP", "Guardar BMP", "Guardar TGA", "Guardar TIFF", "Guardar GIF (imagen fija)", "Abrir proyecto", "Guardar proyecto"},
-            new Runnable[]{() -> configureDimensions(0), this::openImage, this::openTga, this::openTiff, () -> openRasterPicker(false), () -> openRasterPicker(true), this::savePng, () -> saveImage("image/jpeg", "dibujo.jpg", SAVE_JPEG), () -> saveImage("image/webp", "dibujo.webp", SAVE_WEBP), () -> saveImage("image/bmp", "dibujo.bmp", SAVE_BMP), () -> saveImage("image/x-tga", "dibujo.tga", SAVE_TGA), () -> saveImage("image/tiff", "dibujo.tiff", SAVE_TIFF), () -> {message("GIF: colores reducidos y transparencia sin semitransparencias");saveImage("image/gif", "dibujo.gif", SAVE_GIF);}, () -> projectPicker(false), () -> projectPicker(true)});
+        menu(menus, "Archivo", new String[]{"Nuevo…", "Abrir imagen", "Abrir TGA", "Abrir TIFF", "Abrir ICO", "Abrir OpenRaster", "Guardar OpenRaster", "Guardar PNG", "Guardar JPEG", "Guardar WebP", "Guardar BMP", "Guardar TGA", "Guardar TIFF", "Guardar GIF (imagen fija)", "Guardar ICO (hasta 256 px)", "Abrir proyecto", "Guardar proyecto"},
+            new Runnable[]{() -> configureDimensions(0), this::openImage, this::openTga, this::openTiff, this::openIco, () -> openRasterPicker(false), () -> openRasterPicker(true), this::savePng, () -> saveImage("image/jpeg", "dibujo.jpg", SAVE_JPEG), () -> saveImage("image/webp", "dibujo.webp", SAVE_WEBP), () -> saveImage("image/bmp", "dibujo.bmp", SAVE_BMP), () -> saveImage("image/x-tga", "dibujo.tga", SAVE_TGA), () -> saveImage("image/tiff", "dibujo.tiff", SAVE_TIFF), () -> {message("GIF: colores reducidos y transparencia sin semitransparencias");saveImage("image/gif", "dibujo.gif", SAVE_GIF);}, () -> saveImage("image/vnd.microsoft.icon", "dibujo.ico", SAVE_ICO), () -> projectPicker(false), () -> projectPicker(true)});
         menu(menus, "Editar", new String[]{"Deshacer", "Rehacer", "Copiar selección", "Cortar selección", "Pegar selección", "Duplicar selección", "Mover contenido…", "Transformar selección…", "Seleccionar todo", "Invertir selección", "Expandir selección 1 px", "Contraer selección 1 px", "Borrar selección", "Deseleccionar"},
             new Runnable[]{this::undo, this::redo, this::copySelection, this::cutSelection, this::pasteSelection, this::duplicateSelection, this::moveSelectedContent, this::configureSelectionTransform, drawing::selectAll, () -> {if(!drawing.invertSelection())message("No se pudo invertir la selección");}, () -> {if(!drawing.expandSelectionOnePixel())message("No se pudo expandir la selección");}, () -> {if(!drawing.shrinkSelectionOnePixel())message("No se pudo contraer la selección");}, () -> {if(!drawing.eraseSelection())message("No hay selección válida");}, drawing::deselect});
         menu(menus, "Ver", new String[]{"Ajustar al lienzo", "Acercar", "Alejar", "Zoom 100 %", "Zoom 7000 %", "Rotar vista 15° derecha", "Rotar vista 15° izquierda", "Restablecer rotación"},
@@ -1099,6 +1099,12 @@ public final class MainActivity extends Activity {
                 RasterFileWriter.RowSource rows=(y,row)->image.getPixels(row,0,image.getWidth(),0,y,image.getWidth(),1);
                 if(request==SAVE_TIFF)TiffWriter.write(buffered,image.getWidth(),image.getHeight(),rows);
                 else if(request==SAVE_GIF)GifWriter.write(buffered,image.getWidth(),image.getHeight(),rows);
+                else if(request==SAVE_ICO){
+                    double scale=Math.min(1.0,256.0/Math.max(image.getWidth(),image.getHeight()));
+                    int w=Math.max(1,(int)Math.round(image.getWidth()*scale)),h=Math.max(1,(int)Math.round(image.getHeight()*scale));
+                    Bitmap icon=Bitmap.createScaledBitmap(image,w,h,true);
+                    try{IcoCodec.write(buffered,w,h,(y,row)->icon.getPixels(row,0,w,0,y,w,1));}finally{if(icon!=image)icon.recycle();}
+                }
                 else if(request==SAVE_BMP||request==SAVE_TGA)RasterFileWriter.write(buffered,image.getWidth(),image.getHeight(),request==SAVE_TGA,rows);
                 else {
                     Bitmap encoded=image;
@@ -1116,16 +1122,23 @@ public final class MainActivity extends Activity {
 
     private void openTga(){Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT);intent.addCategory(Intent.CATEGORY_OPENABLE);intent.setType("*/*");startActivityForResult(intent,OPEN_TGA);}
     private void openTiff(){Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT);intent.addCategory(Intent.CATEGORY_OPENABLE);intent.setType("*/*");startActivityForResult(intent,OPEN_TIFF);}
-    private void importTga(Uri uri){importRaster(uri,false);}
-    private void importRaster(Uri uri,boolean tiff){
+    private void openIco(){Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT);intent.addCategory(Intent.CATEGORY_OPENABLE);intent.setType("*/*");startActivityForResult(intent,OPEN_ICO);}
+    private void importTga(Uri uri){importRaster(uri,OPEN_TGA);}
+    private void importRaster(Uri uri,int request){
         if(projectProgress!=null){message("Espera a que termine la operación actual");return;}
-        android.app.ProgressDialog progress=new android.app.ProgressDialog(this);progress.setMessage(tiff?"Abriendo TIFF…":"Abriendo TGA…");progress.setCancelable(false);projectProgress=progress;progress.show();drawing.setEnabled(false);
+        final String format=request==OPEN_TIFF?"TIFF":request==OPEN_ICO?"ICO":"TGA";
+        android.app.ProgressDialog progress=new android.app.ProgressDialog(this);progress.setMessage("Abriendo "+format+"…");progress.setCancelable(false);projectProgress=progress;progress.show();drawing.setEnabled(false);
         new Thread(()->{int[] pixels=null;int width=0,height=0;try(InputStream input=getContentResolver().openInputStream(uri)){
                 if(input==null)throw new java.io.IOException("Sin archivo");
-                if(tiff){TiffReader.Image image=TiffReader.read(new java.io.BufferedInputStream(input));pixels=image.pixels;width=image.width;height=image.height;}
+                if(request==OPEN_TIFF){TiffReader.Image image=TiffReader.read(new java.io.BufferedInputStream(input));pixels=image.pixels;width=image.width;height=image.height;}
+                else if(request==OPEN_ICO){IcoCodec.Image image=IcoCodec.read(new java.io.BufferedInputStream(input),png->{
+                    Bitmap bitmap=BitmapFactory.decodeByteArray(png,0,png.length);
+                    if(bitmap==null)throw new java.io.IOException("PNG ICO inválido");
+                    try{int w=bitmap.getWidth(),h=bitmap.getHeight();if(w>256||h>256)throw new java.io.IOException("ICO demasiado grande");int[] p=new int[w*h];bitmap.getPixels(p,0,w,0,0,w,h);return new IcoCodec.Image(w,h,p);}finally{bitmap.recycle();}
+                });pixels=image.pixels;width=image.width;height=image.height;}
                 else{TgaReader.Image image=TgaReader.read(new java.io.BufferedInputStream(input));pixels=image.pixels;width=image.width;height=image.height;}
             }catch(Exception e){pixels=null;}
-            final int[] decoded=pixels;final int w=width,h=height;final String format=tiff?"TIFF":"TGA";
+            final int[] decoded=pixels;final int w=width,h=height;
             runOnUiThread(()->{if(!isDestroyed()){progress.dismiss();projectProgress=null;drawing.setEnabled(true);if(decoded==null){message(format+" incompatible, incompleto o demasiado grande");return;}Bitmap bitmap=Bitmap.createBitmap(decoded,w,h,Bitmap.Config.ARGB_8888);try{if(!drawing.loadBitmap(bitmap))message("No se pudo abrir el "+format);}finally{bitmap.recycle();}}});
         },"velyntora-raster-import").start();
     }
@@ -1148,7 +1161,9 @@ public final class MainActivity extends Activity {
         } else if (request == SAVE_PROJECT || request == OPEN_PROJECT) {
             transferProject(uri, request == SAVE_PROJECT);
         } else if (request == OPEN_TIFF) {
-            importRaster(uri,true);
+            importRaster(uri,OPEN_TIFF);
+        } else if (request == OPEN_ICO) {
+            importRaster(uri,OPEN_ICO);
         } else if (request == OPEN_TGA) {
             importTga(uri);
         } else if (request == OPEN_IMAGE) {
@@ -1162,7 +1177,7 @@ public final class MainActivity extends Activity {
             } catch (Exception e) {
                 message("No se pudo abrir la imagen");
             }
-        } else if (request == SAVE_BMP || request == SAVE_TGA || request == SAVE_TIFF || request == SAVE_GIF || request == SAVE_PNG || request == SAVE_JPEG || request == SAVE_WEBP) {
+        } else if (request == SAVE_BMP || request == SAVE_TGA || request == SAVE_TIFF || request == SAVE_GIF || request == SAVE_ICO || request == SAVE_PNG || request == SAVE_JPEG || request == SAVE_WEBP) {
             exportRaster(uri,request);
         }
     }
