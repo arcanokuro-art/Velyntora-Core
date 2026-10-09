@@ -12,6 +12,7 @@ public final class DrawingView extends View {
  private static native void nativeBeginEdit();
  private static native boolean nativeClear();
  private static native boolean nativeFlipActiveHorizontal();
+ private static native boolean nativeFlipActiveVertical();
  private static native void nativeStroke(float x0,float y0,float x1,float y1,float radius,int color);
  private static native void nativeShape(int kind,int x0,int y0,int x1,int y1,int color);
  private static native void nativeFill(int x,int y,int color);
@@ -190,6 +191,7 @@ public final class DrawingView extends View {
   return dx*dx+dy*dy<=1f;
  }
  public boolean flipActiveHorizontal(){if(!nativeFlipActiveHorizontal())return false;deselect();refresh();return true;}
+ public boolean flipActiveVertical(){if(!nativeFlipActiveVertical())return false;deselect();refresh();return true;}
  public void clear(){if(nativeClear()){deselect();refresh();}}
  public boolean pasteBitmap(Bitmap source){
   if(source==null||source.isRecycled())return false;

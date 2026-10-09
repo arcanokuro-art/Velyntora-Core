@@ -147,8 +147,9 @@ public final class MainActivity extends Activity {
             new Runnable[]{this::undo, this::redo, this::copySelection, this::cutSelection, this::pasteSelection, this::duplicateSelection, this::moveSelectedContent, drawing::selectAll, () -> {if(!drawing.invertSelection())message("No se pudo invertir la selección");}, () -> {if(!drawing.expandSelectionOnePixel())message("No se pudo expandir la selección");}, () -> {if(!drawing.shrinkSelectionOnePixel())message("No se pudo contraer la selección");}, () -> {if(!drawing.eraseSelection())message("No hay selección válida");}, drawing::deselect});
         menu(menus, "Ver", new String[]{"Ajustar al lienzo"},
             new Runnable[]{drawing::invalidate});
-        menu(menus, "Imagen", new String[]{"Nuevo lienzo", "Voltear capa horizontalmente"},
-            new Runnable[]{drawing::clear, () -> {if(!drawing.flipActiveHorizontal())message("La capa no tiene cambios para voltear");}});
+        menu(menus, "Imagen", new String[]{"Nuevo lienzo", "Voltear capa horizontalmente", "Voltear capa verticalmente"},
+            new Runnable[]{drawing::clear, () -> {if(!drawing.flipActiveHorizontal())message("La capa no tiene cambios para voltear");},
+                () -> {if(!drawing.flipActiveVertical())message("La capa no tiene cambios para voltear");}});
         menu(menus, "Capas", new String[]{"Añadir capa", "Seleccionar capa", "Eliminar capa", "Mostrar / ocultar", "Subir capa", "Bajar capa"},
             new Runnable[]{this::addLayer, this::chooseLayer, this::deleteLayer, this::toggleLayer,
                 () -> moveLayer(1), () -> moveLayer(-1)});
