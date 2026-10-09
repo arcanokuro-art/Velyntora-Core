@@ -98,6 +98,12 @@ extern "C" JNIEXPORT jintArray JNICALL Java_art_velyntora_core_DrawingView_nativ
  if(result)env->SetIntArrayRegion(result,0,static_cast<jsize>(pixels.size()),reinterpret_cast<const jint*>(pixels.data()));
  return result;
 }
+extern "C" JNIEXPORT jint JNICALL Java_art_velyntora_core_DrawingView_nativePickColor(JNIEnv*,jclass,jint x,jint y){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!layers||x<0||y<0||x>=layers->width()||y>=layers->height())return 0;
+ const auto pixels=layers->flatten();
+ return static_cast<jint>(pixels[static_cast<std::size_t>(y)*layers->width()+x]);
+}
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeImport(JNIEnv* env,jclass,jintArray source){
  std::lock_guard<std::mutex> lock(guard);if(!canvas||!source)return JNI_FALSE;
  jsize count=env->GetArrayLength(source);

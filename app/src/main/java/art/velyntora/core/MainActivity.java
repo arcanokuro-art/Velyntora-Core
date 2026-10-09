@@ -41,6 +41,7 @@ public final class MainActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         drawing = new DrawingView(this);
+        drawing.setOnColorPickedListener(color -> { activeColor = color; message("Color seleccionado"); });
         drawing.setOnCanvasChangedListener(() -> {
             layerRefreshHandler.removeCallbacks(layerRefreshTask);
             layerRefreshHandler.postDelayed(layerRefreshTask, 120);
@@ -89,6 +90,7 @@ public final class MainActivity extends Activity {
         tool(sidebar, "Rectángulo", DrawingView.RECTANGLE);
         tool(sidebar, "Elipse", DrawingView.ELLIPSE);
         tool(sidebar, "Cubeta", DrawingView.BUCKET);
+        tool(sidebar, "Cuentagotas", DrawingView.PICKER);
         tool(sidebar, "Borrador", DrawingView.ERASER);
         TextView brushSizeLabel = text("Tamaño: 4 px");
         sidebar.addView(brushSizeLabel);

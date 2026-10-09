@@ -17,6 +17,7 @@ public final class DrawingView extends View {
  private static native boolean nativeRedo();
  private static native int[] nativePixels();
  private static native boolean nativeImport(int[] pixels);
+ private static native int nativePickColor(int x,int y);
  private static native int nativeLayerCount();
  private static native int nativeActiveLayer();
  private static native boolean nativeAddLayer();
@@ -29,7 +30,7 @@ public final class DrawingView extends View {
  private static native float nativeLayerOpacity();
  private static native int[] nativeLayerThumbnail(int index);
  private static final int SIZE=800;
- public static final int BRUSH=0,RECTANGLE=1,ELLIPSE=2,LINE=3,BUCKET=4,ERASER=5;
+ public static final int BRUSH=0,RECTANGLE=1,ELLIPSE=2,LINE=3,BUCKET=4,ERASER=5,PICKER=6;
  private final Paint paint=new Paint(Paint.FILTER_BITMAP_FLAG);
  private final Bitmap bitmap=Bitmap.createBitmap(SIZE,SIZE,Bitmap.Config.ARGB_8888);
  private int color=0xFF202020,tool=BRUSH;
@@ -37,6 +38,8 @@ public final class DrawingView extends View {
  private float previousX,previousY,startX,startY;
  private boolean drawing;
  private Runnable canvasChangedListener;
+ private java.util.function.IntConsumer pickedColorListener;
+ public void setOnColorPickedListener(java.util.function.IntConsumer listener){pickedColorListener=listener;}
  public void setOnCanvasChangedListener(Runnable listener){canvasChangedListener=listener;}
  public DrawingView(Context context){super(context);if(!nativeCreate(SIZE,SIZE))throw new IllegalStateException("Canvas error");refresh();}
  public boolean setLayerOpacity(float opacity){boolean ok=nativeSetLayerOpacity(opacity);if(ok)refresh();return ok;}
@@ -73,8 +76,13 @@ public final class DrawingView extends View {
  switch(event.getActionMasked()){
  case MotionEvent.ACTION_DOWN:
   if(x<0||y<0||x>=SIZE||y>=SIZE)return false;
-  drawing=true;startX=previousX=x;startY=previousY=y;nativeBeginEdit();
-  if(tool==BUCKET){nativeFill((int)x,(int)y,color);drawing=false;refresh();}
+  drawing=true;startX=previousX=x;startY=previousY=y;
+  if(tool!=PICKER)nativeBeginEdit();
+  if(tool==PICKER){
+   color=nativePickColor((int)x,(int)y);
+   drawing=false;
+   if(pickedColorListener!=null)pickedColorListener.accept(color);
+  }else if(tool==BUCKET){nativeFill((int)x,(int)y,color);drawing=false;refresh();}
   else if(tool==BRUSH||tool==ERASER){nativeStroke(x,y,x,y,brushRadius,tool==ERASER?0x00000000:color);refresh();}
   return true;
  case MotionEvent.ACTION_MOVE:
