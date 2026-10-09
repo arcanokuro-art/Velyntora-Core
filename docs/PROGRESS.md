@@ -106,3 +106,7 @@ Validación de los siete efectos de arte/foto: pruebas C++ y JNI con Undo/Redo y
 ## Generadores (entregable 18, parcial)
 
 Nubes por ruido suave multiescala, Voronoi, celdas, Mandelbrot y Julia. Escala/zoom, octavas/iteraciones y semilla según el generador; primer color de dibujo y segundo blanco/negro/transparente. Interpolación de colores premultiplicada por alfa. Generan contenido nuevo en la capa activa o selección; los píxeles excluidos se conservan y el cambio se deshace en un solo paso. Pruebas de determinismo, semillas, paletas uniformes, transparencia, límites y JNI. El catálogo sigue parcial; avance 80.00 %.
+
+## Resto del catálogo de filtros y objetos (entregable 18, pendiente de validación)
+
+Fragmentar, desenfoque de lente mediante disco muestreado, abolladuras por ruido suave, inversión polar, reducción de ruido con tolerancia de color, contorno de bordes, relieve direccional y tramado ordenado. Objetos: alinear en nueve posiciones dentro del lienzo/selección, suavizar alfa hacia dentro y dibujar un contorno detrás del objeto. La detección de objetos se basa en alfa, por lo que requiere fondo transparente. Distancias euclidianas calculadas en dos pasadas; no se realiza una búsqueda de todos los puntos de borde para cada píxel. Los efectos respetan selecciones y tienen Undo/Redo. Implementaciones propias con parámetros acotados para Android; no se promete reproducción píxel a píxel de Pinta ni sus opciones de previsualización. El entregable 18 todavía no se suma hasta verificar toda la integración y el APK.

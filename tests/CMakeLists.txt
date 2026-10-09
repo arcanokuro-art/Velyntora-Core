@@ -46,3 +46,11 @@ add_test(NAME artistic_tests COMMAND artistic_tests)
 add_executable(render_tests render_tests.cpp)
 target_link_libraries(render_tests PRIVATE velyntora_engine)
 add_test(NAME render_tests COMMAND render_tests)
+
+add_executable(utility_tests utility_tests.cpp)
+target_link_libraries(utility_tests PRIVATE velyntora_engine)
+add_test(NAME utility_tests COMMAND utility_tests)
+
+add_executable(object_tests object_tests.cpp)
+target_link_libraries(object_tests PRIVATE velyntora_engine)
+add_test(NAME object_tests COMMAND object_tests)
