@@ -13,7 +13,7 @@ Objetivo: reproducir la experiencia y las funciones de Pinta 3.1.2 en Android. E
 - [ ] 09. Diseño adaptable equivalente a Pinta.
 - [x] 10. Selecciones rectangulares y elípticas (crear, borrar, copiar, cortar, pegar y mover contenido; sin selección libre).
 - [x] 11. Selección libre y varita mágica (máscaras para copiar, borrar y mover; tolerancia configurable y regiones conectadas).
-- [ ] 12. Mover, recortar y transformar selecciones.
+- [x] 12. Mover, recortar y transformar selecciones.
 - [x] 13. Herramientas de texto y formas adicionales.
 - [x] 14. Pinceles, borrador alfa y configuración avanzada.
 - [x] 15. Zoom, panorámica y rotación del lienzo.
@@ -23,7 +23,7 @@ Objetivo: reproducir la experiencia y las funciones de Pinta 3.1.2 en Android. E
 - [x] 19. Guardar y abrir proyectos editables con capas.
 - [ ] 20. Pulido de interfaz, accesibilidad y corrección de defectos detectados durante desarrollo.
 
-**Avance verificado por entregables: 14/20 = 70.00%**. El entregable 15 incluye zoom de 1–7000 %, panorámica y rotación con dos dedos, controles del menú Ver y coordenadas inversas para las herramientas. Validado con pruebas Java y compilación Android del commit `e90a779f6c8dc8f6c5cea4a1bf33d7ae634e9507` (Actions 37975450908 y 37975450586). La cifra mide estos hitos y no representa paridad exhaustiva con cada comando de Pinta. Las funcionalidades marcadas pueden tener limitaciones y defectos pendientes.
+**Avance verificado por entregables: 15/20 = 75.00%**. El entregable 15 incluye zoom de 1–7000 %, panorámica y rotación con dos dedos, controles del menú Ver y coordenadas inversas para las herramientas. Validado con pruebas Java y compilación Android del commit `e90a779f6c8dc8f6c5cea4a1bf33d7ae634e9507` (Actions 37975450908 y 37975450586). La cifra mide estos hitos y no representa paridad exhaustiva con cada comando de Pinta. Las funcionalidades marcadas pueden tener limitaciones y defectos pendientes.
 
 ## Regla del 100.00 %
 
@@ -55,6 +55,10 @@ Siete efectos parametrizados sobre la capa activa: desenfoque de caja (premultip
 
 El pincel/borrador respeta selecciones rectangulares, elípticas, libres y de varita mediante una máscara. El primer toque de un gesto de dos dedos no modifica el documento ni añade un punto al historial; un toque de pintura se aplica al levantar el dedo. Los gestos iniciados después de un trazo ya dibujado conservan ese tramo. El límite acumulado de 24 millones de píxeles se comprueba también al añadir capas.
 
-## Selecciones: mover, recortar y transformar (entregable 12, en validación)
+## Selecciones: mover, recortar y transformar (entregable 12, verificado)
 
 Movimiento por arrastre y desplazamiento numérico, recorte real del documento en todas las capas, escalado horizontal/vertical de 10–400 %, rotación de −180 a +180° y reflejos. Se aplica la máscara de cualquier tipo de selección, conserva los píxeles excluidos y mezcla el alfa sobre el destino. El resultado mantiene una máscara de selección transformada y usa un solo punto de Undo/Redo. Remuestreo por píxel cercano; la parte que salga del documento se recorta, recuperable mediante Deshacer.
+
+Validación del entregable 12: pruebas C++ del remuestreo y máscaras, pruebas de llamadas JNI desde Java con reflejo/Undo/Redo y compilación APK del commit `453f8f1f76ced79c6ebeaddbe9aeb901f732ad6b` (Actions 37978432820 y 37978432930). Se corrigió una publicación incompleta y se verificó el árbol final completo frente a la revisión anterior: ningún archivo eliminado.
+
+**Resumen actual: 15 de 20 entregables verificados = 75.00 %.** Abiertos: 09 (paridad/adaptación completa de interfaz), 16 (todos los formatos), 17 (todos los ajustes y controles), 18 (catálogo completo de efectos), 20 (pulido/accesibilidad/defectos transversales). Los diálogos de parámetros usan desplazamiento para que todos los controles sean accesibles en pantallas pequeñas y con el teclado visible.

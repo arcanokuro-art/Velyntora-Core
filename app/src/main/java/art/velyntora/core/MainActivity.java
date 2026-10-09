@@ -60,7 +60,7 @@ public final class MainActivity extends Activity {
         form.addView(horizontal);
         form.addView(vertical);
         new AlertDialog.Builder(this).setTitle("Mover contenido seleccionado")
-            .setView(form).setNegativeButton("Cancelar", null)
+            .setView(scrollForm(form)).setNegativeButton("Cancelar", null)
             .setPositiveButton("Mover", (dialog, which) -> {
                 try {
                     int dx = Integer.parseInt(horizontal.getText().toString().trim());
@@ -90,7 +90,7 @@ public final class MainActivity extends Activity {
         });
         form.addView(value);
         form.addView(slider);
-        new AlertDialog.Builder(this).setTitle("Ajustar brillo de capa").setView(form)
+        new AlertDialog.Builder(this).setTitle("Ajustar brillo de capa").setView(scrollForm(form))
             .setNegativeButton("Cancelar", null)
             .setPositiveButton("Aplicar", (dialog, which) -> {
                 int adjustment = slider.getProgress() - 255;
@@ -117,7 +117,7 @@ public final class MainActivity extends Activity {
         });
         form.addView(value);
         form.addView(slider);
-        new AlertDialog.Builder(this).setTitle("Ajustar contraste de capa").setView(form)
+        new AlertDialog.Builder(this).setTitle("Ajustar contraste de capa").setView(scrollForm(form))
             .setNegativeButton("Cancelar", null)
             .setPositiveButton("Aplicar", (dialog, which) -> {
                 int adjustment = slider.getProgress() - 100;
@@ -144,7 +144,7 @@ public final class MainActivity extends Activity {
         });
         form.addView(value);
         form.addView(slider);
-        new AlertDialog.Builder(this).setTitle("Blanco y negro por umbral").setView(form)
+        new AlertDialog.Builder(this).setTitle("Blanco y negro por umbral").setView(scrollForm(form))
             .setNegativeButton("Cancelar", null)
             .setPositiveButton("Aplicar", (dialog, which) -> {
                 if (!drawing.thresholdActive(slider.getProgress())) message("No hay cambios de umbral");
@@ -169,7 +169,7 @@ public final class MainActivity extends Activity {
         });
         form.addView(value);
         form.addView(slider);
-        new AlertDialog.Builder(this).setTitle("Ajustar saturación de capa").setView(form)
+        new AlertDialog.Builder(this).setTitle("Ajustar saturación de capa").setView(scrollForm(form))
             .setNegativeButton("Cancelar", null)
             .setPositiveButton("Aplicar", (dialog, which) -> {
                 int adjustment = slider.getProgress() - 100;
@@ -196,7 +196,7 @@ public final class MainActivity extends Activity {
         });
         form.addView(value);
         form.addView(slider);
-        new AlertDialog.Builder(this).setTitle("Ajustar gamma de capa").setView(form)
+        new AlertDialog.Builder(this).setTitle("Ajustar gamma de capa").setView(scrollForm(form))
             .setNegativeButton("Cancelar", null)
             .setPositiveButton("Aplicar", (dialog, which) -> {
                 int percent = slider.getProgress() + 10;
@@ -223,7 +223,7 @@ public final class MainActivity extends Activity {
         });
         form.addView(value);
         form.addView(slider);
-        new AlertDialog.Builder(this).setTitle("Posterizar capa").setView(form)
+        new AlertDialog.Builder(this).setTitle("Posterizar capa").setView(scrollForm(form))
             .setNegativeButton("Cancelar", null)
             .setPositiveButton("Aplicar", (dialog, which) -> {
                 if (!drawing.posterizeActive(slider.getProgress() + 2)) message("No hay cambios al posterizar");
@@ -248,7 +248,7 @@ public final class MainActivity extends Activity {
         });
         form.addView(value);
         form.addView(slider);
-        new AlertDialog.Builder(this).setTitle("Solarizar capa").setView(form)
+        new AlertDialog.Builder(this).setTitle("Solarizar capa").setView(scrollForm(form))
             .setNegativeButton("Cancelar", null)
             .setPositiveButton("Aplicar", (dialog, which) -> {
                 if (!drawing.solarizeActive(slider.getProgress())) message("No hay cambios al solarizar");
@@ -279,7 +279,7 @@ public final class MainActivity extends Activity {
             form.addView(slider);
             sliders[i] = slider;
         }
-        new AlertDialog.Builder(this).setTitle("Ajustar canales RGB").setView(form)
+        new AlertDialog.Builder(this).setTitle("Ajustar canales RGB").setView(scrollForm(form))
             .setNegativeButton("Cancelar", null)
             .setPositiveButton("Aplicar", (dialog, which) -> {
                 int red = sliders[0].getProgress() - 255;
@@ -318,7 +318,7 @@ public final class MainActivity extends Activity {
         form.addView(black);
         form.addView(whiteValue);
         form.addView(white);
-        new AlertDialog.Builder(this).setTitle("Ajustar niveles de capa").setView(form)
+        new AlertDialog.Builder(this).setTitle("Ajustar niveles de capa").setView(scrollForm(form))
             .setNegativeButton("Cancelar", null)
             .setPositiveButton("Aplicar", (dialog, which) -> {
                 int blackPoint = black.getProgress();
@@ -347,7 +347,7 @@ public final class MainActivity extends Activity {
         });
         form.addView(value);
         form.addView(slider);
-        new AlertDialog.Builder(this).setTitle("Ajustar exposición de capa").setView(form)
+        new AlertDialog.Builder(this).setTitle("Ajustar exposición de capa").setView(scrollForm(form))
             .setNegativeButton("Cancelar", null)
             .setPositiveButton("Aplicar", (dialog, which) -> {
                 int percent = slider.getProgress() + 10;
@@ -374,7 +374,7 @@ public final class MainActivity extends Activity {
         });
         form.addView(value);
         form.addView(slider);
-        new AlertDialog.Builder(this).setTitle("Rotar tono de capa").setView(form)
+        new AlertDialog.Builder(this).setTitle("Rotar tono de capa").setView(scrollForm(form))
             .setNegativeButton("Cancelar", null)
             .setPositiveButton("Aplicar", (dialog, which) -> {
                 int degrees = slider.getProgress() - 180;
@@ -407,7 +407,7 @@ public final class MainActivity extends Activity {
             form.addView(slider);
             sliders[i] = slider;
         }
-        new AlertDialog.Builder(this).setTitle("Balance de canales RGB").setView(form)
+        new AlertDialog.Builder(this).setTitle("Balance de canales RGB").setView(scrollForm(form))
             .setNegativeButton("Cancelar", null)
             .setPositiveButton("Aplicar", (dialog, which) -> {
                 int red = sliders[0].getProgress();
@@ -436,7 +436,7 @@ public final class MainActivity extends Activity {
         });
         form.addView(value);
         form.addView(slider);
-        new AlertDialog.Builder(this).setTitle("Cuantizar colores de capa").setView(form)
+        new AlertDialog.Builder(this).setTitle("Cuantizar colores de capa").setView(scrollForm(form))
             .setNegativeButton("Cancelar", null)
             .setPositiveButton("Aplicar", (dialog, which) -> {
                 if (!drawing.quantizeActive(slider.getProgress() + 1)) message("No hay cambios al cuantizar");
@@ -461,7 +461,7 @@ public final class MainActivity extends Activity {
         });
         form.addView(value);
         form.addView(slider);
-        new AlertDialog.Builder(this).setTitle("Limitar luces de capa").setView(form)
+        new AlertDialog.Builder(this).setTitle("Limitar luces de capa").setView(scrollForm(form))
             .setNegativeButton("Cancelar", null)
             .setPositiveButton("Aplicar", (dialog, which) -> {
                 int ceiling = slider.getProgress();
@@ -489,7 +489,7 @@ public final class MainActivity extends Activity {
         });
         form.addView(value);
         form.addView(slider);
-        new AlertDialog.Builder(this).setTitle("Varita mágica").setView(form)
+        new AlertDialog.Builder(this).setTitle("Varita mágica").setView(scrollForm(form))
             .setNegativeButton("Cancelar", null)
             .setPositiveButton("Aplicar", (dialog, which) -> {
                 wandTolerance = slider.getProgress();
@@ -702,6 +702,12 @@ public final class MainActivity extends Activity {
         setContentView(root);
     }
 
+    private View scrollForm(View form) {
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(form, new ScrollView.LayoutParams(-1, -2));
+        return scroll;
+    }
+
     private LinearLayout row() {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.HORIZONTAL);
@@ -907,7 +913,7 @@ public final class MainActivity extends Activity {
         android.widget.CheckBox flipX = new android.widget.CheckBox(this), flipY = new android.widget.CheckBox(this);
         flipX.setText("Reflejar horizontalmente");flipY.setText("Reflejar verticalmente");form.addView(flipX);form.addView(flipY);
         form.addView(text("Gira alrededor del centro de la selección. El contenido exterior al lienzo se recorta."));
-        new AlertDialog.Builder(this).setTitle("Transformar selección").setView(form).setNegativeButton("Cancelar",null)
+        new AlertDialog.Builder(this).setTitle("Transformar selección").setView(scrollForm(form)).setNegativeButton("Cancelar",null)
             .setPositiveButton("Aplicar",(d,w)->{if(!drawing.transformSelection(angle.getProgress()-180,(scaleX.getProgress()+10)/100f*(flipX.isChecked()?-1:1),(scaleY.getProgress()+10)/100f*(flipY.isChecked()?-1:1)))message("La transformación no cambia el contenido de la selección");}).show();
     }
 
@@ -922,7 +928,7 @@ public final class MainActivity extends Activity {
             public void onProgressChanged(SeekBar s,int n,boolean u){label.setText("Valor: " + (n+1));}
             public void onStartTrackingTouch(SeekBar s){}public void onStopTrackingTouch(SeekBar s){}
         });
-        new AlertDialog.Builder(this).setTitle(names[kind]).setView(form).setNegativeButton("Cancelar",null)
+        new AlertDialog.Builder(this).setTitle(names[kind]).setView(scrollForm(form)).setNegativeButton("Cancelar",null)
             .setPositiveButton("Aplicar",(d,w) -> runEffect(kind,amount.getProgress()+1)).show();
     }
 
@@ -954,7 +960,7 @@ public final class MainActivity extends Activity {
         String[] families = {"sans-serif", "serif", "monospace"};
         font.setAdapter(new android.widget.ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,families));form.addView(font);
         form.addView(text("Se inserta en la capa activa. Puedes deshacer, seleccionar y mover el resultado."));
-        AlertDialog dialog = new AlertDialog.Builder(this).setTitle("Texto en " + x + ", " + y).setView(form)
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle("Texto en " + x + ", " + y).setView(scrollForm(form))
             .setNegativeButton("Cancelar",null).setPositiveButton("Insertar",null).create();
         dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> {
             if (drawing.insertText(input.getText().toString(),x,y,size.getProgress()+4,bold.isChecked(),italic.isChecked(),families[font.getSelectedItemPosition()])) dialog.dismiss();
@@ -978,7 +984,7 @@ public final class MainActivity extends Activity {
             public void onProgressChanged(SeekBar s,int n,boolean u){hardnessLabel.setText("Dureza: " + n + " %");}
             public void onStartTrackingTouch(SeekBar s){}public void onStopTrackingTouch(SeekBar s){}
         });
-        new AlertDialog.Builder(this).setTitle("Pincel y borrador").setView(form).setNegativeButton("Cancelar",null)
+        new AlertDialog.Builder(this).setTitle("Pincel y borrador").setView(scrollForm(form)).setNegativeButton("Cancelar",null)
             .setPositiveButton("Aplicar",(d,w)->drawing.configureBrush(opacity.getProgress()/100f,hardness.getProgress()/100f,square.isChecked(),pressure.isChecked())).show();
     }
 
@@ -991,7 +997,7 @@ public final class MainActivity extends Activity {
         form.addView(text(mode == 2 ? "El lienzo se amplía desde arriba a la izquierda; el área nueva es transparente."
             : mode == 1 ? "Remuestreo por píxel cercano; todas las capas conservan sus propiedades." : "Se crea un documento nuevo. Guarda primero el dibujo actual."));
         AlertDialog dialog = new AlertDialog.Builder(this).setTitle(mode == 0 ? "Nuevo documento" : mode == 1 ? "Tamaño de imagen" : "Tamaño de lienzo")
-            .setView(form).setNegativeButton("Cancelar", null).setPositiveButton("Aplicar", null).create();
+            .setView(scrollForm(form)).setNegativeButton("Cancelar", null).setPositiveButton("Aplicar", null).create();
         dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> {
             try {
                 int w = Integer.parseInt(width.getText().toString()), h = Integer.parseInt(height.getText().toString());
