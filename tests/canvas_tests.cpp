@@ -25,5 +25,15 @@ int main(){
  c.stroke(-1.0e30f,-1.0e30f,-1.0e30f,-1.0e30f,2,0xFF000000u);
  c.stroke(0,0,std::numeric_limits<float>::max(),0,2,0xFF000000u);
  assert(c.pixels()[20*32+20]==0xFF0000FFu);
+ // A full 800x800 canvas must fill without unbounded DFS growth.
+ velyntora::Canvas large(800,800);
+ large.rectangle(200,200,599,599,0xFF000000u,false);
+ large.fill(400,400,0xFFAA5500u);
+ assert(large.pixels()[400*800+400]==0xFFAA5500u);
+ assert(large.pixels()[200*800+200]==0xFF000000u);
+ assert(large.pixels()[0]==0xFFFFFFFFu);
+ large.fill(0,0,0xFF00AAFFu);
+ assert(large.pixels()[0]==0xFF00AAFFu);
+ assert(large.pixels()[400*800+400]==0xFFAA5500u);
  bool failed=false;try{velyntora::Canvas bad(0,1);}catch(const std::invalid_argument&){failed=true;}assert(failed);
 }
