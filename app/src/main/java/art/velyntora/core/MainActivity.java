@@ -94,6 +94,8 @@ public final class MainActivity extends Activity {
         tool(sidebar, "Cubeta", DrawingView.BUCKET);
         tool(sidebar, "Cuentagotas", DrawingView.PICKER);
         tool(sidebar, "Borrador", DrawingView.ERASER);
+        tool(sidebar, "Selección rectangular", DrawingView.SELECT_RECTANGLE);
+        tool(sidebar, "Selección elíptica", DrawingView.SELECT_ELLIPSE);
         TextView brushSizeLabel = text("Tamaño: 4 px");
         sidebar.addView(brushSizeLabel);
         SeekBar brushSize = new SeekBar(this);
@@ -231,6 +233,8 @@ public final class MainActivity extends Activity {
             case DrawingView.BUCKET: icon = R.drawable.pinta_bucket; break;
             case DrawingView.PICKER: icon = R.drawable.pinta_picker; break;
             case DrawingView.ERASER: icon = R.drawable.pinta_eraser; break;
+            case DrawingView.SELECT_RECTANGLE: icon = R.drawable.pinta_select_rectangle; break;
+            case DrawingView.SELECT_ELLIPSE: icon = R.drawable.pinta_select_ellipse; break;
         }
         if (icon != 0) {
             iconButton.setCompoundDrawablesWithIntrinsicBounds(icon, 0, 0, 0);

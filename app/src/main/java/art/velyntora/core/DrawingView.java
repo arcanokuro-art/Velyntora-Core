@@ -31,13 +31,17 @@ public final class DrawingView extends View {
  private static native float nativeLayerOpacity();
  private static native int[] nativeLayerThumbnail(int index);
  private static final int SIZE=800;
- public static final int BRUSH=0,RECTANGLE=1,ELLIPSE=2,LINE=3,BUCKET=4,ERASER=5,PICKER=6,FILLED_RECTANGLE=7,FILLED_ELLIPSE=8;
+ public static final int BRUSH=0,RECTANGLE=1,ELLIPSE=2,LINE=3,BUCKET=4,ERASER=5,PICKER=6,FILLED_RECTANGLE=7,FILLED_ELLIPSE=8,SELECT_RECTANGLE=9,SELECT_ELLIPSE=10;
  private final Paint paint=new Paint(Paint.FILTER_BITMAP_FLAG);
  private final Bitmap bitmap=Bitmap.createBitmap(SIZE,SIZE,Bitmap.Config.ARGB_8888);
  private int color=0xFF202020,tool=BRUSH;
  private float brushRadius=4f;
  private float previousX,previousY,startX,startY;
  private boolean drawing;
+ private boolean hasSelection;
+ private int selectionTool;
+ private float selectionLeft,selectionTop,selectionRight,selectionBottom;
+ private final Paint selectionPaint=new Paint(Paint.ANTI_ALIAS_FLAG);
  private Runnable canvasChangedListener;
  private java.util.function.IntConsumer pickedColorListener;
  public void setOnColorPickedListener(java.util.function.IntConsumer listener){pickedColorListener=listener;}
@@ -62,7 +66,7 @@ public final class DrawingView extends View {
  public void setBrushRadius(float radius){if(Float.isFinite(radius)&&radius>=1f&&radius<=128f)brushRadius=radius;}
  public float brushRadius(){return brushRadius;}
  public void setTool(int value){tool=value;}
- public void clear(){if(nativeClear())refresh();}
+ public void clear(){if(nativeClear()){hasSelection=false;refresh();}}
  public void undo(){if(nativeUndo())refresh();}
  public void redo(){if(nativeRedo())refresh();}
  public void loadBitmap(Bitmap source){
@@ -96,14 +100,37 @@ public final class DrawingView extends View {
    }
   }
   canvas.drawBitmap(bitmap,null,new RectF(x,y,x+SIZE*scale,y+SIZE*scale),paint);
+  if(hasSelection){
+   selectionPaint.setColor(0xFF202020);
+   selectionPaint.setStyle(Paint.Style.STROKE);
+   selectionPaint.setStrokeWidth(Math.max(1f,1f/scale));
+   selectionPaint.setPathEffect(new android.graphics.DashPathEffect(new float[]{6f/scale,4f/scale},0));
+   RectF bounds=new RectF(x+selectionLeft*scale,y+selectionTop*scale,x+selectionRight*scale,y+selectionBottom*scale);
+   if(selectionTool==SELECT_ELLIPSE)canvas.drawOval(bounds,selectionPaint);
+   else canvas.drawRect(bounds,selectionPaint);
+   selectionPaint.setPathEffect(null);
+  }
   canvas.restore();
+ }
+ private void nativeBeginEditIfNeeded(){if(tool!=PICKER)nativeBeginEdit();}
+ private void updateSelection(float x,float y){
+  float a=Math.max(0f,Math.min(SIZE,startX)),b=Math.max(0f,Math.min(SIZE,startY));
+  float c=Math.max(0f,Math.min(SIZE,x)),d=Math.max(0f,Math.min(SIZE,y));
+  selectionLeft=Math.min(a,c);selectionRight=Math.max(a,c);
+  selectionTop=Math.min(b,d);selectionBottom=Math.max(b,d);
+  invalidate();
  }
  @Override public boolean onTouchEvent(MotionEvent event){float scale=Math.min(getWidth()/(float)SIZE,getHeight()/(float)SIZE);if(scale<=0)return false;float left=(getWidth()-SIZE*scale)/2f,top=(getHeight()-SIZE*scale)/2f;float x=(event.getX()-left)/scale,y=(event.getY()-top)/scale;
  switch(event.getActionMasked()){
  case MotionEvent.ACTION_DOWN:
   if(x<0||y<0||x>=SIZE||y>=SIZE)return false;
   drawing=true;startX=previousX=x;startY=previousY=y;
-  if(tool!=PICKER)nativeBeginEdit();
+  if(tool==SELECT_RECTANGLE||tool==SELECT_ELLIPSE){
+   selectionTool=tool;hasSelection=true;
+   selectionLeft=selectionRight=x;selectionTop=selectionBottom=y;
+   invalidate();return true;
+  }
+  nativeBeginEditIfNeeded();
   if(tool==PICKER){
    color=nativePickColor((int)x,(int)y);
    drawing=false;
@@ -113,10 +140,14 @@ public final class DrawingView extends View {
   return true;
  case MotionEvent.ACTION_MOVE:
   if(!drawing)return true;
+  if(tool==SELECT_RECTANGLE||tool==SELECT_ELLIPSE){
+   updateSelection(x,y);return true;
+  }
   if(tool==BRUSH||tool==ERASER){nativeStroke(previousX,previousY,x,y,brushRadius,tool==ERASER?0x00000000:color);refresh();}
   previousX=x;previousY=y;return true;
  case MotionEvent.ACTION_UP:
   if(drawing){
+   if(tool==SELECT_RECTANGLE||tool==SELECT_ELLIPSE){updateSelection(x,y);drawing=false;return true;}
    if(tool==BRUSH||tool==ERASER)nativeStroke(previousX,previousY,x,y,brushRadius,tool==ERASER?0x00000000:color);
    else nativeShape(tool,(int)startX,(int)startY,(int)x,(int)y,color);
    drawing=false;refresh();
