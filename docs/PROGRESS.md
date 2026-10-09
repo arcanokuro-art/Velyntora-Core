@@ -69,4 +69,4 @@ Curvas suaves editables con hasta 32 puntos y canal RGB/R/G/B/luminosidad; nivel
 
 ## Exportación adicional (entregable 16, parcial)
 
-BMP de 24 bits con fondo blanco y TGA de 32 bits con alfa, escritos fila a fila en un hilo de trabajo. Se comprueban cabeceras, orden de filas, relleno, transparencia y composición mediante pruebas Java. Siguen pendientes formatos adicionales e importación TGA. No se suma el entregable 16.
+BMP de 24 bits con fondo blanco y TGA de 32 bits con alfa, escritos fila a fila en un hilo de trabajo. Se comprueban cabeceras, orden de filas, relleno, transparencia y composición mediante pruebas Java. Siguen pendientes formatos adicionales. Importación TGA de 24/32 bits, sin compresión o con RLE, con ambos orígenes y validación de paquetes truncados o fuera de límites antes de sustituir el documento. No se suma el entregable 16.
