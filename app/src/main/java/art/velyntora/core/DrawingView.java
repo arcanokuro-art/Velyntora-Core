@@ -116,7 +116,7 @@ public final class DrawingView extends View {
   previousX=x;previousY=y;return true;
  case MotionEvent.ACTION_UP:
   if(drawing){
-   if(tool==BRUSH||tool==ERASER)nativeStroke(previousX,previousY,x,y,4f,tool==ERASER?0x00000000:color);
+   if(tool==BRUSH||tool==ERASER)nativeStroke(previousX,previousY,x,y,brushRadius,tool==ERASER?0x00000000:color);
    else nativeShape(tool,(int)startX,(int)startY,(int)x,(int)y,color);
    drawing=false;refresh();
   }return true;
