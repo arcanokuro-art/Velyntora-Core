@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.22)
+project(velyntora_tests LANGUAGES CXX)
+enable_testing()
+add_subdirectory(../core core-build)
+add_executable(canvas_tests canvas_tests.cpp)
+target_link_libraries(canvas_tests PRIVATE velyntora_engine)
+add_test(NAME canvas_tests COMMAND canvas_tests)

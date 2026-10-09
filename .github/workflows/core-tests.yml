@@ -1,0 +1,13 @@
+name: Core tests
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake -S tests -B build/tests -DCMAKE_BUILD_TYPE=Debug
+      - run: cmake --build build/tests --parallel
+      - run: ctest --test-dir build/tests --output-on-failure
