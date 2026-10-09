@@ -223,7 +223,7 @@ public final class DrawingView extends View {
   if(selectionTool==SELECT_FREE||selectionTool==MAGIC_WAND){
    int left=(int)Math.floor(selectionLeft),top=(int)Math.floor(selectionTop);
    int w=(int)Math.ceil(selectionRight)-left,h=(int)Math.ceil(selectionBottom)-top;
-   if(w<=0||h<=0||((long)w*h)>SIZE*SIZE)return false;
+   if(w<=0||h<=0||left<0||top<0||left+w>SIZE||top+h>SIZE||((long)w*h)>SIZE*SIZE)return false;
    byte[] mask=new byte[w*h];
    for(int row=0;row<h;++row)for(int col=0;col<w;++col)
     if(freeRegion.contains(left+col,top+row))mask[row*w+col]=1;
