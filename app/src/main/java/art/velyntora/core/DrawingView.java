@@ -101,6 +101,7 @@ public final class DrawingView extends View {
      android.graphics.Path.Direction.CW);
    original.setPath(ellipse,new android.graphics.Region(0,0,SIZE,SIZE));
   }else return false;
+  original.op(0,0,SIZE,SIZE,android.graphics.Region.Op.INTERSECT);
   android.graphics.Region eroded=new android.graphics.Region(original);
   android.graphics.Region shifted=new android.graphics.Region();
   for(int dx=-1;dx<=1;dx++)for(int dy=-1;dy<=1;dy++){
@@ -131,6 +132,7 @@ public final class DrawingView extends View {
      android.graphics.Path.Direction.CW);
    region.setPath(ellipse,new android.graphics.Region(0,0,SIZE,SIZE));
   }else return false;
+  region.op(0,0,SIZE,SIZE,android.graphics.Region.Op.INTERSECT);
   android.graphics.Region grown=new android.graphics.Region(region);
   android.graphics.Region offset=new android.graphics.Region();
   for(int dx=-1;dx<=1;dx++)for(int dy=-1;dy<=1;dy++){
