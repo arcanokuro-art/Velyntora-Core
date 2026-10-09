@@ -1,6 +1,7 @@
 #include "velyntora/Canvas.hpp"
 #include <cassert>
 #include <stdexcept>
+#include <limits>
 int main(){
  velyntora::Canvas c(32,32);
  assert(c.pixels().size()==1024);
@@ -19,6 +20,10 @@ int main(){
  assert(c.pixels()[20*32+20]==0xFF0000FFu);
  std::vector<std::uint32_t> snapshot=c.pixels();
  c.clear(0xFFFFFFFFu);c.setPixels(snapshot);
+ assert(c.pixels()[20*32+20]==0xFF0000FFu);
+ c.stroke(1.0e30f,1.0e30f,1.0e30f,1.0e30f,2,0xFF000000u);
+ c.stroke(-1.0e30f,-1.0e30f,-1.0e30f,-1.0e30f,2,0xFF000000u);
+ c.stroke(0,0,std::numeric_limits<float>::max(),0,2,0xFF000000u);
  assert(c.pixels()[20*32+20]==0xFF0000FFu);
  bool failed=false;try{velyntora::Canvas bad(0,1);}catch(const std::invalid_argument&){failed=true;}assert(failed);
 }
