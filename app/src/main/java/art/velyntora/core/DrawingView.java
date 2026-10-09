@@ -26,7 +26,7 @@ public final class DrawingView extends View {
  public DrawingView(Context context){super(context);if(!nativeCreate(SIZE,SIZE))throw new IllegalStateException("Canvas error");refresh();}
  public void setColor(int value){color=value;}
  public void setTool(int value){tool=value;}
- public void clear(){nativeBeginEdit();if(nativeCreate(SIZE,SIZE))refresh();}
+ public void clear(){if(nativeCreate(SIZE,SIZE))refresh();}
  public void undo(){if(nativeUndo())refresh();}
  public void redo(){if(nativeRedo())refresh();}
  public Bitmap snapshot(){return bitmap.copy(Bitmap.Config.ARGB_8888,false);}
