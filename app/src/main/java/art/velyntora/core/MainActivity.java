@@ -89,6 +89,8 @@ public final class MainActivity extends Activity {
         tool(sidebar, "Línea", DrawingView.LINE);
         tool(sidebar, "Rectángulo", DrawingView.RECTANGLE);
         tool(sidebar, "Elipse", DrawingView.ELLIPSE);
+        tool(sidebar, "Rectángulo relleno", DrawingView.FILLED_RECTANGLE);
+        tool(sidebar, "Elipse rellena", DrawingView.FILLED_ELLIPSE);
         tool(sidebar, "Cubeta", DrawingView.BUCKET);
         tool(sidebar, "Cuentagotas", DrawingView.PICKER);
         tool(sidebar, "Borrador", DrawingView.ERASER);

@@ -86,6 +86,8 @@ extern "C" JNIEXPORT void JNICALL Java_art_velyntora_core_DrawingView_nativeShap
  if(kind==1)canvas->rectangle(x0,y0,x1,y1,static_cast<std::uint32_t>(color),false);
  if(kind==2)canvas->ellipse(x0,y0,x1,y1,static_cast<std::uint32_t>(color),false);
  if(kind==3)canvas->stroke(x0,y0,x1,y1,1.f,static_cast<std::uint32_t>(color));
+ if(kind==7)canvas->rectangle(x0,y0,x1,y1,static_cast<std::uint32_t>(color),true);
+ if(kind==8)canvas->ellipse(x0,y0,x1,y1,static_cast<std::uint32_t>(color),true);
  storeActive();
 }
 extern "C" JNIEXPORT void JNICALL Java_art_velyntora_core_DrawingView_nativeFill(JNIEnv*,jclass,jint x,jint y,jint color){
