@@ -29,6 +29,7 @@ public final class MainActivity extends Activity {
     private TextView status;
     private TextView selectedTool;
     private LinearLayout layerItems;
+    private final java.util.ArrayList<Bitmap> thumbnails = new java.util.ArrayList<>();
     private android.os.Handler layerRefreshHandler = new android.os.Handler(android.os.Looper.getMainLooper());
     private SeekBar layerOpacity;
     private int activeColor = Color.BLACK;
@@ -217,12 +218,17 @@ public final class MainActivity extends Activity {
 
     @Override protected void onDestroy() {
         layerRefreshHandler.removeCallbacks(layerRefreshTask);
+        if (layerItems != null) layerItems.removeAllViews();
+        for (Bitmap old : thumbnails) old.recycle();
+        thumbnails.clear();
         super.onDestroy();
     }
 
     private void refreshLayerPanel() {
         if (layerItems == null) return;
         layerItems.removeAllViews();
+        for (Bitmap old : thumbnails) old.recycle();
+        thumbnails.clear();
         if (layerOpacity != null) layerOpacity.setProgress(Math.round(drawing.layerOpacity() * 100));
         for (int i = drawing.layerCount() - 1; i >= 0; --i) {
             final int index = i;
@@ -231,6 +237,7 @@ public final class MainActivity extends Activity {
             LinearLayout item = row();
             Bitmap preview = drawing.layerThumbnail(index);
             if (preview != null) {
+                thumbnails.add(preview);
                 ImageView thumbnail = new ImageView(this);
                 thumbnail.setImageBitmap(preview);
                 thumbnail.setScaleType(ImageView.ScaleType.FIT_CENTER);
