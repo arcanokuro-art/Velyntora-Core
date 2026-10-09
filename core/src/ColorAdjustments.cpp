@@ -42,10 +42,11 @@ std::vector<std::uint32_t> applyCurve(const std::vector<std::uint32_t>& pixels,c
  }return out;
 }
 std::vector<std::uint32_t> applyLevels(const std::vector<std::uint32_t>& pixels,const std::array<ChannelLevels,3>& levels){return remap(pixels,{levelsMap(levels[0]),levelsMap(levels[1]),levelsMap(levels[2])});}
-std::vector<std::uint32_t> autoLevels(const std::vector<std::uint32_t>& pixels,int clip){
+std::vector<std::uint32_t> autoLevels(const std::vector<std::uint32_t>& pixels,int clip,const std::vector<std::uint8_t>* selection){
+ if(selection&&selection->size()!=pixels.size())throw std::invalid_argument("Invalid levels selection");
  if(clip<0||clip>50)throw std::invalid_argument("Invalid histogram clipping");
  std::array<std::array<std::uint64_t,256>,3> histogram{};std::uint64_t count=0;
- for(auto p:pixels){if(!(p>>24))continue;++count;for(int c=0;c<3;++c)++histogram[c][(p>>(16-c*8))&255];}
+ for(std::size_t i=0;i<pixels.size();i++){auto p=pixels[i];if((selection&&!(*selection)[i])||!(p>>24))continue;++count;for(int c=0;c<3;++c)++histogram[c][(p>>(16-c*8))&255];}
  if(!count)return pixels;
  std::array<std::array<int,256>,3> maps{};
  for(int c=0;c<3;++c){std::uint64_t cut=count*clip/1000,acc=0;int low=0,high=255;

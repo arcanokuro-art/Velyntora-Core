@@ -6,6 +6,7 @@
 #include "velyntora/PixelEffects.hpp"
 #include "velyntora/ColorAdjustments.hpp"
 #include "velyntora/BlurEffects.hpp"
+#include "velyntora/DistortionEffects.hpp"
 #include "velyntora/SelectionTransform.hpp"
 #include <cmath>
 #include <algorithm>
@@ -22,7 +23,8 @@ std::unique_ptr<velyntora::Canvas> canvas;
 std::unique_ptr<velyntora::LayerDocument> layers;
 struct Snapshot { velyntora::LayerDocument layers; };
 std::vector<Snapshot> undoStack, redoStack;
-std::vector<std::uint8_t> brushMask;
+std::vector<std::uint8_t> brushMask,effectMask;
+void applyEffectSelection(std::vector<std::uint32_t>& pixels){if(effectMask.empty())return;if(effectMask.size()!=pixels.size()){pixels=canvas->pixels();return;}for(std::size_t i=0;i<pixels.size();i++)if(!effectMask[i])pixels[i]=canvas->pixels()[i];}
 constexpr std::size_t limit=15;
 // Cap history memory across both stacks to avoid exhausting Android heap
 // when many full-resolution layers are present.
@@ -995,7 +997,7 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
  std::lock_guard<std::mutex> lock(guard);if(!canvas||!layers)return JNI_FALSE;
  try{
   auto pixels=velyntora::pixelEffect(canvas->pixels(),canvas->width(),canvas->height(),kind,amount);
-  if(pixels==canvas->pixels())return JNI_FALSE;
+  applyEffectSelection(pixels);if(pixels==canvas->pixels())return JNI_FALSE;
   checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;
  }catch(...){return JNI_FALSE;}
 }
@@ -1025,18 +1027,29 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
   std::vector<std::uint32_t> pixels;
   if(kind==0 && n==257){std::array<int,256> curve;std::copy_n(v.begin(),256,curve.begin());pixels=velyntora::applyCurve(canvas->pixels(),curve,v[256]);}
   else if(kind==1 && n==15){std::array<velyntora::ChannelLevels,3> levels;for(int i=0;i<3;i++)levels[i]={v[i*5],v[i*5+1],v[i*5+2],v[i*5+3],v[i*5+4]};pixels=velyntora::applyLevels(canvas->pixels(),levels);}
-  else if(kind==2 && n==1)pixels=velyntora::autoLevels(canvas->pixels(),v[0]);
+  else if(kind==2 && n==1)pixels=velyntora::autoLevels(canvas->pixels(),v[0],effectMask.empty()?nullptr:&effectMask);
   else if(kind==3 && n==3)pixels=velyntora::posterizeRgb(canvas->pixels(),{v[0],v[1],v[2]});
   else if(kind==5 && n==2)pixels=velyntora::brightnessContrast(canvas->pixels(),v[0],v[1]);
   else if(kind==6 && n==1)pixels=velyntora::basicColor(canvas->pixels(),v[0]);
   else if(kind==4 && n==3)pixels=velyntora::hueSaturation(canvas->pixels(),v[0],v[1],v[2]);
   else return JNI_FALSE;
-  if(pixels==canvas->pixels())return JNI_FALSE;
+  applyEffectSelection(pixels);if(pixels==canvas->pixels())return JNI_FALSE;
   checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;
  }catch(const std::exception&){return JNI_FALSE;}
 }
 
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeBlur(JNIEnv*,jclass,jint kind,jint amount,jint angle,jint cx,jint cy){
  std::lock_guard<std::mutex> lock(guard);if(!canvas)return JNI_FALSE;
- try{auto pixels=velyntora::blurEffect(canvas->pixels(),canvas->width(),canvas->height(),kind,amount,angle,cx,cy);if(pixels==canvas->pixels())return JNI_FALSE;checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;}catch(const std::exception&){return JNI_FALSE;}
+ try{auto pixels=velyntora::blurEffect(canvas->pixels(),canvas->width(),canvas->height(),kind,amount,angle,cx,cy);applyEffectSelection(pixels);if(pixels==canvas->pixels())return JNI_FALSE;checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;}catch(const std::exception&){return JNI_FALSE;}
+}
+
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeDistortion(JNIEnv*,jclass,jint kind,jint amount,jint size,jint angle,jint cx,jint cy){
+ std::lock_guard<std::mutex> lock(guard);if(!canvas)return JNI_FALSE;
+ try{auto pixels=velyntora::distortionEffect(canvas->pixels(),canvas->width(),canvas->height(),kind,amount,size,angle,cx,cy);applyEffectSelection(pixels);if(pixels==canvas->pixels())return JNI_FALSE;checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;}catch(const std::exception&){return JNI_FALSE;}
+}
+
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeSetEffectSelection(JNIEnv* env,jclass,jbyteArray source){
+ std::lock_guard<std::mutex> lock(guard);if(!source){effectMask.clear();return JNI_TRUE;}if(!canvas)return JNI_FALSE;
+ auto size=env->GetArrayLength(source);if(size!=static_cast<jsize>(canvas->pixels().size()))return JNI_FALSE;
+ try{std::vector<std::uint8_t> mask(size);env->GetByteArrayRegion(source,0,size,reinterpret_cast<jbyte*>(mask.data()));if(env->ExceptionCheck())return JNI_FALSE;effectMask=std::move(mask);return JNI_TRUE;}catch(...){return JNI_FALSE;}
 }

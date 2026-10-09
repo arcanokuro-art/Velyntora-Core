@@ -34,3 +34,7 @@ add_test(NAME color_tests COMMAND color_tests)
 add_executable(blur_tests blur_tests.cpp)
 target_link_libraries(blur_tests PRIVATE velyntora_engine)
 add_test(NAME blur_tests COMMAND blur_tests)
+
+add_executable(distortion_tests distortion_tests.cpp)
+target_link_libraries(distortion_tests PRIVATE velyntora_engine)
+add_test(NAME distortion_tests COMMAND distortion_tests)

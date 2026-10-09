@@ -3,6 +3,8 @@
 #include <stdexcept>
 using namespace velyntora;
 int main(){
+ std::vector<std::uint8_t> selected={0,1,1,0};auto localLevels=autoLevels({0xff000000,0xff404040,0xff808080,0xffffffff},0,&selected);assert(localLevels[1]==0xff000000&&localLevels[2]==0xffffffff);
+
  std::array<int,256> nearBlackIdentity{};for(int i=0;i<256;i++)nearBlackIdentity[i]=i;assert(applyCurve({0xff010000,0xff000001},nearBlackIdentity,4)==std::vector<std::uint32_t>({0xff010000,0xff000001}));
  std::vector<std::uint32_t> sample={0x80102030,0x00abcdef};
  assert(brightnessContrast(sample,0,0)==sample);

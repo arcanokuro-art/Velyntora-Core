@@ -39,10 +39,10 @@ jobs:
       - run: ctest --test-dir build/tests --output-on-failure
       - name: Native bridge project integration tests
         run: |
-          g++ -std=c++20 -Icore/include -I"$JAVA_HOME/include" -I"$JAVA_HOME/include/linux" tests/native_project_tests.cpp core/src/Canvas.cpp core/src/LayerDocument.cpp core/src/ProjectIO.cpp core/src/PixelEffects.cpp core/src/SelectionTransform.cpp core/src/ColorAdjustments.cpp core/src/BlurEffects.cpp -o build/native_project_tests
+          g++ -std=c++20 -Icore/include -I"$JAVA_HOME/include" -I"$JAVA_HOME/include/linux" tests/native_project_tests.cpp core/src/Canvas.cpp core/src/LayerDocument.cpp core/src/ProjectIO.cpp core/src/PixelEffects.cpp core/src/SelectionTransform.cpp core/src/ColorAdjustments.cpp core/src/BlurEffects.cpp core/src/DistortionEffects.cpp -o build/native_project_tests
           build/native_project_tests
       - name: JVM to native raster integration tests
         run: |
-          g++ -shared -fPIC -std=c++20 -Icore/include -I"$JAVA_HOME/include" -I"$JAVA_HOME/include/linux" app/src/main/cpp/native_bridge.cpp core/src/Canvas.cpp core/src/LayerDocument.cpp core/src/ProjectIO.cpp core/src/PixelEffects.cpp core/src/SelectionTransform.cpp core/src/ColorAdjustments.cpp core/src/BlurEffects.cpp -o build/libvelyntora_host.so
+          g++ -shared -fPIC -std=c++20 -Icore/include -I"$JAVA_HOME/include" -I"$JAVA_HOME/include/linux" app/src/main/cpp/native_bridge.cpp core/src/Canvas.cpp core/src/LayerDocument.cpp core/src/ProjectIO.cpp core/src/PixelEffects.cpp core/src/SelectionTransform.cpp core/src/ColorAdjustments.cpp core/src/BlurEffects.cpp core/src/DistortionEffects.cpp -o build/libvelyntora_host.so
           javac -d build/java-tests tests/NativeRasterTests.java
           java -Djava.library.path=build -cp build/java-tests art.velyntora.core.NativeRasterTests

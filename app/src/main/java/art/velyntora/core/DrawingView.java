@@ -10,12 +10,16 @@ public final class DrawingView extends View {
  static {System.loadLibrary("velyntora_jni");}
  private static native boolean nativeTransformSelection(int left,int top,int width,int height,byte[] mask,float degrees,float sx,float sy);
  private static native boolean nativeEffect(int kind,int amount);
+ private static native boolean nativeDistortion(int kind,int amount,int size,int angle,int cx,int cy);
+ public boolean distortion(int kind,int amount,int size,int angle,int cx,int cy){return nativeDistortion(kind,amount,size,angle,cx,cy);}
  private static native boolean nativeBlur(int kind,int amount,int angle,int cx,int cy);
  public boolean blur(int kind,int amount,int angle,int cx,int cy){return nativeBlur(kind,amount,angle,cx,cy);}
  private static native boolean nativeColorAdjustment(int kind,int[] values);
  public boolean colorAdjustment(int kind,int[] values){return nativeColorAdjustment(kind,values);}
  public boolean applyEffect(int kind,int amount){return nativeEffect(kind,amount);}
- public void effectApplied(){deselect();refresh();}
+ private static native boolean nativeSetEffectSelection(byte[] mask);
+ public boolean prepareEffectSelection(){byte[] mask=null;if(hasSelection()){mask=new byte[canvasWidth*canvasHeight];int left=Math.max(0,(int)Math.floor(selectionLeft)),right=Math.min(canvasWidth,(int)Math.ceil(selectionRight)),top=Math.max(0,(int)Math.floor(selectionTop)),bottom=Math.min(canvasHeight,(int)Math.ceil(selectionBottom));for(int y=top;y<bottom;y++)for(int x=left;x<right;x++)if(selectionContains(x,y))mask[y*canvasWidth+x]=1;}return nativeSetEffectSelection(mask);}
+ public void effectApplied(){refresh();}
  private static native boolean nativeSaveProject(int fd);
  private static native boolean nativeOpenProject(int fd);
  public boolean writeProject(int fd){return nativeSaveProject(fd);}
