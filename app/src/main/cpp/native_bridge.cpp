@@ -217,6 +217,24 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
  storeActive();
  return JNI_TRUE;
 }
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeEraseMaskedSelection(JNIEnv* env,jclass,jint x,jint y,jint w,jint h,jbyteArray mask){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!canvas||!layers||!mask||w<=0||h<=0||x<0||y<0)return JNI_FALSE;
+ if(static_cast<std::int64_t>(x)+w>canvas->width()||static_cast<std::int64_t>(y)+h>canvas->height())return JNI_FALSE;
+ if(static_cast<std::int64_t>(w)*h!=env->GetArrayLength(mask))return JNI_FALSE;
+ std::vector<jbyte> bits(static_cast<std::size_t>(w)*h);
+ env->GetByteArrayRegion(mask,0,static_cast<jsize>(bits.size()),bits.data());
+ if(env->ExceptionCheck())return JNI_FALSE;
+ if(std::none_of(bits.begin(),bits.end(),[](jbyte bit){return bit!=0;}))return JNI_FALSE;
+ auto pixels=canvas->pixels();
+ for(int row=0;row<h;++row)for(int col=0;col<w;++col)
+  if(bits[static_cast<std::size_t>(row)*w+col])
+   pixels[static_cast<std::size_t>(y+row)*canvas->width()+x+col]=0u;
+ checkpoint();
+ canvas->setPixels(pixels);
+ storeActive();
+ return JNI_TRUE;
+}
 extern "C" JNIEXPORT jint JNICALL Java_art_velyntora_core_DrawingView_nativePickColor(JNIEnv*,jclass,jint x,jint y){
  std::lock_guard<std::mutex> lock(guard);
  if(!layers||x<0||y<0||x>=layers->width()||y>=layers->height())return 0;

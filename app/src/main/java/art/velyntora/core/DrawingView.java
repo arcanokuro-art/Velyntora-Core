@@ -20,6 +20,7 @@ public final class DrawingView extends View {
  private static native boolean nativeImport(int[] pixels);
  private static native int nativePickColor(int x,int y);
  private static native boolean nativeEraseSelection(int kind,int x0,int y0,int x1,int y1);
+ private static native boolean nativeEraseMaskedSelection(int x,int y,int w,int h,byte[] mask);
  private static native int[] nativeCopySelection(int kind,int x0,int y0,int x1,int y1);
  private static native boolean nativePasteSelection(int[] data,int x,int y);
  private static native boolean nativeMovePixels(int kind,int x0,int y0,int x1,int y1,int dx,int dy);
@@ -122,8 +123,17 @@ public final class DrawingView extends View {
   return Bitmap.createBitmap(data,2,w,w,h,Bitmap.Config.ARGB_8888);
  }
  public boolean eraseSelection(){
-  if(!hasSelection()||selectionTool==SELECT_FREE)return false;
-  boolean ok=nativeEraseSelection(selectionTool,(int)Math.floor(selectionLeft),(int)Math.floor(selectionTop),(int)Math.ceil(selectionRight),(int)Math.ceil(selectionBottom));
+  if(!hasSelection())return false;
+  boolean ok;
+  if(selectionTool==SELECT_FREE){
+   int left=(int)Math.floor(selectionLeft),top=(int)Math.floor(selectionTop);
+   int w=(int)Math.ceil(selectionRight)-left,h=(int)Math.ceil(selectionBottom)-top;
+   if(w<=0||h<=0||((long)w*h)>SIZE*SIZE)return false;
+   byte[] mask=new byte[w*h];
+   for(int row=0;row<h;++row)for(int col=0;col<w;++col)
+    if(freeRegion.contains(left+col,top+row))mask[row*w+col]=1;
+   ok=nativeEraseMaskedSelection(left,top,w,h,mask);
+  }else ok=nativeEraseSelection(selectionTool,(int)Math.floor(selectionLeft),(int)Math.floor(selectionTop),(int)Math.ceil(selectionRight),(int)Math.ceil(selectionBottom));
   if(ok){hasSelection=false;refresh();}
   return ok;
  }
