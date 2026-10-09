@@ -16,6 +16,7 @@ public final class DrawingView extends View {
  private static native boolean nativeUndo();
  private static native boolean nativeRedo();
  private static native int[] nativePixels();
+ private static native boolean nativeImport(int[] pixels);
  private static final int SIZE=800;
  public static final int BRUSH=0,RECTANGLE=1,ELLIPSE=2,LINE=3,BUCKET=4;
  private final Paint paint=new Paint(Paint.FILTER_BITMAP_FLAG);
@@ -29,6 +30,11 @@ public final class DrawingView extends View {
  public void clear(){if(nativeCreate(SIZE,SIZE))refresh();}
  public void undo(){if(nativeUndo())refresh();}
  public void redo(){if(nativeRedo())refresh();}
+ public void loadBitmap(Bitmap source){
+  Bitmap scaled=Bitmap.createScaledBitmap(source,SIZE,SIZE,true);
+  try{int[] pixels=new int[SIZE*SIZE];scaled.getPixels(pixels,0,SIZE,0,0,SIZE,SIZE);if(nativeImport(pixels))refresh();}
+  finally{if(scaled!=source)scaled.recycle();}
+ }
  public Bitmap snapshot(){return bitmap.copy(Bitmap.Config.ARGB_8888,false);}
  private void refresh(){int[] pixels=nativePixels();if(pixels!=null)bitmap.setPixels(pixels,0,SIZE,0,0,SIZE,SIZE);invalidate();}
  @Override protected void onDraw(Canvas canvas){super.onDraw(canvas);float scale=Math.min(getWidth()/(float)SIZE,getHeight()/(float)SIZE);float x=(getWidth()-SIZE*scale)/2f,y=(getHeight()-SIZE*scale)/2f;canvas.drawColor(0xFFE3E3E3);canvas.drawBitmap(bitmap,null,new RectF(x,y,x+SIZE*scale,y+SIZE*scale),paint);}

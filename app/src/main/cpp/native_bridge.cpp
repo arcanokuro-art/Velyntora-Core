@@ -46,3 +46,17 @@ extern "C" JNIEXPORT jintArray JNICALL Java_art_velyntora_core_DrawingView_nativ
  const auto& pixels=document->pixels();jintArray result=env->NewIntArray(static_cast<jsize>(pixels.size()));
  if(result)env->SetIntArrayRegion(result,0,static_cast<jsize>(pixels.size()),reinterpret_cast<const jint*>(pixels.data()));return result;
 }
+
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeImport(JNIEnv* env,jclass,jintArray source){
+ std::lock_guard<std::mutex> lock(mutex);
+ if(!document||!source)return JNI_FALSE;
+ jsize count=env->GetArrayLength(source);
+ if(count!=static_cast<jsize>(document->pixels().size()))return JNI_FALSE;
+ std::vector<jint> data(static_cast<std::size_t>(count));
+ env->GetIntArrayRegion(source,0,count,data.data());
+ if(env->ExceptionCheck())return JNI_FALSE;
+ pushUndo();
+ std::vector<std::uint32_t> converted(data.begin(),data.end());
+ document->setPixels(converted);
+ return JNI_TRUE;
+}
