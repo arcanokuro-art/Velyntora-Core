@@ -63,6 +63,17 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
   resetHistory();return JNI_TRUE;
  }catch(...){return JNI_FALSE;}
 }
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeClear(JNIEnv*,jclass){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!canvas||!layers)return JNI_FALSE;
+ checkpoint();
+ // Preserve the document's dimensions while resetting its layers and canvas.
+ auto freshCanvas=std::make_unique<velyntora::Canvas>(canvas->width(),canvas->height());
+ auto freshLayers=std::make_unique<velyntora::LayerDocument>(canvas->width(),canvas->height());
+ canvas=std::move(freshCanvas);
+ layers=std::move(freshLayers);
+ return JNI_TRUE;
+}
 extern "C" JNIEXPORT void JNICALL Java_art_velyntora_core_DrawingView_nativeBeginEdit(JNIEnv*,jclass){
  std::lock_guard<std::mutex> lock(guard);checkpoint();
 }

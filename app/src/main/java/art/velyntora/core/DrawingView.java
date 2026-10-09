@@ -10,6 +10,7 @@ public final class DrawingView extends View {
  static {System.loadLibrary("velyntora_jni");}
  private static native boolean nativeCreate(int w,int h);
  private static native void nativeBeginEdit();
+ private static native boolean nativeClear();
  private static native void nativeStroke(float x0,float y0,float x1,float y1,float radius,int color);
  private static native void nativeShape(int kind,int x0,int y0,int x1,int y1,int color);
  private static native void nativeFill(int x,int y,int color);
@@ -61,7 +62,7 @@ public final class DrawingView extends View {
  public void setBrushRadius(float radius){if(Float.isFinite(radius)&&radius>=1f&&radius<=128f)brushRadius=radius;}
  public float brushRadius(){return brushRadius;}
  public void setTool(int value){tool=value;}
- public void clear(){if(nativeCreate(SIZE,SIZE))refresh();}
+ public void clear(){if(nativeClear())refresh();}
  public void undo(){if(nativeUndo())refresh();}
  public void redo(){if(nativeRedo())refresh();}
  public void loadBitmap(Bitmap source){
