@@ -112,6 +112,47 @@ extern "C" JNIEXPORT jintArray JNICALL Java_art_velyntora_core_DrawingView_nativ
  if(result)env->SetIntArrayRegion(result,0,static_cast<jsize>(pixels.size()),reinterpret_cast<const jint*>(pixels.data()));
  return result;
 }
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativePasteSelection(JNIEnv* env,jclass,jintArray source,jint x,jint y){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!canvas||!layers||!source)return JNI_FALSE;
+ const jsize count=env->GetArrayLength(source);
+ if(count<3)return JNI_FALSE;
+ jint dims[2]={0,0};
+ env->GetIntArrayRegion(source,0,2,dims);
+ if(env->ExceptionCheck())return JNI_FALSE;
+ const int w=dims[0],h=dims[1];
+ if(w<=0||h<=0||static_cast<std::int64_t>(w)*h!=static_cast<std::int64_t>(count)-2)return JNI_FALSE;
+ if(x>=canvas->width()||y>=canvas->height()||static_cast<std::int64_t>(x)+w<=0||static_cast<std::int64_t>(y)+h<=0)return JNI_FALSE;
+ std::vector<jint> data(static_cast<std::size_t>(count));
+ env->GetIntArrayRegion(source,0,count,data.data());
+ if(env->ExceptionCheck())return JNI_FALSE;
+ auto pixels=canvas->pixels();
+ for(int py=std::max(0,-y);py<h&&static_cast<std::int64_t>(y)+py<canvas->height();++py){
+  for(int px=std::max(0,-x);px<w&&static_cast<std::int64_t>(x)+px<canvas->width();++px){
+   const std::uint32_t src=static_cast<std::uint32_t>(data[2+static_cast<std::size_t>(py)*w+px]);
+   const std::uint32_t sa=src>>24;
+   if(sa==0)continue;
+   const std::size_t pos=static_cast<std::size_t>(y+py)*canvas->width()+(x+px);
+   if(sa==255){pixels[pos]=src;continue;}
+   const std::uint32_t dst=pixels[pos],da=dst>>24;
+   const std::uint32_t outA=sa+(da*(255-sa)+127)/255;
+   if(outA==0){pixels[pos]=0;continue;}
+   std::uint32_t rgb=0;
+   for(int shift: {16,8,0}){
+    const std::uint32_t sc=(src>>shift)&255,dc=(dst>>shift)&255;
+    const std::uint32_t numerator=sc*sa*255+dc*da*(255-sa);
+    const std::uint32_t denominator=outA*255;
+    const std::uint32_t value=std::min(255u,(numerator+denominator/2)/denominator);
+    rgb|=value<<shift;
+   }
+   pixels[pos]=(outA<<24)|rgb;
+  }
+ }
+ checkpoint();
+ canvas->setPixels(pixels);
+ storeActive();
+ return JNI_TRUE;
+}
 extern "C" JNIEXPORT jintArray JNICALL Java_art_velyntora_core_DrawingView_nativeCopySelection(JNIEnv* env,jclass,jint kind,jint x0,jint y0,jint x1,jint y1){
  std::lock_guard<std::mutex> lock(guard);
  if(!canvas||!layers||!(kind==9||kind==10))return nullptr;

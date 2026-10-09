@@ -21,6 +21,7 @@ public final class DrawingView extends View {
  private static native int nativePickColor(int x,int y);
  private static native boolean nativeEraseSelection(int kind,int x0,int y0,int x1,int y1);
  private static native int[] nativeCopySelection(int kind,int x0,int y0,int x1,int y1);
+ private static native boolean nativePasteSelection(int[] data,int x,int y);
  private static native int nativeLayerCount();
  private static native int nativeActiveLayer();
  private static native boolean nativeAddLayer();
@@ -85,6 +86,19 @@ public final class DrawingView extends View {
   return dx*dx+dy*dy<=1f;
  }
  public void clear(){if(nativeClear()){hasSelection=false;refresh();}}
+ public boolean pasteBitmap(Bitmap source){
+  if(source==null||source.isRecycled())return false;
+  int w=source.getWidth(),h=source.getHeight();
+  if(w<=0||h<=0||((long)w*h)>SIZE*SIZE)return false;
+  int[] data=new int[2+w*h];
+  data[0]=w;data[1]=h;
+  source.getPixels(data,2,w,0,0,w,h);
+  int x=hasSelection?(int)selectionLeft:(SIZE-w)/2;
+  int y=hasSelection?(int)selectionTop:(SIZE-h)/2;
+  boolean ok=nativePasteSelection(data,x,y);
+  if(ok){hasSelection=false;refresh();}
+  return ok;
+ }
  public Bitmap copySelection(){
   if(!hasSelection)return null;
   int[] data=nativeCopySelection(selectionTool,(int)Math.floor(selectionLeft),(int)Math.floor(selectionTop),(int)Math.ceil(selectionRight),(int)Math.ceil(selectionBottom));

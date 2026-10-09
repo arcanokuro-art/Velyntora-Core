@@ -43,6 +43,14 @@ public final class MainActivity extends Activity {
         message("Selección copiada a la memoria de Velyntora");
     }
 
+    private void pasteSelection() {
+        if (selectionClipboard == null || selectionClipboard.isRecycled()) {
+            message("No hay contenido copiado"); return;
+        }
+        if (!drawing.pasteBitmap(selectionClipboard)) message("No se pudo pegar la selección");
+        else message("Selección pegada");
+    }
+
     private void cutSelection() {
         Bitmap copy = drawing.copySelection();
         if (copy == null) { message("No hay selección válida"); return; }
@@ -71,8 +79,8 @@ public final class MainActivity extends Activity {
         LinearLayout menus = row();
         menu(menus, "Archivo", new String[]{"Nuevo", "Abrir imagen", "Guardar PNG"},
             new Runnable[]{drawing::clear, this::openImage, this::savePng});
-        menu(menus, "Editar", new String[]{"Deshacer", "Rehacer", "Copiar selección", "Cortar selección", "Borrar selección", "Deseleccionar"},
-            new Runnable[]{this::undo, this::redo, this::copySelection, this::cutSelection, () -> {if(!drawing.eraseSelection())message("No hay selección válida");}, drawing::deselect});
+        menu(menus, "Editar", new String[]{"Deshacer", "Rehacer", "Copiar selección", "Cortar selección", "Pegar selección", "Borrar selección", "Deseleccionar"},
+            new Runnable[]{this::undo, this::redo, this::copySelection, this::cutSelection, this::pasteSelection, () -> {if(!drawing.eraseSelection())message("No hay selección válida");}, drawing::deselect});
         menu(menus, "Ver", new String[]{"Ajustar al lienzo"},
             new Runnable[]{drawing::invalidate});
         menu(menus, "Imagen", new String[]{"Nuevo lienzo"},
