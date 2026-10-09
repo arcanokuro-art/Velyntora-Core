@@ -198,7 +198,7 @@ public final class DrawingView extends View {
   x=Math.max(0,Math.min(SIZE-w,x));
   y=Math.max(0,Math.min(SIZE-h,y));
   boolean ok=nativePasteSelection(data,x,y);
-  if(ok){hasSelection=false;refresh();}
+  if(ok){deselect();refresh();}
   return ok;
  }
  public Bitmap copySelection(){
@@ -227,7 +227,7 @@ public final class DrawingView extends View {
     if(freeRegion.contains(left+col,top+row))mask[row*w+col]=1;
    ok=nativeEraseMaskedSelection(left,top,w,h,mask);
   }else ok=nativeEraseSelection(selectionTool,(int)Math.floor(selectionLeft),(int)Math.floor(selectionTop),(int)Math.ceil(selectionRight),(int)Math.ceil(selectionBottom));
-  if(ok){hasSelection=false;refresh();}
+  if(ok){deselect();refresh();}
   return ok;
  }
  public void selectAll(){
