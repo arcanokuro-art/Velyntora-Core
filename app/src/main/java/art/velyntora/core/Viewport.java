@@ -4,8 +4,9 @@ package art.velyntora.core;
 final class Viewport {
  static final double MIN_SCALE=0.01, MAX_SCALE=70;
  double scale=1,angle=0,centerX,centerY;
- private final double width,height;
+ private double width,height;
  Viewport(double width,double height){this.width=width;this.height=height;}
+ void documentSize(double w,double h){width=w;height=h;}
  void fit(double w,double h){if(w<=0||h<=0)return;scale=clamp(Math.min(w/width,h/height));angle=0;centerX=w/2;centerY=h/2;}
  double documentX(double x,double y){double r=Math.toRadians(angle);return width/2+((x-centerX)*Math.cos(r)+(y-centerY)*Math.sin(r))/scale;}
  double documentY(double x,double y){double r=Math.toRadians(angle);return height/2+(-(x-centerX)*Math.sin(r)+(y-centerY)*Math.cos(r))/scale;}

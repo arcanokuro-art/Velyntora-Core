@@ -13,6 +13,29 @@ bool LayerDocument::renameLayer(std::size_t index,const std::string& name){
  if(index>=layers_.size())return false;
  layers_[index].name=name;return true;
 }
+LayerDocument LayerDocument::resized(int w,int h,bool scalePixels) const{
+ LayerDocument result(w,h);result.layers_.clear();
+ for(const auto& layer:layers_){
+  Layer output{layer.name,std::vector<std::uint32_t>(std::size_t(w)*h,0u),layer.visible,layer.opacity};
+  for(int y=0;y<h;++y)for(int x=0;x<w;++x){
+   int sx=scalePixels?int(std::int64_t(x)*width_/w):x;
+   int sy=scalePixels?int(std::int64_t(y)*height_/h):y;
+   if(sx<width_&&sy<height_)output.pixels[std::size_t(y)*w+x]=layer.pixels[std::size_t(sy)*width_+sx];
+  }
+  result.layers_.push_back(std::move(output));
+ }
+ result.active_=active_;return result;
+}
+LayerDocument LayerDocument::cropped(int left,int top,int w,int h) const{
+ if(left<0||top<0||w<=0||h<=0||std::int64_t(left)+w>width_||std::int64_t(top)+h>height_)throw std::invalid_argument("Invalid crop bounds");
+ LayerDocument result(w,h);result.layers_.clear();
+ for(const auto& layer:layers_){
+  Layer output{layer.name,std::vector<std::uint32_t>(std::size_t(w)*h),layer.visible,layer.opacity};
+  for(int y=0;y<h;++y)std::copy_n(layer.pixels.begin()+std::size_t(y+top)*width_+left,w,output.pixels.begin()+std::size_t(y)*w);
+  result.layers_.push_back(std::move(output));
+ }
+ result.active_=active_;return result;
+}
 void LayerDocument::addLayer(const std::string& name){
  layers_.insert(layers_.begin()+static_cast<std::ptrdiff_t>(active_+1),
   Layer{name,std::vector<std::uint32_t>(static_cast<std::size_t>(width_)*height_,0u),true,1.f});

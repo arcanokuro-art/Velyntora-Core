@@ -26,4 +26,17 @@ int main(){
  assert(!Java_art_velyntora_core_DrawingView_nativeOpenProject(nullptr,nullptr,fd));
  assert(layers->flatten()==edited&&undoStack.size()==history);
  assert(!Java_art_velyntora_core_DrawingView_nativeSaveProject(nullptr,nullptr,-1));close(fd);
+ auto beforeResize=*layers;
+ assert(Java_art_velyntora_core_DrawingView_nativeResizeDocument(nullptr,nullptr,240,120,true));
+ assert(layers->width()==240&&layers->height()==120&&canvas->width()==240);
+ assert(Java_art_velyntora_core_DrawingView_nativeUndo(nullptr,nullptr));
+ assert(layers->width()==800&&canvas->width()==800&&layers->flatten()==beforeResize.flatten());
+ assert(Java_art_velyntora_core_DrawingView_nativeRedo(nullptr,nullptr));
+ assert(layers->width()==240&&canvas->height()==120);
+ assert(Java_art_velyntora_core_DrawingView_nativeCropDocument(nullptr,nullptr,10,10,40,30));
+ assert(layers->width()==40&&canvas->height()==30);
+ assert(Java_art_velyntora_core_DrawingView_nativeUndo(nullptr,nullptr));assert(layers->width()==240);
+ assert(!Java_art_velyntora_core_DrawingView_nativeResizeDocument(nullptr,nullptr,10000,10000,true));
+ assert(layers->width()==240);
+
 }

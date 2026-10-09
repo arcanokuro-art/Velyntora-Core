@@ -16,6 +16,8 @@ public final class ViewportTests {
   v.zoom(.0001,270,210);near(v.scale,.01);near(v.screenX(x,y),270);near(v.screenY(x,y),210);
   v.gesture(0,0,1,1,Double.NaN,0);near(v.scale,.01);
   v.fit(0,0);near(v.scale,.01);
+  v.documentSize(640,320);v.fit(1000,600);near(v.scale,1.5625);
+  near(v.screenX(320,160),500);near(v.screenY(320,160),300);
   System.out.println("Viewport: inverse coordinates, gesture anchor, rotation and zoom limits passed");
  }
 }

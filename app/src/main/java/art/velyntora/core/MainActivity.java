@@ -23,7 +23,7 @@ import java.io.OutputStream;
 
 /** Android workspace modeled after Pinta's tool, canvas, palette and status regions. */
 public final class MainActivity extends Activity {
-    private static final int SAVE_PROJECT = 43, OPEN_PROJECT = 44;
+    private static final int SAVE_PROJECT = 43, OPEN_PROJECT = 44, SAVE_JPEG = 45, SAVE_WEBP = 46;
     private static final int SAVE_PNG = 41;
     private static final int OPEN_IMAGE = 42;
     private DrawingView drawing;
@@ -541,8 +541,8 @@ public final class MainActivity extends Activity {
         root.setBackgroundColor(0xFFF1F1F1);
 
         LinearLayout menus = row();
-        menu(menus, "Archivo", new String[]{"Nuevo", "Abrir imagen", "Guardar PNG", "Abrir proyecto", "Guardar proyecto"},
-            new Runnable[]{drawing::clear, this::openImage, this::savePng, () -> projectPicker(false), () -> projectPicker(true)});
+        menu(menus, "Archivo", new String[]{"Nuevo…", "Abrir imagen", "Guardar PNG", "Guardar JPEG", "Guardar WebP", "Abrir proyecto", "Guardar proyecto"},
+            new Runnable[]{() -> configureDimensions(0), this::openImage, this::savePng, () -> saveImage("image/jpeg", "dibujo.jpg", SAVE_JPEG), () -> saveImage("image/webp", "dibujo.webp", SAVE_WEBP), () -> projectPicker(false), () -> projectPicker(true)});
         menu(menus, "Editar", new String[]{"Deshacer", "Rehacer", "Copiar selección", "Cortar selección", "Pegar selección", "Duplicar selección", "Mover contenido…", "Seleccionar todo", "Invertir selección", "Expandir selección 1 px", "Contraer selección 1 px", "Borrar selección", "Deseleccionar"},
             new Runnable[]{this::undo, this::redo, this::copySelection, this::cutSelection, this::pasteSelection, this::duplicateSelection, this::moveSelectedContent, drawing::selectAll, () -> {if(!drawing.invertSelection())message("No se pudo invertir la selección");}, () -> {if(!drawing.expandSelectionOnePixel())message("No se pudo expandir la selección");}, () -> {if(!drawing.shrinkSelectionOnePixel())message("No se pudo contraer la selección");}, () -> {if(!drawing.eraseSelection())message("No hay selección válida");}, drawing::deselect});
         menu(menus, "Ver", new String[]{"Ajustar al lienzo", "Acercar", "Alejar", "Zoom 100 %", "Zoom 7000 %", "Rotar vista 15° derecha", "Rotar vista 15° izquierda", "Restablecer rotación"},
@@ -551,8 +551,8 @@ public final class MainActivity extends Activity {
                 () -> drawing.rotateView(15), () -> drawing.rotateView(-15),
                 () -> drawing.rotateView(-drawing.rotationDegrees())});
         menu(menus, "Ajustes", new String[]{"Invertir colores de capa", "Escala de grises (capa)", "Sepia (capa)", "Aumentar brillo (+20)", "Reducir brillo (-20)", "Brillo personalizado…", "Aumentar contraste (+20)", "Reducir contraste (-20)", "Contraste personalizado…", "Blanco y negro (umbral 128)", "Umbral personalizado…", "Posterizar (4 niveles)", "Posterizar personalizado…", "Solarizar (umbral 128)", "Solarizar personalizado…", "Aumentar saturación (+20)", "Reducir saturación (-20)", "Saturación personalizada…", "Gamma clara (120 %)", "Gamma oscura (80 %)", "Gamma personalizada…", "Tono cálido (+15 rojo)", "Tono frío (+15 azul)", "Canales RGB personalizados…", "Intercambiar rojo y verde", "Intercambiar rojo y azul", "Intercambiar verde y azul", "Aumentar rojo (120 %)", "Aumentar verde (120 %)", "Aumentar azul (120 %)", "Balance RGB personalizado…", "Rotar tono (+30°)", "Rotar tono (-30°)", "Rotación de tono personalizada…", "Ajustar niveles (16–239)", "Niveles personalizados…", "Exposición +20 %", "Exposición -20 %", "Exposición personalizada…", "Escala de grises desde rojo", "Escala de grises desde verde", "Escala de grises desde azul", "Reducir alfa de píxeles (80 %)", "Aumentar alfa de píxeles (120 %)", "Eliminar canal rojo", "Eliminar canal verde", "Eliminar canal azul", "Normalizar colores de capa", "Cuantizar colores (paso 16)", "Cuantizar colores (paso 32)", "Cuantización personalizada…", "Limitar canales RGB a 224", "Límite de luces personalizado…", "Elevar canales RGB a 32", "Añadir rojo (+20)", "Añadir verde (+20)", "Añadir azul (+20)"}, new Runnable[]{() -> {if(!drawing.invertActiveColors())message("No hay colores visibles para invertir");}, () -> {if(!drawing.grayscaleActive())message("La capa ya está en escala de grises o está vacía");}, () -> {if(!drawing.sepiaActive())message("La capa no tiene cambios para aplicar sepia");}, () -> {if(!drawing.brightnessActive(20))message("No hay cambios de brillo");}, () -> {if(!drawing.brightnessActive(-20))message("No hay cambios de brillo");}, this::configureBrightness, () -> {if(!drawing.contrastActive(20))message("No hay cambios de contraste");}, () -> {if(!drawing.contrastActive(-20))message("No hay cambios de contraste");}, this::configureContrast, () -> {if(!drawing.thresholdActive(128))message("La capa ya es blanco y negro o está vacía");}, this::configureThreshold, () -> {if(!drawing.posterizeActive(4))message("La capa no tiene cambios para posterizar");}, this::configurePosterization, () -> {if(!drawing.solarizeActive(128))message("La capa no tiene cambios para solarizar");}, this::configureSolarization, () -> {if(!drawing.saturationActive(20))message("No hay cambios de saturación");}, () -> {if(!drawing.saturationActive(-20))message("No hay cambios de saturación");}, this::configureSaturation, () -> {if(!drawing.gammaActive(120))message("No hay cambios de gamma");}, () -> {if(!drawing.gammaActive(80))message("No hay cambios de gamma");}, this::configureGamma, () -> {if(!drawing.tintActive(15,0,0))message("No hay cambios de tono");}, () -> {if(!drawing.tintActive(0,0,15))message("No hay cambios de tono");}, this::configureRgbOffsets, () -> {if(!drawing.swapChannelsActive(0))message("No hay cambios de canales");}, () -> {if(!drawing.swapChannelsActive(1))message("No hay cambios de canales");}, () -> {if(!drawing.swapChannelsActive(2))message("No hay cambios de canales");}, () -> {if(!drawing.colorBalanceActive(120,100,100))message("No hay cambios de balance");}, () -> {if(!drawing.colorBalanceActive(100,120,100))message("No hay cambios de balance");}, () -> {if(!drawing.colorBalanceActive(100,100,120))message("No hay cambios de balance");}, this::configureRgbBalance, () -> {if(!drawing.hueRotateActive(30))message("No hay cambios de tono");}, () -> {if(!drawing.hueRotateActive(-30))message("No hay cambios de tono");}, this::configureHue, () -> {if(!drawing.levelsActive(16,239))message("No hay cambios de niveles");}, this::configureLevels, () -> {if(!drawing.exposureActive(120))message("No hay cambios de exposición");}, () -> {if(!drawing.exposureActive(80))message("No hay cambios de exposición");}, this::configureExposure, () -> {if(!drawing.grayscaleFromChannelActive(0))message("No hay cambios de escala de grises");}, () -> {if(!drawing.grayscaleFromChannelActive(1))message("No hay cambios de escala de grises");}, () -> {if(!drawing.grayscaleFromChannelActive(2))message("No hay cambios de escala de grises");}, () -> {if(!drawing.adjustAlphaActive(80))message("No hay cambios de alfa");}, () -> {if(!drawing.adjustAlphaActive(120))message("No hay cambios de alfa");}, () -> {if(!drawing.removeChannelActive(0))message("El canal rojo ya está vacío");}, () -> {if(!drawing.removeChannelActive(1))message("El canal verde ya está vacío");}, () -> {if(!drawing.removeChannelActive(2))message("El canal azul ya está vacío");}, () -> {if(!drawing.normalizeActive())message("No hay cambios para normalizar");}, () -> {if(!drawing.quantizeActive(16))message("No hay cambios al cuantizar");}, () -> {if(!drawing.quantizeActive(32))message("No hay cambios al cuantizar");}, this::configureQuantization, () -> {if(!drawing.clampHighlightsActive(224))message("No hay cambios al limitar colores");}, this::configureHighlightCeiling, () -> {if(!drawing.liftShadowsActive(32))message("No hay cambios al elevar sombras");}, () -> {if(!drawing.adjustChannelActive(0,20))message("No hay cambios en rojo");}, () -> {if(!drawing.adjustChannelActive(1,20))message("No hay cambios en verde");}, () -> {if(!drawing.adjustChannelActive(2,20))message("No hay cambios en azul");}});
-        menu(menus, "Imagen", new String[]{"Nuevo lienzo", "Voltear capa horizontalmente", "Voltear capa verticalmente", "Rotar capa 180°", "Rotar capa 90° derecha", "Rotar capa 90° izquierda", "Conservar solo selección rectangular (capa)", "Conservar solo selección elíptica (capa)", "Conservar selección libre o varita (capa)"},
-            new Runnable[]{drawing::clear, () -> {if(!drawing.flipActiveHorizontal())message("La capa no tiene cambios para voltear");},
+        menu(menus, "Imagen", new String[]{"Nuevo lienzo…", "Cambiar tamaño de imagen…", "Cambiar tamaño de lienzo…", "Recortar documento a selección", "Voltear capa horizontalmente", "Voltear capa verticalmente", "Rotar capa 180°", "Rotar capa 90° derecha", "Rotar capa 90° izquierda", "Conservar solo selección rectangular (capa)", "Conservar solo selección elíptica (capa)", "Conservar selección libre o varita (capa)"},
+            new Runnable[]{() -> configureDimensions(0), () -> configureDimensions(1), () -> configureDimensions(2), () -> {if(!drawing.cropDocument())message("Selecciona el área del documento que quieres conservar");}, () -> {if(!drawing.flipActiveHorizontal())message("La capa no tiene cambios para voltear");},
                 () -> {if(!drawing.flipActiveVertical())message("La capa no tiene cambios para voltear");},
                 () -> {if(!drawing.rotateActive180())message("La capa no tiene cambios para rotar");},
                 () -> {if(!drawing.rotateActive90(true))message("La capa no tiene cambios para rotar");},
@@ -572,7 +572,7 @@ public final class MainActivity extends Activity {
         addScrollable(root, menus);
 
         LinearLayout commands = row();
-        button(commands, "Nuevo", drawing::clear);
+        button(commands, "Nuevo", () -> configureDimensions(0));
         button(commands, "Abrir", this::openImage);
         button(commands, "Guardar", this::savePng);
         button(commands, "↶", this::undo);
@@ -685,7 +685,7 @@ public final class MainActivity extends Activity {
         status.setPadding(dp(10), dp(4), dp(10), dp(4));
         root.addView(status);
         drawing.setOnViewportChangedListener(() -> status.setText(String.format(java.util.Locale.US,
-            "800 × 800 px  |  Zoom: %.1f %%  |  Rotación: %.1f°", drawing.zoomPercent(), drawing.rotationDegrees())));
+            "%d × %d px  |  Zoom: %.1f %%  |  Rotación: %.1f°", drawing.documentWidth(), drawing.documentHeight(), drawing.zoomPercent(), drawing.rotationDegrees())));
         setContentView(root);
     }
 
@@ -867,6 +867,32 @@ public final class MainActivity extends Activity {
         }
     }
 
+    private void configureDimensions(int mode) {
+        LinearLayout form = new LinearLayout(this);form.setOrientation(LinearLayout.VERTICAL);
+        android.widget.EditText width = new android.widget.EditText(this), height = new android.widget.EditText(this);
+        width.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);height.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        width.setText(Integer.toString(drawing.documentWidth()));height.setText(Integer.toString(drawing.documentHeight()));
+        form.addView(text("Ancho (px)"));form.addView(width);form.addView(text("Alto (px)"));form.addView(height);
+        form.addView(text(mode == 2 ? "El lienzo se amplía desde arriba a la izquierda; el área nueva es transparente."
+            : mode == 1 ? "Remuestreo por píxel cercano; todas las capas conservan sus propiedades." : "Se crea un documento nuevo. Guarda primero el dibujo actual."));
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(mode == 0 ? "Nuevo documento" : mode == 1 ? "Tamaño de imagen" : "Tamaño de lienzo")
+            .setView(form).setNegativeButton("Cancelar", null).setPositiveButton("Aplicar", null).create();
+        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> {
+            try {
+                int w = Integer.parseInt(width.getText().toString()), h = Integer.parseInt(height.getText().toString());
+                if (w <= 0 || h <= 0 || w > 8192 || h > 8192 || (long) w*h > 4000000) { message("Usa hasta 8192 px por lado y 4 millones de píxeles"); return; }
+                boolean ok = mode == 0 ? drawing.newDocument(w,h) : drawing.resizeDocument(w,h,mode == 1);
+                if (!ok) { message("Sin cambios o tamaño demasiado grande para estas capas"); return; }
+                dialog.dismiss();
+            } catch (NumberFormatException e) { message("Introduce ancho y alto válidos"); }
+        }));dialog.show();
+    }
+
+    private void saveImage(String mime, String name, int request) {
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType(mime);intent.putExtra(Intent.EXTRA_TITLE, name);startActivityForResult(intent, request);
+    }
+
     private void projectPicker(boolean save) {
         Intent intent = new Intent(save ? Intent.ACTION_CREATE_DOCUMENT : Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -899,13 +925,7 @@ public final class MainActivity extends Activity {
         }, "velyntora-project-io").start();
     }
 
-    private void savePng() {
-        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("image/png");
-        intent.putExtra(Intent.EXTRA_TITLE, "dibujo.png");
-        startActivityForResult(intent, SAVE_PNG);
-    }
+    private void savePng() { saveImage("image/png", "dibujo.png", SAVE_PNG); }
 
     private void openImage() {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
@@ -924,24 +944,29 @@ public final class MainActivity extends Activity {
             try {
                 Bitmap bitmap = decodeImage(uri);
                 try {
-                    drawing.loadBitmap(bitmap);
-                    status.setText("800 × 800 px  |  Imagen importada");
+                    if (!drawing.loadBitmap(bitmap)) throw new java.io.IOException("No se pudo cargar la imagen");
                 } finally {
                     bitmap.recycle();
                 }
             } catch (Exception e) {
                 message("No se pudo abrir la imagen");
             }
-        } else if (request == SAVE_PNG) {
+        } else if (request == SAVE_PNG || request == SAVE_JPEG || request == SAVE_WEBP) {
             Bitmap image = drawing.snapshot();
+            if (request == SAVE_JPEG) {
+                Bitmap opaque = Bitmap.createBitmap(image.getWidth(), image.getHeight(), Bitmap.Config.ARGB_8888);
+                android.graphics.Canvas canvas = new android.graphics.Canvas(opaque);canvas.drawColor(Color.WHITE);canvas.drawBitmap(image, 0, 0, null);
+                image.recycle();image = opaque;
+            }
+            Bitmap.CompressFormat format = request == SAVE_JPEG ? Bitmap.CompressFormat.JPEG
+                : request == SAVE_WEBP ? (android.os.Build.VERSION.SDK_INT >= 30 ? Bitmap.CompressFormat.WEBP_LOSSLESS : Bitmap.CompressFormat.WEBP) : Bitmap.CompressFormat.PNG;
             try (OutputStream out = getContentResolver().openOutputStream(uri, "wt")) {
-                if (out == null || !image.compress(Bitmap.CompressFormat.PNG, 100, out))
-                    throw new IllegalStateException("No se pudo guardar PNG");
+                if (out == null || !image.compress(format, 100, out))
+                    throw new IllegalStateException("No se pudo exportar la imagen");
                 out.flush();
-                status.setText("800 × 800 px  |  PNG guardado");
-                message("PNG guardado");
+                message("Imagen guardada");
             } catch (Exception e) {
-                message("Error al guardar PNG");
+                message("Error al guardar la imagen");
             } finally {
                 image.recycle();
             }

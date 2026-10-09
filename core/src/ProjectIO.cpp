@@ -37,10 +37,10 @@ void writeProject(const LayerDocument& doc,const ProjectWrite& write){
   }
  }
 }
-LayerDocument readProject(const ProjectRead& read,int requiredWidth,int requiredHeight){
+LayerDocument readProject(const ProjectRead& read,int requiredWidth,int requiredHeight,std::uint64_t maxDocumentPixels){
  std::array<unsigned char,8> signature{};read(signature.data(),signature.size());if(signature!=magic)throw std::invalid_argument("Unsupported project format");
  auto w=get(read),h=get(read),count=get(read),active=get(read);dimensions(w,h,count);
- if(active>=count||(requiredWidth&&w!=std::uint32_t(requiredWidth))||(requiredHeight&&h!=std::uint32_t(requiredHeight)))throw std::invalid_argument("Invalid project dimensions or active layer");
+ if(std::uint64_t(w)*h>maxDocumentPixels||active>=count||(requiredWidth&&w!=std::uint32_t(requiredWidth))||(requiredHeight&&h!=std::uint32_t(requiredHeight)))throw std::invalid_argument("Invalid project dimensions or active layer");
  LayerDocument doc(w,h);std::vector<std::uint32_t> pixels(std::size_t(w)*h);
  std::array<unsigned char,4096> block{};
  for(std::uint32_t i=0;i<count;++i){

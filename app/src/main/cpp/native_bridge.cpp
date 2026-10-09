@@ -57,10 +57,16 @@ void loadActive(){
  if(layers&&canvas)canvas->setPixels(layers->layer(layers->activeIndex()).pixels);
 }
 void resetHistory(){undoStack.clear();redoStack.clear();}
-void restore(const Snapshot& snapshot){*layers=snapshot.layers;loadActive();}
+void restore(const Snapshot& snapshot){
+ auto restored=std::make_unique<velyntora::LayerDocument>(snapshot.layers);
+ auto restoredCanvas=std::make_unique<velyntora::Canvas>(restored->width(),restored->height());
+ restoredCanvas->setPixels(restored->layer(restored->activeIndex()).pixels);
+ layers=std::move(restored);canvas=std::move(restoredCanvas);
+}
 }
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeCreate(JNIEnv*,jclass,jint w,jint h){
  std::lock_guard<std::mutex> lock(guard);
+ if(w<=0||h<=0||w>8192||h>8192||std::int64_t(w)*h>4000000)return JNI_FALSE;
  try{
   auto newCanvas=std::make_unique<velyntora::Canvas>(w,h);
   auto newLayers=std::make_unique<velyntora::LayerDocument>(w,h);
@@ -928,12 +934,47 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
    char* cursor=static_cast<char*>(data);
    while(size){ssize_t n=::read(fd,cursor,size);if(n<0&&errno==EINTR)continue;
     if(n<=0)throw std::runtime_error("Truncated project");cursor+=n;size-=n;}
-  },800,800));
+  },0,0,4000000));
+  if(restored->width()>8192||restored->height()>8192)return JNI_FALSE;
   char trailing;ssize_t n;do{n=::read(fd,&trailing,1);}while(n<0&&errno==EINTR);
   if(n!=0)return JNI_FALSE;
   auto restoredCanvas=std::make_unique<velyntora::Canvas>(restored->width(),restored->height());
   restoredCanvas->setPixels(restored->layer(restored->activeIndex()).pixels);
   // Publish only after the entire file has been validated and allocated.
   layers=std::move(restored);canvas=std::move(restoredCanvas);resetHistory();return JNI_TRUE;
+ }catch(...){return JNI_FALSE;}
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_art_velyntora_core_DrawingView_nativeWidth(JNIEnv*,jclass){std::lock_guard<std::mutex> lock(guard);return layers?layers->width():0;}
+extern "C" JNIEXPORT jint JNICALL Java_art_velyntora_core_DrawingView_nativeHeight(JNIEnv*,jclass){std::lock_guard<std::mutex> lock(guard);return layers?layers->height():0;}
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeResizeDocument(JNIEnv*,jclass,jint w,jint h,jboolean scalePixels){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!layers||w<=0||h<=0||w>8192||h>8192||std::int64_t(w)*h>4000000||std::int64_t(w)*h*layers->layerCount()>24000000)return JNI_FALSE;
+ if(w==layers->width()&&h==layers->height())return JNI_FALSE;
+ try{
+  auto resized=std::make_unique<velyntora::LayerDocument>(layers->resized(w,h,scalePixels));
+  auto resizedCanvas=std::make_unique<velyntora::Canvas>(w,h);resizedCanvas->setPixels(resized->layer(resized->activeIndex()).pixels);
+  checkpoint();layers=std::move(resized);canvas=std::move(resizedCanvas);return JNI_TRUE;
+ }catch(...){return JNI_FALSE;}
+}
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeCropDocument(JNIEnv*,jclass,jint left,jint top,jint w,jint h){
+ std::lock_guard<std::mutex> lock(guard);if(!layers)return JNI_FALSE;
+ try{
+  auto cropped=std::make_unique<velyntora::LayerDocument>(layers->cropped(left,top,w,h));
+  auto croppedCanvas=std::make_unique<velyntora::Canvas>(w,h);croppedCanvas->setPixels(cropped->layer(cropped->activeIndex()).pixels);
+  checkpoint();layers=std::move(cropped);canvas=std::move(croppedCanvas);return JNI_TRUE;
+ }catch(...){return JNI_FALSE;}
+}
+
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeLoadBitmap(JNIEnv* env,jclass,jint w,jint h,jintArray source){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!source||w<=0||h<=0||w>8192||h>8192||std::int64_t(w)*h>4000000||env->GetArrayLength(source)!=std::int64_t(w)*h)return JNI_FALSE;
+ try{
+  std::vector<std::uint32_t> pixels(std::size_t(w)*h);
+  env->GetIntArrayRegion(source,0,pixels.size(),reinterpret_cast<jint*>(pixels.data()));
+  if(env->ExceptionCheck())return JNI_FALSE;
+  auto imported=std::make_unique<velyntora::LayerDocument>(w,h);imported->replaceActivePixels(pixels);
+  auto importedCanvas=std::make_unique<velyntora::Canvas>(w,h);importedCanvas->setPixels(pixels);
+  layers=std::move(imported);canvas=std::move(importedCanvas);resetHistory();return JNI_TRUE;
  }catch(...){return JNI_FALSE;}
 }

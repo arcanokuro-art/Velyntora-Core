@@ -21,6 +21,8 @@ public:
  std::size_t activeIndex() const noexcept {return active_;}
  const Layer& layer(std::size_t index) const {return layers_.at(index);}
  bool renameLayer(std::size_t index,const std::string& name);
+ LayerDocument resized(int width,int height,bool scalePixels) const;
+ LayerDocument cropped(int left,int top,int width,int height) const;
  void addLayer(const std::string& name);
  bool removeLayer(std::size_t index);
  bool selectLayer(std::size_t index);

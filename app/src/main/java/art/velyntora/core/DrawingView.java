@@ -72,8 +72,18 @@ public final class DrawingView extends View {
  private static native boolean nativeSetLayerOpacity(float opacity);
  private static native float nativeLayerOpacity();
  private static native int[] nativeLayerThumbnail(int index);
- private static final int SIZE=800;
- private final Viewport viewport=new Viewport(SIZE,SIZE);
+ private int canvasWidth=800,canvasHeight=800;
+ private static native boolean nativeLoadBitmap(int w,int h,int[] pixels);
+ private static native int nativeWidth();
+ private static native int nativeHeight();
+ private static native boolean nativeResizeDocument(int w,int h,boolean scalePixels);
+ private static native boolean nativeCropDocument(int left,int top,int w,int h);
+ public int documentWidth(){return canvasWidth;}
+ public int documentHeight(){return canvasHeight;}
+ public boolean resizeDocument(int w,int h,boolean scalePixels){if(!nativeResizeDocument(w,h,scalePixels))return false;deselect();refresh();fitCanvas();return true;}
+ public boolean newDocument(int w,int h){if(w<=0||h<=0||w>8192||h>8192||(long)w*h>4000000||!nativeCreate(w,h))return false;deselect();refresh();fitCanvas();return true;}
+ public boolean cropDocument(){if(!hasSelection())return false;int left=(int)Math.floor(selectionLeft),top=(int)Math.floor(selectionTop);if(!nativeCropDocument(left,top,(int)Math.ceil(selectionRight)-left,(int)Math.ceil(selectionBottom)-top))return false;deselect();refresh();fitCanvas();return true;}
+ private final Viewport viewport=new Viewport(canvasWidth,canvasHeight);
  private boolean navigating;
  private float gestureX,gestureY,gestureDistance,gestureAngle;
  private Runnable viewportChangedListener;
@@ -104,7 +114,7 @@ public final class DrawingView extends View {
 
  public static final int BRUSH=0,RECTANGLE=1,ELLIPSE=2,LINE=3,BUCKET=4,ERASER=5,PICKER=6,FILLED_RECTANGLE=7,FILLED_ELLIPSE=8,SELECT_RECTANGLE=9,SELECT_ELLIPSE=10,MOVE_SELECTION=11,MOVE_PIXELS=12,SELECT_FREE=13,MAGIC_WAND=14;
  private final Paint paint=new Paint(Paint.FILTER_BITMAP_FLAG);
- private final Bitmap bitmap=Bitmap.createBitmap(SIZE,SIZE,Bitmap.Config.ARGB_8888);
+ private Bitmap bitmap=Bitmap.createBitmap(canvasWidth,canvasHeight,Bitmap.Config.ARGB_8888);
  private int color=0xFF202020,tool=BRUSH;
  private float brushRadius=4f;
  private float previousX,previousY,startX,startY;
@@ -126,7 +136,7 @@ public final class DrawingView extends View {
  private java.util.function.IntConsumer pickedColorListener;
  public void setOnColorPickedListener(java.util.function.IntConsumer listener){pickedColorListener=listener;}
  public void setOnCanvasChangedListener(Runnable listener){canvasChangedListener=listener;}
- public DrawingView(Context context){super(context);if(!nativeCreate(SIZE,SIZE))throw new IllegalStateException("Canvas error");refresh();}
+ public DrawingView(Context context){super(context);if(nativeWidth()==0&&!nativeCreate(canvasWidth,canvasHeight))throw new IllegalStateException("Canvas error");refresh();}
  public boolean setLayerOpacity(float opacity){boolean ok=nativeSetLayerOpacity(opacity);if(ok)refresh();return ok;}
  public float layerOpacity(){return nativeLayerOpacity();}
  public Bitmap layerThumbnail(int index){
@@ -164,9 +174,9 @@ public final class DrawingView extends View {
    android.graphics.Path ellipse=new android.graphics.Path();
    ellipse.addOval(new RectF(selectionLeft,selectionTop,selectionRight,selectionBottom),
      android.graphics.Path.Direction.CW);
-   original.setPath(ellipse,new android.graphics.Region(0,0,SIZE,SIZE));
+   original.setPath(ellipse,new android.graphics.Region(0,0,canvasWidth,canvasHeight));
   }else return false;
-  original.op(0,0,SIZE,SIZE,android.graphics.Region.Op.INTERSECT);
+  original.op(0,0,canvasWidth,canvasHeight,android.graphics.Region.Op.INTERSECT);
   android.graphics.Region eroded=new android.graphics.Region(original);
   android.graphics.Region shifted=new android.graphics.Region();
   for(int dx=-1;dx<=1;dx++)for(int dy=-1;dy<=1;dy++){
@@ -195,9 +205,9 @@ public final class DrawingView extends View {
    android.graphics.Path ellipse=new android.graphics.Path();
    ellipse.addOval(new RectF(selectionLeft,selectionTop,selectionRight,selectionBottom),
      android.graphics.Path.Direction.CW);
-   region.setPath(ellipse,new android.graphics.Region(0,0,SIZE,SIZE));
+   region.setPath(ellipse,new android.graphics.Region(0,0,canvasWidth,canvasHeight));
   }else return false;
-  region.op(0,0,SIZE,SIZE,android.graphics.Region.Op.INTERSECT);
+  region.op(0,0,canvasWidth,canvasHeight,android.graphics.Region.Op.INTERSECT);
   android.graphics.Region grown=new android.graphics.Region(region);
   android.graphics.Region offset=new android.graphics.Region();
   for(int dx=-1;dx<=1;dx++)for(int dy=-1;dy<=1;dy++){
@@ -205,7 +215,7 @@ public final class DrawingView extends View {
    region.translate(dx,dy,offset);
    grown.op(offset,android.graphics.Region.Op.UNION);
   }
-  grown.op(0,0,SIZE,SIZE,android.graphics.Region.Op.INTERSECT);
+  grown.op(0,0,canvasWidth,canvasHeight,android.graphics.Region.Op.INTERSECT);
   if(grown.isEmpty())return false;
   freeRegion.set(grown);freePath.reset();
   wandBoundary.set(freeRegion.getBoundaryPath());
@@ -227,10 +237,10 @@ public final class DrawingView extends View {
    android.graphics.Path ellipse=new android.graphics.Path();
    ellipse.addOval(new RectF(selectionLeft,selectionTop,selectionRight,selectionBottom),
      android.graphics.Path.Direction.CW);
-   selected.setPath(ellipse,new android.graphics.Region(0,0,SIZE,SIZE));
+   selected.setPath(ellipse,new android.graphics.Region(0,0,canvasWidth,canvasHeight));
   }else return false;
-  selected.op(0,0,SIZE,SIZE,android.graphics.Region.Op.INTERSECT);
-  android.graphics.Region inverted=new android.graphics.Region(0,0,SIZE,SIZE);
+  selected.op(0,0,canvasWidth,canvasHeight,android.graphics.Region.Op.INTERSECT);
+  android.graphics.Region inverted=new android.graphics.Region(0,0,canvasWidth,canvasHeight);
   inverted.op(selected,android.graphics.Region.Op.DIFFERENCE);
   if(inverted.isEmpty()){deselect();return true;}
   freeRegion.set(inverted);
@@ -243,7 +253,7 @@ public final class DrawingView extends View {
   invalidate();return true;
  }
  public boolean selectionContains(int px,int py){
-  if(!hasSelection()||px<0||py<0||px>=SIZE||py>=SIZE||px<selectionLeft||py<selectionTop||px>=selectionRight||py>=selectionBottom)return false;
+  if(!hasSelection()||px<0||py<0||px>=canvasWidth||py>=canvasHeight||px<selectionLeft||py<selectionTop||px>=selectionRight||py>=selectionBottom)return false;
   if(selectionTool==SELECT_RECTANGLE)return true;
   if(selectionTool==SELECT_FREE)return freeSelectionReady&&freeRegion.contains(px,py);
   if(selectionTool==MAGIC_WAND)return freeRegion.contains(px,py);
@@ -285,7 +295,7 @@ public final class DrawingView extends View {
   if(!hasSelection()||(selectionTool!=SELECT_FREE&&selectionTool!=MAGIC_WAND))return false;
   int left=(int)Math.floor(selectionLeft),top=(int)Math.floor(selectionTop);
   int right=(int)Math.ceil(selectionRight),bottom=(int)Math.ceil(selectionBottom);
-  if(left<0||top<0||right>SIZE||bottom>SIZE||left>=right||top>=bottom)return false;
+  if(left<0||top<0||right>canvasWidth||bottom>canvasHeight||left>=right||top>=bottom)return false;
   int width=right-left,height=bottom-top;
   byte[] mask=new byte[width*height];
   for(int y=0;y<height;++y)for(int x=0;x<width;++x)
@@ -297,7 +307,7 @@ public final class DrawingView extends View {
   if(!hasSelection()||selectionTool!=SELECT_ELLIPSE)return false;
   int left=(int)Math.floor(selectionLeft),top=(int)Math.floor(selectionTop);
   int right=(int)Math.ceil(selectionRight),bottom=(int)Math.ceil(selectionBottom);
-  if(left<0||top<0||right>SIZE||bottom>SIZE||left>=right||top>=bottom)return false;
+  if(left<0||top<0||right>canvasWidth||bottom>canvasHeight||left>=right||top>=bottom)return false;
   if(!nativeCropActiveEllipse(left,top,right,bottom))return false;
   deselect();refresh();return true;
  }
@@ -305,7 +315,7 @@ public final class DrawingView extends View {
   if(!hasSelection()||selectionTool!=SELECT_RECTANGLE)return false;
   int left=(int)Math.floor(selectionLeft),top=(int)Math.floor(selectionTop);
   int right=(int)Math.ceil(selectionRight),bottom=(int)Math.ceil(selectionBottom);
-  if(left<0||top<0||right>SIZE||bottom>SIZE||left>=right||top>=bottom)return false;
+  if(left<0||top<0||right>canvasWidth||bottom>canvasHeight||left>=right||top>=bottom)return false;
   if(!nativeCropActiveSelection(left,top,right,bottom))return false;
   deselect();refresh();return true;
  }
@@ -313,14 +323,14 @@ public final class DrawingView extends View {
  public boolean pasteBitmap(Bitmap source){
   if(source==null||source.isRecycled())return false;
   int w=source.getWidth(),h=source.getHeight();
-  if(w<=0||h<=0||w>SIZE||h>SIZE||((long)w*h)>SIZE*SIZE)return false;
+  if(w<=0||h<=0||w>canvasWidth||h>canvasHeight||((long)w*h)>canvasWidth*canvasHeight)return false;
   int[] data=new int[2+w*h];
   data[0]=w;data[1]=h;
   source.getPixels(data,2,w,0,0,w,h);
-  int x=hasSelection()?(int)selectionLeft:(SIZE-w)/2;
-  int y=hasSelection()?(int)selectionTop:(SIZE-h)/2;
-  x=Math.max(0,Math.min(SIZE-w,x));
-  y=Math.max(0,Math.min(SIZE-h,y));
+  int x=hasSelection()?(int)selectionLeft:(canvasWidth-w)/2;
+  int y=hasSelection()?(int)selectionTop:(canvasHeight-h)/2;
+  x=Math.max(0,Math.min(canvasWidth-w,x));
+  y=Math.max(0,Math.min(canvasHeight-h,y));
   boolean ok=nativePasteSelection(data,x,y);
   if(ok){deselect();refresh();}
   return ok;
@@ -329,11 +339,11 @@ public final class DrawingView extends View {
   if(!hasSelection())return null;
   int leftBound=(int)Math.floor(selectionLeft),topBound=(int)Math.floor(selectionTop);
   int rightBound=(int)Math.ceil(selectionRight),bottomBound=(int)Math.ceil(selectionBottom);
-  if(leftBound<0||topBound<0||rightBound>SIZE||bottomBound>SIZE||rightBound<=leftBound||bottomBound<=topBound)return null;
+  if(leftBound<0||topBound<0||rightBound>canvasWidth||bottomBound>canvasHeight||rightBound<=leftBound||bottomBound<=topBound)return null;
   int[] data=nativeCopySelection((selectionTool==SELECT_FREE||selectionTool==MAGIC_WAND)?SELECT_RECTANGLE:selectionTool,(int)Math.floor(selectionLeft),(int)Math.floor(selectionTop),(int)Math.ceil(selectionRight),(int)Math.ceil(selectionBottom));
   if(data==null||data.length<3)return null;
   int w=data[0],h=data[1];
-  if(w<=0||h<=0||w>SIZE||h>SIZE||w!=rightBound-leftBound||h!=bottomBound-topBound||((long)w*h)!=data.length-2)return null;
+  if(w<=0||h<=0||w>canvasWidth||h>canvasHeight||w!=rightBound-leftBound||h!=bottomBound-topBound||((long)w*h)!=data.length-2)return null;
   if(selectionTool==SELECT_FREE||selectionTool==MAGIC_WAND){
    int left=(int)Math.floor(selectionLeft),top=(int)Math.floor(selectionTop);
    for(int row=0;row<h;++row)for(int col=0;col<w;++col){
@@ -348,7 +358,7 @@ public final class DrawingView extends View {
   if(selectionTool==SELECT_FREE||selectionTool==MAGIC_WAND){
    int left=(int)Math.floor(selectionLeft),top=(int)Math.floor(selectionTop);
    int w=(int)Math.ceil(selectionRight)-left,h=(int)Math.ceil(selectionBottom)-top;
-   if(w<=0||h<=0||left<0||top<0||left+w>SIZE||top+h>SIZE||((long)w*h)>SIZE*SIZE)return false;
+   if(w<=0||h<=0||left<0||top<0||left+w>canvasWidth||top+h>canvasHeight||((long)w*h)>canvasWidth*canvasHeight)return false;
    byte[] mask=new byte[w*h];
    for(int row=0;row<h;++row)for(int col=0;col<w;++col)
     if(freeRegion.contains(left+col,top+row))mask[row*w+col]=1;
@@ -360,7 +370,7 @@ public final class DrawingView extends View {
  public void selectAll(){
   movingSelection=false;movingPixels=false;drawing=false;
   selectionTool=SELECT_RECTANGLE;
-  selectionLeft=0f;selectionTop=0f;selectionRight=SIZE;selectionBottom=SIZE;
+  selectionLeft=0f;selectionTop=0f;selectionRight=canvasWidth;selectionBottom=canvasHeight;
   hasSelection=true;invalidate();
  }
  public void deselect(){hasSelection=false;movingSelection=false;movingPixels=false;freeSelectionReady=false;freeRegion.setEmpty();freePath.reset();wandBoundary.reset();invalidate();}
@@ -369,14 +379,14 @@ public final class DrawingView extends View {
   if(!hasSelection()||(dx==0&&dy==0))return false;
   int left=(int)Math.floor(selectionLeft),top=(int)Math.floor(selectionTop);
   int right=(int)Math.ceil(selectionRight),bottom=(int)Math.ceil(selectionBottom);
-  if(left<0||top<0||right>SIZE||bottom>SIZE||right<=left||bottom<=top)return false;
-  dx=Math.max(-left,Math.min(SIZE-right,dx));
-  dy=Math.max(-top,Math.min(SIZE-bottom,dy));
+  if(left<0||top<0||right>canvasWidth||bottom>canvasHeight||right<=left||bottom<=top)return false;
+  dx=Math.max(-left,Math.min(canvasWidth-right,dx));
+  dy=Math.max(-top,Math.min(canvasHeight-bottom,dy));
   if(dx==0&&dy==0)return false;
   boolean ok;
   if(selectionTool==SELECT_FREE||selectionTool==MAGIC_WAND){
    int w=right-left,h=bottom-top;
-   if(w<=0||h<=0||((long)w*h)>SIZE*SIZE)return false;
+   if(w<=0||h<=0||((long)w*h)>canvasWidth*canvasHeight)return false;
    byte[] mask=new byte[w*h];
    for(int row=0;row<h;++row)for(int col=0;col<w;++col)
     if(freeRegion.contains(left+col,top+row))mask[row*w+col]=1;
@@ -394,14 +404,26 @@ public final class DrawingView extends View {
  }
  public void undo(){if(nativeUndo()){deselect();refresh();}}
  public void redo(){if(nativeRedo()){deselect();refresh();}}
- public void loadBitmap(Bitmap source){
-  if(source==null||source.isRecycled())return;
-  Bitmap scaled=Bitmap.createScaledBitmap(source,SIZE,SIZE,true);
-  try{int[] pixels=new int[SIZE*SIZE];scaled.getPixels(pixels,0,SIZE,0,0,SIZE,SIZE);if(nativeImport(pixels)){deselect();refresh();}}
-  finally{if(scaled!=source)scaled.recycle();}
+ public boolean loadBitmap(Bitmap source){
+  if(source==null||source.isRecycled())return false;
+  int w=source.getWidth(),h=source.getHeight();
+  if(w>8192||h>8192||(long)w*h>4000000)return false;
+  int[] pixels=new int[w*h];source.getPixels(pixels,0,w,0,0,w,h);
+  if(!nativeLoadBitmap(w,h,pixels))return false;
+  deselect();refresh();fitCanvas();return true;
  }
  public Bitmap snapshot(){return bitmap.copy(Bitmap.Config.ARGB_8888,false);}
- private void refresh(){int[] pixels=nativePixels();if(pixels==null||pixels.length!=SIZE*SIZE)return;bitmap.setPixels(pixels,0,SIZE,0,0,SIZE,SIZE);invalidate();if(canvasChangedListener!=null)canvasChangedListener.run();}
+ private void refresh(){
+  int width=nativeWidth(),height=nativeHeight();
+  int[] pixels=nativePixels();if(width<=0||height<=0||pixels==null||pixels.length!=(long)width*height)return;
+  if(width!=canvasWidth||height!=canvasHeight){
+   Bitmap replacement=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
+   bitmap.recycle();bitmap=replacement;canvasWidth=width;canvasHeight=height;
+   viewport.documentSize(width,height);
+  }
+  bitmap.setPixels(pixels,0,width,0,0,width,height);invalidate();
+  if(canvasChangedListener!=null)canvasChangedListener.run();viewportChanged();
+ }
  private final Paint checkerPaint=new Paint();
  @Override protected void onDraw(Canvas canvas){
   super.onDraw(canvas);
@@ -412,12 +434,12 @@ public final class DrawingView extends View {
   canvas.translate((float)viewport.centerX,(float)viewport.centerY);
   canvas.rotate((float)viewport.angle);
   canvas.scale(scale,scale);
-  canvas.translate(-SIZE/2f,-SIZE/2f);
-  canvas.clipRect(0,0,SIZE,SIZE);
+  canvas.translate(-canvasWidth/2f,-canvasHeight/2f);
+  canvas.clipRect(0,0,canvasWidth,canvasHeight);
   checkerPaint.setColor(0xFFFFFFFF);
-  canvas.drawRect(0,0,SIZE,SIZE,checkerPaint);
+  canvas.drawRect(0,0,canvasWidth,canvasHeight,checkerPaint);
   checkerPaint.setColor(0xFFD1D1D1);
-  for(int row=0;row<50;++row)for(int col=(row&1);col<50;col+=2)
+  for(int row=0;row<(canvasHeight+15)/16;++row)for(int col=(row&1);col<(canvasWidth+15)/16;col+=2)
    canvas.drawRect(col*16,row*16,(col+1)*16,(row+1)*16,checkerPaint);
   canvas.drawBitmap(bitmap,0,0,paint);
   if(hasSelection()){
@@ -442,33 +464,33 @@ public final class DrawingView extends View {
   return Math.max(Math.max(da,dr),Math.max(dg,db))<=tolerance;
  }
  private void selectMatchingRegion(int sx,int sy){
-  if(sx<0||sy<0||sx>=SIZE||sy>=SIZE)return;
-  int[] pixels=new int[SIZE*SIZE];
-  bitmap.getPixels(pixels,0,SIZE,0,0,SIZE,SIZE);
-  int target=pixels[sy*SIZE+sx];
+  if(sx<0||sy<0||sx>=canvasWidth||sy>=canvasHeight)return;
+  int[] pixels=new int[canvasWidth*canvasHeight];
+  bitmap.getPixels(pixels,0,canvasWidth,0,0,canvasWidth,canvasHeight);
+  int target=pixels[sy*canvasWidth+sx];
   byte[] visited=new byte[pixels.length];
   int[] queue=new int[pixels.length];
-  int head=0,tail=0,start=sy*SIZE+sx;
+  int head=0,tail=0,start=sy*canvasWidth+sx;
   visited[start]=1;queue[tail++]=start;
   int minX=sx,maxX=sx,minY=sy,maxY=sy;
   freeRegion.setEmpty();freePath.reset();wandBoundary.reset();
   while(head<tail){
-   int pos=queue[head++],px=pos%SIZE,py=pos/SIZE;
+   int pos=queue[head++],px=pos%canvasWidth,py=pos/canvasWidth;
    visited[pos]=2;
    minX=Math.min(minX,px);maxX=Math.max(maxX,px);
    minY=Math.min(minY,py);maxY=Math.max(maxY,py);
    if(px>0){int q=pos-1;if(visited[q]==0){visited[q]=1;if(withinTolerance(pixels[q],target,wandTolerance))queue[tail++]=q;}}
-   if(px<SIZE-1){int q=pos+1;if(visited[q]==0){visited[q]=1;if(withinTolerance(pixels[q],target,wandTolerance))queue[tail++]=q;}}
-   if(py>0){int q=pos-SIZE;if(visited[q]==0){visited[q]=1;if(withinTolerance(pixels[q],target,wandTolerance))queue[tail++]=q;}}
-   if(py<SIZE-1){int q=pos+SIZE;if(visited[q]==0){visited[q]=1;if(withinTolerance(pixels[q],target,wandTolerance))queue[tail++]=q;}}
+   if(px<canvasWidth-1){int q=pos+1;if(visited[q]==0){visited[q]=1;if(withinTolerance(pixels[q],target,wandTolerance))queue[tail++]=q;}}
+   if(py>0){int q=pos-canvasWidth;if(visited[q]==0){visited[q]=1;if(withinTolerance(pixels[q],target,wandTolerance))queue[tail++]=q;}}
+   if(py<canvasHeight-1){int q=pos+canvasWidth;if(visited[q]==0){visited[q]=1;if(withinTolerance(pixels[q],target,wandTolerance))queue[tail++]=q;}}
   }
   // Union horizontal runs, not individual pixels, to reduce Region operations.
   for(int row=minY;row<=maxY;++row){
    int col=minX;
    while(col<=maxX){
-    while(col<=maxX&&visited[row*SIZE+col]!=2)++col;
+    while(col<=maxX&&visited[row*canvasWidth+col]!=2)++col;
     int left=col;
-    while(col<=maxX&&visited[row*SIZE+col]==2)++col;
+    while(col<=maxX&&visited[row*canvasWidth+col]==2)++col;
     if(left<col)freeRegion.op(left,row,col,row+1,android.graphics.Region.Op.UNION);
    }
   }
@@ -481,15 +503,15 @@ public final class DrawingView extends View {
  private void nativeBeginEditIfNeeded(){if(tool!=PICKER)nativeBeginEdit();}
  private void updateMovedSelection(float x,float y){
   float dx=x-moveStartX,dy=y-moveStartY;
-  dx=Math.max(-moveOriginalLeft,Math.min(SIZE-moveOriginalRight,dx));
-  dy=Math.max(-moveOriginalTop,Math.min(SIZE-moveOriginalBottom,dy));
+  dx=Math.max(-moveOriginalLeft,Math.min(canvasWidth-moveOriginalRight,dx));
+  dy=Math.max(-moveOriginalTop,Math.min(canvasHeight-moveOriginalBottom,dy));
   selectionLeft=moveOriginalLeft+dx;selectionRight=moveOriginalRight+dx;
   selectionTop=moveOriginalTop+dy;selectionBottom=moveOriginalBottom+dy;
   invalidate();
  }
  private void updateSelection(float x,float y){
-  float a=Math.max(0f,Math.min(SIZE,startX)),b=Math.max(0f,Math.min(SIZE,startY));
-  float c=Math.max(0f,Math.min(SIZE,x)),d=Math.max(0f,Math.min(SIZE,y));
+  float a=Math.max(0f,Math.min(canvasWidth,startX)),b=Math.max(0f,Math.min(canvasHeight,startY));
+  float c=Math.max(0f,Math.min(canvasWidth,x)),d=Math.max(0f,Math.min(canvasHeight,y));
   selectionLeft=Math.min(a,c);selectionRight=Math.max(a,c);
   selectionTop=Math.min(b,d);selectionBottom=Math.max(b,d);
   invalidate();
@@ -518,7 +540,7 @@ public final class DrawingView extends View {
   float y=(float)viewport.documentY(event.getX(),event.getY());
  switch(event.getActionMasked()){
  case MotionEvent.ACTION_DOWN:
-  if(x<0||y<0||x>=SIZE||y>=SIZE)return true;
+  if(x<0||y<0||x>=canvasWidth||y>=canvasHeight)return true;
   getParent().requestDisallowInterceptTouchEvent(true);
   drawing=true;startX=previousX=x;startY=previousY=y;
   if(tool==MAGIC_WAND){
@@ -555,7 +577,7 @@ public final class DrawingView extends View {
   if(!drawing)return true;
   if(tool==MOVE_SELECTION||tool==MOVE_PIXELS){if(movingSelection)updateMovedSelection(x,y);return true;}
   if(tool==SELECT_FREE){
-   float px=Math.max(0f,Math.min(SIZE,x)),py=Math.max(0f,Math.min(SIZE,y));
+   float px=Math.max(0f,Math.min(canvasWidth,x)),py=Math.max(0f,Math.min(canvasHeight,y));
    freePath.lineTo(px,py);
    selectionLeft=Math.min(selectionLeft,px);selectionRight=Math.max(selectionRight,px);
    selectionTop=Math.min(selectionTop,py);selectionBottom=Math.max(selectionBottom,py);
@@ -582,13 +604,13 @@ public final class DrawingView extends View {
     movingSelection=false;movingPixels=false;drawing=false;return true;
    }
    if(tool==SELECT_FREE){
-    float px=Math.max(0f,Math.min(SIZE,x)),py=Math.max(0f,Math.min(SIZE,y));
+    float px=Math.max(0f,Math.min(canvasWidth,x)),py=Math.max(0f,Math.min(canvasHeight,y));
     freePath.lineTo(px,py);freePath.close();
     selectionLeft=Math.min(selectionLeft,px);selectionRight=Math.max(selectionRight,px);
     selectionTop=Math.min(selectionTop,py);selectionBottom=Math.max(selectionBottom,py);
     hasSelection=(selectionRight-selectionLeft>=1f&&selectionBottom-selectionTop>=1f);
     if(hasSelection){
-     freeSelectionReady=freeRegion.setPath(freePath,new android.graphics.Region(0,0,SIZE,SIZE));
+     freeSelectionReady=freeRegion.setPath(freePath,new android.graphics.Region(0,0,canvasWidth,canvasHeight));
      hasSelection=freeSelectionReady&&!freeRegion.isEmpty();
      if(hasSelection){android.graphics.Rect actual=freeRegion.getBounds();selectionLeft=actual.left;selectionTop=actual.top;selectionRight=actual.right;selectionBottom=actual.bottom;}
     }
