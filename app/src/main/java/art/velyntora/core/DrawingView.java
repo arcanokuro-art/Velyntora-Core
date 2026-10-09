@@ -244,6 +244,7 @@ public final class DrawingView extends View {
   if(!hasSelection()||(dx==0&&dy==0))return false;
   int left=(int)Math.floor(selectionLeft),top=(int)Math.floor(selectionTop);
   int right=(int)Math.ceil(selectionRight),bottom=(int)Math.ceil(selectionBottom);
+  if(left<0||top<0||right>SIZE||bottom>SIZE||right<=left||bottom<=top)return false;
   dx=Math.max(-left,Math.min(SIZE-right,dx));
   dy=Math.max(-top,Math.min(SIZE-bottom,dy));
   if(dx==0&&dy==0)return false;
