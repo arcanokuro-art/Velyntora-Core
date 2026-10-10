@@ -238,8 +238,12 @@ public final class DrawingView extends View {
  }
  private final NavigationTool navigationTool=new NavigationTool(4);
  private int color=0xFF202020,tool=BRUSH;
- private boolean radialGradient;
- public void setRadialGradient(boolean radial){radialGradient=radial;}
+ private int gradientMode,secondaryColor=0xffffffff;
+ private boolean gradientTransparent=true;
+ public void setSecondaryColor(int value){secondaryColor=value;}
+ public int gradientMode(){return gradientMode;}
+ public boolean gradientTransparent(){return gradientTransparent;}
+ public void configureGradient(int mode,boolean transparent){if(mode<0||mode>4)return;gradientMode=mode;gradientTransparent=transparent;}
  private boolean cloneOriginReady;
  private int cloneX,cloneY;
  private static native void nativeBeginSampled(int x,int y);
@@ -620,6 +624,7 @@ public final class DrawingView extends View {
   canvas.drawBitmap(bitmap,0,0,paint);
   if(curve!=null){Paint preview=new Paint(Paint.ANTI_ALIAS_FLAG);preview.setColor(color);preview.setAlpha(Math.round((color>>>24)*brushOpacity));preview.setStyle(Paint.Style.STROKE);preview.setStrokeWidth(brushRadius*2);preview.setStrokeCap(Paint.Cap.ROUND);canvas.drawPath(curvePath(),preview);preview.setStyle(Paint.Style.FILL);preview.setColor(0xff7040b0);preview.setAlpha(255);for(int i=0;i<4;i++)canvas.drawCircle(curve.x[i],curve.y[i],6/scale,preview);}
 
+  if(drawing&&tool==GRADIENT){Paint guide=new Paint(Paint.ANTI_ALIAS_FLAG);guide.setColor(0xff7040b0);guide.setStrokeWidth(2/scale);canvas.drawLine(startX,startY,previousX,previousY,guide);canvas.drawCircle(startX,startY,4/scale,guide);canvas.drawCircle(previousX,previousY,4/scale,guide);}
   if(drawing&&tool==FREEFORM){Paint preview=new Paint(Paint.ANTI_ALIAS_FLAG);preview.setColor(color);preview.setAlpha(Math.round((color>>>24)*brushOpacity));preview.setStyle(Paint.Style.STROKE);preview.setStrokeWidth(brushRadius*2);preview.setStrokeJoin(Paint.Join.ROUND);canvas.drawPath(shapePath,preview);}
   if(hasSelection()){
    selectionPaint.setColor(0xFF202020);
@@ -786,6 +791,7 @@ public final class DrawingView extends View {
   if(tool==SELECT_RECTANGLE||tool==SELECT_ELLIPSE){
    updateSelection(x,y);return true;
   }
+  if(tool==GRADIENT){previousX=x;previousY=y;invalidate();return true;}
   if((tool==BRUSH||tool==ERASER||tool==PENCIL||tool==CLONE||tool==RECOLOR)&&(x!=previousX||y!=previousY)){paintStroke(previousX,previousY,x,y,event);refresh();}
   previousX=x;previousY=y;return true;
  case MotionEvent.ACTION_UP:
@@ -825,7 +831,8 @@ public final class DrawingView extends View {
     additionalShape(ELLIPSE,startX,startY,startX+Math.copySign(size,x-startX),startY+Math.copySign(size,y-startY));
    }
    else if(tool==GRADIENT){
-    int[] data=GradientRaster.create(canvasWidth,canvasHeight,startX,startY,x,y,color,radialGradient);
+    int first=(color&0xffffff)|(Math.round((color>>>24)*brushOpacity)<<24),second=gradientTransparent?0:(secondaryColor&0xffffff)|(Math.round((secondaryColor>>>24)*brushOpacity)<<24);
+    int[] data=GradientRaster.create(canvasWidth,canvasHeight,startX,startY,x,y,first,second,gradientMode);
     if(hasSelection())for(int row=0;row<canvasHeight;row++)for(int col=0;col<canvasWidth;col++)if(!selectionContains(col,row))data[2+row*canvasWidth+col]=0;
     nativePasteSelection(data,0,0);
    }

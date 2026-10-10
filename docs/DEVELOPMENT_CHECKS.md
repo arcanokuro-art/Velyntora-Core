@@ -5,6 +5,7 @@ Los 20 hitos conservan su peso de 5 puntos. Esta lista permite verificar 09, 16 
 ## 09 — Espacio de trabajo adaptable
 
 - Nombres de capas editables en UTF-8, visibles y accesibles, con Undo/Redo y límites validados.
+- Colores primario/secundario editables e intercambiables; cinco modos de degradado con alfa, opacidad, selección y un paso de historial.
 - Regiones de menús, comandos, herramientas, lienzo, capas, paleta y estado conectadas a acciones reales.
 - Herramientas y capas en columnas cuando queda un lienzo de al menos 240 dp; paneles superpuestos con apertura/cierre en teléfono.
 - Menús y formularios desplazables, reducción de filas accesorias en ventanas bajas y política probada con escala de fuente.

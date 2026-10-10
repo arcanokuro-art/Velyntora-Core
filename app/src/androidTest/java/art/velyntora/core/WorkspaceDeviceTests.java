@@ -72,6 +72,9 @@ public final class WorkspaceDeviceTests {
    assertTrue("Painting a shape must preserve selection",view.hasSelection());Bitmap image=view.snapshot();try{assertEquals(0x80ff0000,image.getPixel(10,10));assertEquals(0,image.getPixel(2,2));assertEquals(0,image.getPixel(30,30));}finally{image.recycle();}
    long revision=view.revision();view.setTool(DrawingView.RECTANGLE);gesture(view,9,9,20,20,true);assertEquals("Canceled shape must not create history",revision,view.revision());
    view.undo();image=view.snapshot();try{assertEquals(0,image.getPixel(10,10));}finally{image.recycle();}
+   view.setTool(DrawingView.GRADIENT);view.configureBrush(1,1,false,false);view.setSecondaryColor(0xff0000ff);view.configureGradient(0,false);gesture(view,.5f,.5f,63.5f,.5f,false);
+   image=view.snapshot();try{assertEquals(0xffff0000,image.getPixel(0,10));assertEquals(0xff0000ff,image.getPixel(63,10));}finally{image.recycle();}
+   view.undo();image=view.snapshot();try{assertEquals(0,image.getPixel(0,10));}finally{image.recycle();}
   });
  }
  @Test public void svgRasterizationAndPackagedXpmColors()throws Exception{

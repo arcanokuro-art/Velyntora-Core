@@ -34,13 +34,13 @@ public final class MainActivity extends Activity {
     private android.widget.FrameLayout workspaceFrame;
     private boolean panelsInline;
     private HorizontalScrollView commandScroll,paletteScroll;
-    private Button currentColorButton;
+    private Button currentColorButton,secondaryColorButton;
     private final android.util.SparseArray<String> toolLabels=new android.util.SparseArray<>();
     private final android.util.SparseArray<Button> toolButtons=new android.util.SparseArray<>();
     private final java.util.ArrayList<Bitmap> thumbnails = new java.util.ArrayList<>();
     private android.os.Handler layerRefreshHandler = new android.os.Handler(android.os.Looper.getMainLooper());
     private SeekBar layerOpacity;
-    private int activeColor = Color.BLACK;
+    private int activeColor = Color.BLACK,secondaryColor=Color.WHITE;
     private Bitmap selectionClipboard;
     private android.app.ProgressDialog projectProgress;
     private static long savedRevision=-1;
@@ -633,8 +633,8 @@ public final class MainActivity extends Activity {
         menu(menus, "Capas", new String[]{"Añadir capa", "Seleccionar capa", "Renombrar capa…", "Eliminar capa", "Mostrar / ocultar", "Subir capa", "Bajar capa"},
             new Runnable[]{this::addLayer, this::chooseLayer, () -> renameLayer(drawing.activeLayer()), this::deleteLayer, this::toggleLayer,
                 () -> moveLayer(1), () -> moveLayer(-1)});
-        menu(menus, "Herramientas", new String[]{"Tolerancia de varita mágica", "Configurar pincel", "Elegir color…", "Confirmar Línea/Curva", "Cancelar Línea/Curva"},
-            new Runnable[]{this::configureWandTolerance, this::configureBrush, this::configureColor, drawing::confirmCurve, drawing::cancelCurve});
+        menu(menus, "Herramientas", new String[]{"Tolerancia de varita mágica", "Configurar pincel", "Elegir color…", "Color secundario…", "Intercambiar colores", "Configurar degradado…", "Confirmar Línea/Curva", "Cancelar Línea/Curva"},
+            new Runnable[]{this::configureWandTolerance, this::configureBrush, this::configureColor, () -> configureColor(true), () -> {int first=activeColor;setActiveColor(secondaryColor);setSecondaryColor(first);}, this::configureGradient, drawing::confirmCurve, drawing::cancelCurve});
         AdjustmentDialogs filters=new AdjustmentDialogs(this,drawing);
         menu(menus, "Efectos",new String[]{"Básicos","Desenfoques","Distorsiones","Arte y fotografía","Generadores","Más filtros","Objetos"},new Runnable[]{()->new AlertDialog.Builder(this).setTitle("Efectos básicos").setItems(new String[]{"Desenfoque de caja…","Enfocar…","Detectar bordes…","Repujado…","Pixelar…","Ruido…","Viñeta…"},(d,k)->configureEffect(k)).show(),filters::openBlurMenu,filters::openDistortionMenu,filters::openArtisticMenu,filters::openRenderMenu,filters::openUtilityMenu,filters::openObjectMenu});
         menu(menus, "Ayuda", new String[]{"Acerca de"},
@@ -758,6 +758,7 @@ public final class MainActivity extends Activity {
         LinearLayout colors = row();
         currentColorButton=new Button(this);currentColorButton.setText("");currentColorButton.setPadding(0,0,0,0);currentColorButton.setBackgroundTintList(null);currentColorButton.setOnClickListener(v->{if(projectProgress==null)configureColor();});
         colors.addView(currentColorButton,new LinearLayout.LayoutParams(dp(48),dp(48)));setActiveColor(activeColor);
+        secondaryColorButton=new Button(this);secondaryColorButton.setText("");secondaryColorButton.setPadding(0,0,0,0);secondaryColorButton.setBackgroundTintList(null);secondaryColorButton.setOnClickListener(v->{if(projectProgress==null)configureColor(true);});colors.addView(secondaryColorButton,new LinearLayout.LayoutParams(dp(48),dp(48)));setSecondaryColor(secondaryColor);
         TextView paletteLabel = text("COLORES  ");
         colors.addView(paletteLabel);
         button(colors,"Elegir color…",this::configureColor);
@@ -783,13 +784,22 @@ public final class MainActivity extends Activity {
         setContentView(root);updateStatus();if(freshProcess)recoverDocument();
     }
 
-    private void configureColor(){
+    private void configureColor(){configureColor(false);}
+    private void configureColor(boolean secondary){
+        int initialColor=secondary?secondaryColor:activeColor;
         LinearLayout form=new LinearLayout(this);form.setOrientation(LinearLayout.VERTICAL);
-        View preview=new View(this);preview.setBackgroundColor(activeColor);preview.setContentDescription("Vista previa del color");form.addView(preview,new LinearLayout.LayoutParams(-1,dp(48)));
-        int[] values={activeColor>>>24,(activeColor>>>16)&255,(activeColor>>>8)&255,activeColor&255};String[] labels={"Alfa","Rojo","Verde","Azul"};
+        View preview=new View(this);preview.setBackgroundColor(initialColor);preview.setContentDescription("Vista previa del color");form.addView(preview,new LinearLayout.LayoutParams(-1,dp(48)));
+        int[] values={initialColor>>>24,(initialColor>>>16)&255,(initialColor>>>8)&255,initialColor&255};String[] labels={"Alfa","Rojo","Verde","Azul"};
         for(int index=0;index<4;index++){final int channel=index;TextView label=text(labels[index]+": "+values[index]);form.addView(label);SeekBar slider=new SeekBar(this);slider.setMax(255);slider.setProgress(values[index]);slider.setContentDescription(labels[index]);form.addView(slider);slider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){public void onProgressChanged(SeekBar s,int n,boolean user){values[channel]=n;label.setText(labels[channel]+": "+n);preview.setBackgroundColor(values[0]<<24|values[1]<<16|values[2]<<8|values[3]);}public void onStartTrackingTouch(SeekBar s){}public void onStopTrackingTouch(SeekBar s){}});}
-        new AlertDialog.Builder(this).setTitle("Color RGBA").setView(scrollForm(form)).setNegativeButton("Cancelar",null).setPositiveButton("Usar color",(d,w)->{setActiveColor(values[0]<<24|values[1]<<16|values[2]<<8|values[3]);}).show();
+        new AlertDialog.Builder(this).setTitle(secondary?"Color secundario RGBA":"Color primario RGBA").setView(scrollForm(form)).setNegativeButton("Cancelar",null).setPositiveButton("Usar color",(d,w)->{int value=values[0]<<24|values[1]<<16|values[2]<<8|values[3];if(secondary)setSecondaryColor(value);else setActiveColor(value);}).show();
     }
+
+    private void configureGradient(){
+        LinearLayout form=new LinearLayout(this);form.setOrientation(LinearLayout.VERTICAL);android.widget.Spinner type=new android.widget.Spinner(this);type.setAdapter(new android.widget.ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"Lineal","Radial","Lineal reflejado","Diamante","Cónico"}));type.setSelection(drawing.gradientMode());type.setContentDescription("Geometría del degradado");form.addView(type);
+        android.widget.CheckBox transparent=new android.widget.CheckBox(this);transparent.setText("Color primario a transparente");transparent.setChecked(drawing.gradientTransparent());form.addView(transparent);form.addView(text("Desactivado: color primario a secundario. Respeta alfa y opacidad."));
+        new AlertDialog.Builder(this).setTitle("Degradado").setView(scrollForm(form)).setNegativeButton("Cancelar",null).setPositiveButton("Aplicar",(d,w)->drawing.configureGradient(type.getSelectedItemPosition(),transparent.isChecked())).show();
+    }
+    private void setSecondaryColor(int value){secondaryColor=value;drawing.setSecondaryColor(value);if(secondaryColorButton!=null){secondaryColorButton.setBackground(new ColorSwatchDrawable(value));secondaryColorButton.setContentDescription(String.format(java.util.Locale.US,"Color secundario: rojo %d, verde %d, azul %d, alfa %d. Elegir color",value>>>16&255,value>>>8&255,value&255,value>>>24));}}
 
     private void setActiveColor(int color){
         activeColor=color;drawing.setColor(color);
@@ -903,8 +913,7 @@ public final class MainActivity extends Activity {
         }
         if(tool==DrawingView.GRADIENT)iconButton.setOnLongClickListener(v -> {
             if(projectProgress!=null)return true;
-            new AlertDialog.Builder(this).setTitle("Tipo de degradado")
-                .setItems(new String[]{"Lineal","Radial"},(dialog,index)->drawing.setRadialGradient(index==1)).show();
+            configureGradient();
             return true;
         });
         if(tool==DrawingView.LINE)iconButton.setOnLongClickListener(v->{if(projectProgress==null)drawing.confirmCurve();return true;});
