@@ -559,6 +559,49 @@ public final class WorkspaceDeviceTests {
   }
 
   @Test
+  public void strokesRespondOnTouchAndShapesPreviewBeforeRelease() {
+    instrumentation.runOnMainSync(() -> {
+      DrawingView v=drawing();
+      for (int tool : new int[]{DrawingView.BRUSH,DrawingView.PENCIL}) {
+        assertTrue(v.newDocument(128,128));
+        v.setZoomPercent(100);
+        v.setTool(tool);
+        v.setColor(0xffff0000);
+        long now=android.os.SystemClock.uptimeMillis();
+        float left=v.getWidth()/2f-64, top=v.getHeight()/2f-64;
+        android.view.MotionEvent down=android.view.MotionEvent.obtain(now,now,
+            android.view.MotionEvent.ACTION_DOWN,left+32,top+32,0);
+        v.onTouchEvent(down);down.recycle();
+        Bitmap dot=v.snapshot();
+        try { assertTrue("Stroke must start on touch",(dot.getPixel(32,32)>>>24)>0); }
+        finally { dot.recycle(); }
+        android.view.MotionEvent up=android.view.MotionEvent.obtain(now,now+10,
+            android.view.MotionEvent.ACTION_UP,left+32,top+32,0);
+        v.onTouchEvent(up);up.recycle();
+        v.undo();
+        Bitmap undone=v.snapshot();
+        try { assertEquals("One undo removes the whole stroke",0,undone.getPixel(32,32)); }
+        finally { undone.recycle(); }
+      }
+      for (int tool : new int[]{DrawingView.RECTANGLE,DrawingView.ELLIPSE,
+          DrawingView.ROUNDED_RECTANGLE,DrawingView.FILLED_TRIANGLE,DrawingView.CIRCLE}) {
+        assertTrue(v.newDocument(128,128));
+        v.setTool(tool);
+        long revision=v.revision();
+        v.startX=10;v.startY=10;v.previousX=90;v.previousY=80;v.drawing=true;
+        Bitmap overlay=Bitmap.createBitmap(128,128,Bitmap.Config.ARGB_8888);
+        try {
+          Tools.controller(tool).preview(v,new android.graphics.Canvas(overlay),1);
+          int[] pixels=new int[128*128];overlay.getPixels(pixels,0,128,0,0,128,128);
+          boolean visible=false;for(int pixel:pixels) if(pixel!=0){visible=true;break;}
+          assertTrue("Preview while dragging: "+tool,visible);
+          assertEquals("Preview must not change document history",revision,v.revision());
+        } finally { overlay.recycle();v.drawing=false; }
+      }
+    });
+  }
+
+  @Test
   public void toolModulesKeepSelectionAndPixelMovementIndependent() {
     instrumentation.runOnMainSync(
         () -> {

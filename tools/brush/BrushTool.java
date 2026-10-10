@@ -6,13 +6,14 @@ import android.view.MotionEvent;
 /** Gesture controller for brush. Shared document state belongs to DrawingView. */
 final class BrushTool implements DrawingTool {
   public void down(DrawingView v, float x, float y, MotionEvent event) {
-    v.invalidate();
+    v.paintStroke(x, y, x, y, event);
+    v.requestStrokeRefresh();
   }
 
   public void move(DrawingView v, float x, float y, MotionEvent event) {
     if (x != v.previousX || y != v.previousY) {
       v.paintStroke(v.previousX, v.previousY, x, y, event);
-      v.refresh();
+      v.requestStrokeRefresh();
     }
   }
 

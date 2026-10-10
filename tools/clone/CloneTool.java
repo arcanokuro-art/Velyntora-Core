@@ -12,13 +12,16 @@ final class CloneTool implements DrawingTool {
       v.cloneOriginReady = true;
       v.drawing = false;
       v.announceForAccessibility("Origen de clonación fijado");
-    } else v.invalidate();
+    } else {
+      v.paintStroke(x, y, x, y, event);
+      v.requestStrokeRefresh();
+    }
   }
 
   public void move(DrawingView v, float x, float y, MotionEvent event) {
     if (x != v.previousX || y != v.previousY) {
       v.paintStroke(v.previousX, v.previousY, x, y, event);
-      v.refresh();
+      v.requestStrokeRefresh();
     }
   }
 

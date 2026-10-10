@@ -17,6 +17,24 @@ final class ShapeRaster {
     try {
       Canvas target = new Canvas(shape);
       target.translate(-x, -y);
+      drawShape(v,target,kind,x0,y0,x1,y1);
+      int[] data = new int[2 + w * h];
+      data[0] = w;
+      data[1] = h;
+      shape.getPixels(data, 2, w, 0, 0, w, h);
+      if (v.hasSelection())
+        for (int row = 0; row < h; row++)
+          for (int col = 0; col < w; col++)
+            if (!v.selectionContains(x + col, y + row)) data[2 + row * w + col] = 0;
+      if (DrawingView.nativePasteSelection(data, x, y)) v.refresh();
+    } finally {
+      shape.recycle();
+    }
+  }
+  static void drawShape(DrawingView v, Canvas target, int kind,
+      float x0, float y0, float x1, float y1) {
+    float left=Math.min(x0,x1), top=Math.min(y0,y1),
+        right=Math.max(x0,x1), bottom=Math.max(y0,y1);
       Paint style = new Paint(Paint.ANTI_ALIAS_FLAG);
       style.setColor(v.color);
       style.setAlpha(Math.round((v.color >>> 24) * v.brushOpacity));
@@ -45,17 +63,6 @@ final class ShapeRaster {
         path.close();
         target.drawPath(path, style);
       }
-      int[] data = new int[2 + w * h];
-      data[0] = w;
-      data[1] = h;
-      shape.getPixels(data, 2, w, 0, 0, w, h);
-      if (v.hasSelection())
-        for (int row = 0; row < h; row++)
-          for (int col = 0; col < w; col++)
-            if (!v.selectionContains(x + col, y + row)) data[2 + row * w + col] = 0;
-      if (DrawingView.nativePasteSelection(data, x, y)) v.refresh();
-    } finally {
-      shape.recycle();
-    }
   }
+
 }

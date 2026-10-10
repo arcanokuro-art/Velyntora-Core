@@ -1075,11 +1075,34 @@ public final class DrawingView extends View {
   }
 
   public Bitmap snapshot() {
+    if (strokeRefreshPending) refresh();
     confirmCurve();
     return bitmap.copy(Bitmap.Config.ARGB_8888, false);
   }
 
+  private boolean strokeRefreshPending;
+  private final Runnable strokeRefresh = () -> {
+    strokeRefreshPending = false;
+    refreshPixels();
+  };
+
+  // Coalesce pointer events into one pixel transfer per display frame.
+  void requestStrokeRefresh() {
+    if (!strokeRefreshPending) {
+      strokeRefreshPending = true;
+      postOnAnimation(strokeRefresh);
+    }
+  }
+
   void refresh() {
+    removeCallbacks(strokeRefresh);
+    strokeRefreshPending = false;
+    refreshPixels();
+    if (canvasChangedListener != null) canvasChangedListener.run();
+    viewportChanged();
+  }
+
+  private void refreshPixels() {
     int width = nativeWidth(), height = nativeHeight();
     int[] pixels = nativePixels();
     if (width <= 0 || height <= 0 || pixels == null || pixels.length != (long) width * height)
@@ -1094,8 +1117,6 @@ public final class DrawingView extends View {
     }
     bitmap.setPixels(pixels, 0, width, 0, 0, width, height);
     invalidate();
-    if (canvasChangedListener != null) canvasChangedListener.run();
-    viewportChanged();
   }
 
   final Paint checkerPaint = new Paint();

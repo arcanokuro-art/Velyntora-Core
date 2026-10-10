@@ -4,7 +4,7 @@ import android.graphics.*;
 import android.view.MotionEvent;
 
 /** Gesture controller for circle. Shared document state belongs to DrawingView. */
-final class CircleTool implements DrawingTool {
+final class CircleTool extends ShapeTool {
   public void up(DrawingView v, float x, float y, MotionEvent event) {
     float size = Math.min(Math.abs(x - v.startX), Math.abs(y - v.startY));
     v.additionalShape(
