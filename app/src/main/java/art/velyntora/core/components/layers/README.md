@@ -1,9 +1,10 @@
-# components/layers
+# Capas
 
-Panel de capas y operaciones sobre el documento.
+- `panel/`: lista compacta, miniaturas con transparencia y controles fijos.
+- `actions/`: operaciones del documento.
+- `properties/`: edición en borrador y desplegable de mezcla.
+- `blending/`: 16 carpetas independientes, una por mezcla; matemática compartida en `shared/`.
 
-Fuentes: `LayerOperations.java`, `LayersPanel.java`.
+El equivalente nativo de las mezclas está en `core/components/layers/blending/`. Los modelos y proyectos pertenecen a `core/document/` y `document/project/`. Los paquetes Java se mantienen compatibles con JNI. Las herramientas no se modifican.
 
-Los paquetes Java existentes se conservan por compatibilidad con Android, JNI y las herramientas. La carpeta expresa la propiedad del componente. Los componentes de interfaz reciben la fachada de composición; consultan y actualizan su estado mediante métodos, sin acceso directo a campos. Los codecs y modelos puros no dependen de la Activity.
-
-Validación: comprobación de límites modular, compilación Android y suite de integración del emulador. Los modelos y codecs también se verifican con las pruebas JVM existentes. No cambiar `tools/` para trabajar en este módulo.
+Pruebas: alfa y composición, paridad Java/nativa, duplicar y combinar, persistencia VLYCORE v1/v2, OpenRaster y diálogo Android con Aceptar/Cancelar/deshacer y capturas.
