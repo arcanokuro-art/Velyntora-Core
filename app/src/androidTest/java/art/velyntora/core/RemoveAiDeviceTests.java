@@ -51,6 +51,32 @@ public final class RemoveAiDeviceTests {
    inst.runOnMainSync(()->assertArrayEquals("Cancelled generation cannot change pixels",source,DrawingView.nativeRemoveSource()));
   }finally{inst.runOnMainSync(activity::finish);}
  }
+ @Test public void toolbarButtonsUseCurrentModuleAfterWorkspaceRelayout()throws Exception{
+  android.app.Instrumentation inst=InstrumentationRegistry.getInstrumentation();android.content.Intent intent=new android.content.Intent(inst.getTargetContext(),MainActivity.class);intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);MainActivity activity=(MainActivity)inst.startActivitySync(intent);
+  int[] source=new int[160*96];Arrays.fill(source,0xff969696);for(int y=25;y<55;y++)for(int x=70;x<95;x++)source[y*160+x]=0xff000000;
+  try{
+   inst.runOnMainSync(()->{
+    DrawingView v=activity.readDrawing();assertTrue(v.newDocument(160,96));assertTrue(DrawingView.nativeImport(source));v.refresh();v.setTool(DrawingView.REMOVE_AI);v.setBrushRadius(14);
+    RemoveAiModule old=v.removeAi();activity.layoutWorkspace();assertNotSame("Relayout must recreate the detached module",old,v.removeAi());
+    v.removeAi().down(82,40);v.removeAi().finishStroke();assertTrue(maskAt(v,82,40));
+    android.widget.Button clear=findButton(activity.getWindow().getDecorView(),"Limpiar máscara");assertNotNull(clear);clear.performClick();assertFalse("Clear button must target current mask",maskAt(v,82,40));
+    // Repeat the actual lifecycle boundary before invoking the real toolbar button.
+    activity.layoutWorkspace();v.removeAi().down(82,40);v.removeAi().finishStroke();
+    android.widget.Button remove=findButton(activity.getWindow().getDecorView(),"Eliminar");assertNotNull(remove);remove.performClick();assertTrue("Toolbar must launch current module inference",v.removeAi().busy());
+   });
+   waitForRemove(inst,activity);
+   inst.runOnMainSync(()->{assertFalse("Real button must apply reconstruction",Arrays.equals(source,DrawingView.nativeRemoveSource()));activity.readDrawing().undo();assertArrayEquals(source,DrawingView.nativeRemoveSource());});
+  }finally{inst.runOnMainSync(activity::finish);}
+ }
+ private static android.widget.Button findButton(android.view.View view,String text){
+  if(view instanceof android.widget.Button&&text.contentEquals(((android.widget.Button)view).getText()))return (android.widget.Button)view;
+  if(view instanceof android.view.ViewGroup){android.view.ViewGroup group=(android.view.ViewGroup)view;for(int i=0;i<group.getChildCount();i++){android.widget.Button found=findButton(group.getChildAt(i),text);if(found!=null)return found;}}
+  return null;
+ }
+ private static boolean maskAt(DrawingView v,int x,int y){
+  android.graphics.Bitmap mask=android.graphics.Bitmap.createBitmap(v.readCanvasWidth(),v.readCanvasHeight(),android.graphics.Bitmap.Config.ARGB_8888);
+  try{v.removeAi().preview(new android.graphics.Canvas(mask));return mask.getPixel(x,y)!=0;}finally{mask.recycle();}
+ }
  private void waitForRemove(android.app.Instrumentation inst,MainActivity activity)throws Exception{
   long deadline=android.os.SystemClock.uptimeMillis()+90000;
   while(activity.readDrawing().removeAi().busy()&&android.os.SystemClock.uptimeMillis()<deadline)Thread.sleep(50);

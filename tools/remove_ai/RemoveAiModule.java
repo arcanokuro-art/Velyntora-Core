@@ -34,7 +34,12 @@ final class RemoveAiModule {
  void clear(){generation++;if(mask!=null){mask.recycle();mask=null;maskCanvas=null;}recycleBackup();view.invalidate();}
  void controls(LinearLayout options){
   Button apply=new Button(view.getContext()),cancel=new Button(view.getContext());apply.setText("Eliminar");cancel.setText("Limpiar máscara");apply.setAllCaps(false);cancel.setAllCaps(false);
-  apply.setOnClickListener(v->apply());cancel.setOnClickListener(v->clear());options.addView(apply);options.addView(cancel);
+  // Workspace layout can detach/recreate the module while keeping these buttons.
+  // Resolve the current per-view instance at click time, never capture this module.
+  final DrawingView canvasView=view;
+  apply.setOnClickListener(v->canvasView.removeAi().apply());
+  cancel.setOnClickListener(v->canvasView.removeAi().clear());
+  options.addView(apply);options.addView(cancel);
   Runnable visibility=()->{boolean active=view.currentTool()==DrawingView.REMOVE_AI;apply.setVisibility(active?0:8);cancel.setVisibility(active?0:8);};
   view.removeAiControlsChanged=visibility;visibility.run();
  }

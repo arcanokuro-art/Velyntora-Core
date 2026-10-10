@@ -18,3 +18,5 @@ Uso: seleccionar Remove AI, ajustar anchura, pintar objeto/sticker y pulsar Elim
 Verificación: `RemoveAiDeviceTests` ejecuta el modelo real sobre imagen rectangular, verifica alfa/exterior, reutilización, máscaras inválidas, transacción obsoleta y Deshacer/Rehacer; también valida máscara no destructiva e icono.
 
 La única modificación dentro de una herramienta existente es el registro compartido `tools/shared/Tools.java` para añadir el nuevo ID; los 78 archivos restantes permanecen idénticos.
+
+Los botones resuelven la instancia activa de Remove en cada pulsación. La reorganización del espacio de trabajo puede separar y volver a insertar la vista sin recrear la barra; `toolbarButtonsUseCurrentModuleAfterWorkspaceRelayout` verifica Limpiar máscara y Eliminar mediante los botones reales después de dos reorganizaciones, inferencia y Deshacer.
