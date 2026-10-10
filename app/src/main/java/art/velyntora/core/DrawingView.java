@@ -138,7 +138,7 @@ public final class DrawingView extends View {
   drawing=false;movingSelection=false;movingPixels=false;
  }
 
- public static final int BRUSH=0,RECTANGLE=1,ELLIPSE=2,LINE=3,BUCKET=4,ERASER=5,PICKER=6,FILLED_RECTANGLE=7,FILLED_ELLIPSE=8,SELECT_RECTANGLE=9,SELECT_ELLIPSE=10,MOVE_SELECTION=11,MOVE_PIXELS=12,SELECT_FREE=13,MAGIC_WAND=14,TEXT=15,ROUNDED_RECTANGLE=16,FILLED_ROUNDED_RECTANGLE=17,TRIANGLE=18,FILLED_TRIANGLE=19,PENCIL=20,PAN=21,ZOOM=22,GRADIENT=23,FREEFORM=24,CIRCLE=25;
+ public static final int BRUSH=0,RECTANGLE=1,ELLIPSE=2,LINE=3,BUCKET=4,ERASER=5,PICKER=6,FILLED_RECTANGLE=7,FILLED_ELLIPSE=8,SELECT_RECTANGLE=9,SELECT_ELLIPSE=10,MOVE_SELECTION=11,MOVE_PIXELS=12,SELECT_FREE=13,MAGIC_WAND=14,TEXT=15,ROUNDED_RECTANGLE=16,FILLED_ROUNDED_RECTANGLE=17,TRIANGLE=18,FILLED_TRIANGLE=19,PENCIL=20,PAN=21,ZOOM=22,GRADIENT=23,FREEFORM=24,CIRCLE=25,CLONE=26,RECOLOR=27;
  private final Paint paint=new Paint(Paint.FILTER_BITMAP_FLAG);
  private Bitmap bitmap=Bitmap.createBitmap(canvasWidth,canvasHeight,Bitmap.Config.ARGB_8888);
  private java.util.function.BiConsumer<Integer,Integer> textPositionListener;
@@ -189,6 +189,10 @@ public final class DrawingView extends View {
  private int color=0xFF202020,tool=BRUSH;
  private boolean radialGradient;
  public void setRadialGradient(boolean radial){radialGradient=radial;}
+ private boolean cloneOriginReady;
+ private int cloneX,cloneY;
+ private static native void nativeBeginSampled(int x,int y);
+ private static native void nativeSampledStroke(boolean clone,int ox,int oy,int replacement,int tolerance,float x0,float y0,float x1,float y1,float radius,float opacity,float hardness);
  private float brushRadius=4f,brushOpacity=1f,brushHardness=1f;
  private boolean squareBrush,pressureBrush=true,strokeEditing;
  public float brushOpacity(){return brushOpacity;}
@@ -205,10 +209,11 @@ public final class DrawingView extends View {
     int top=Math.max(0,(int)Math.floor(selectionTop)),bottom=Math.min(canvasHeight,(int)Math.ceil(selectionBottom));
     for(int y=top;y<bottom;++y)for(int x=left;x<right;++x)if(selectionContains(x,y))mask[y*canvasWidth+x]=1;
    }
-   nativeSetBrushSelection(mask);nativeBeginEdit();strokeEditing=true;
+   nativeSetBrushSelection(mask);nativeBeginEdit();if(tool==CLONE||tool==RECOLOR)nativeBeginSampled((int)startX,(int)startY);strokeEditing=true;
   }
   float pressure=pressureBrush&&event.getToolType(0)==MotionEvent.TOOL_TYPE_STYLUS?Math.max(.1f,Math.min(1f,event.getPressure())):1f;
-  if(tool==PENCIL)nativeStyledStroke((float)Math.floor(x0)+.5f,(float)Math.floor(y0)+.5f,(float)Math.floor(x1)+.5f,(float)Math.floor(y1)+.5f,.5f,color,1,1,true,false);
+  if(tool==CLONE||tool==RECOLOR)nativeSampledStroke(tool==CLONE,cloneX-(int)startX,cloneY-(int)startY,color,wandTolerance,x0,y0,x1,y1,brushRadius*pressure,brushOpacity,brushHardness);
+  else if(tool==PENCIL)nativeStyledStroke((float)Math.floor(x0)+.5f,(float)Math.floor(y0)+.5f,(float)Math.floor(x1)+.5f,(float)Math.floor(y1)+.5f,.5f,color,1,1,true,false);
   else nativeStyledStroke(x0,y0,x1,y1,brushRadius*pressure,color,brushOpacity,brushHardness,squareBrush,tool==ERASER);
  }
 
@@ -252,7 +257,8 @@ public final class DrawingView extends View {
  public float brushRadius(){return brushRadius;}
  public int currentTool(){return tool;}
  public void setTool(int value){
-  if(value<BRUSH||value>CIRCLE)return;
+  if(value<BRUSH||value>RECOLOR)return;
+  if(value==CLONE)cloneOriginReady=false;
   tool=value;
   // Switching away from a selection tool must not leave a selection
   // permanently active as an accidental overlay on subsequent drawings.
@@ -674,6 +680,7 @@ public final class DrawingView extends View {
   if(x<0||y<0||x>=canvasWidth||y>=canvasHeight)return true;
   getParent().requestDisallowInterceptTouchEvent(true);
   drawing=true;strokeEditing=false;startX=previousX=x;startY=previousY=y;
+  if(tool==CLONE&&!cloneOriginReady){cloneX=(int)x;cloneY=(int)y;cloneOriginReady=true;drawing=false;announceForAccessibility("Origen de clonación fijado");return true;}
   if(tool==FREEFORM){shapePath.reset();shapePath.moveTo(x,y);invalidate();return true;}
   if(tool==TEXT){drawing=false;if(textPositionListener!=null)textPositionListener.accept((int)x,(int)y);return true;}
   if(tool==MAGIC_WAND){
@@ -703,7 +710,7 @@ public final class DrawingView extends View {
    drawing=false;
    if(pickedColorListener!=null)pickedColorListener.accept(color);
   }else if(tool==BUCKET){nativeFill((int)x,(int)y,color);drawing=false;refresh();}
-  else if(tool==BRUSH||tool==ERASER||tool==PENCIL){invalidate();}
+  else if(tool==BRUSH||tool==ERASER||tool==PENCIL||tool==CLONE||tool==RECOLOR){invalidate();}
   return true;
  case MotionEvent.ACTION_MOVE:
   if(!drawing)return true;
@@ -719,7 +726,7 @@ public final class DrawingView extends View {
   if(tool==SELECT_RECTANGLE||tool==SELECT_ELLIPSE){
    updateSelection(x,y);return true;
   }
-  if((tool==BRUSH||tool==ERASER||tool==PENCIL)&&(x!=previousX||y!=previousY)){paintStroke(previousX,previousY,x,y,event);refresh();}
+  if((tool==BRUSH||tool==ERASER||tool==PENCIL||tool==CLONE||tool==RECOLOR)&&(x!=previousX||y!=previousY)){paintStroke(previousX,previousY,x,y,event);refresh();}
   previousX=x;previousY=y;return true;
  case MotionEvent.ACTION_UP:
   if(drawing){
@@ -761,7 +768,7 @@ public final class DrawingView extends View {
     if(hasSelection())for(int row=0;row<canvasHeight;row++)for(int col=0;col<canvasWidth;col++)if(!selectionContains(col,row))data[2+row*canvasWidth+col]=0;
     nativePasteSelection(data,0,0);
    }
-   else if(tool==BRUSH||tool==ERASER||tool==PENCIL){if(!strokeEditing||x!=previousX||y!=previousY)paintStroke(previousX,previousY,x,y,event);}
+   else if(tool==BRUSH||tool==ERASER||tool==PENCIL||tool==CLONE||tool==RECOLOR){if(!strokeEditing||x!=previousX||y!=previousY)paintStroke(previousX,previousY,x,y,event);}
    else if(tool>=ROUNDED_RECTANGLE&&tool<=FILLED_TRIANGLE)additionalShape(tool,startX,startY,x,y);
    else nativeShape(tool,(int)startX,(int)startY,(int)x,(int)y,color);
    drawing=false;refresh();

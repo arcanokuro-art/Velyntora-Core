@@ -54,3 +54,7 @@ add_test(NAME utility_tests COMMAND utility_tests)
 add_executable(object_tests object_tests.cpp)
 target_link_libraries(object_tests PRIVATE velyntora_engine)
 add_test(NAME object_tests COMMAND object_tests)
+
+add_executable(sampled_brush_tests sampled_brush_tests.cpp)
+target_link_libraries(sampled_brush_tests PRIVATE velyntora_engine)
+add_test(NAME sampled_brush_tests COMMAND sampled_brush_tests)

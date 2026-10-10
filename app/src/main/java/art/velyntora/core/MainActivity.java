@@ -613,6 +613,8 @@ public final class MainActivity extends Activity {
         tool(toolGrid, "Triángulo relleno", DrawingView.FILLED_TRIANGLE);
         tool(toolGrid, "Texto", DrawingView.TEXT);
         tool(toolGrid, "Degradado: color a transparente; mantener pulsado para elegir tipo", DrawingView.GRADIENT);
+        tool(toolGrid, "Tampón de clonar: primer toque fija origen; seleccionar de nuevo para cambiarlo", DrawingView.CLONE);
+        tool(toolGrid, "Recoloración: sustituye el color inicial; tolerancia de varita", DrawingView.RECOLOR);
         tool(toolGrid, "Cubeta", DrawingView.BUCKET);
         tool(toolGrid, "Cuentagotas", DrawingView.PICKER);
         tool(toolGrid, "Borrador", DrawingView.ERASER);
@@ -824,6 +826,8 @@ public final class MainActivity extends Activity {
             case DrawingView.MOVE_SELECTION: icon = R.drawable.pinta_move_selection; break;
             case DrawingView.CIRCLE: icon = R.drawable.pinta_ellipse; break;
             case DrawingView.FREEFORM: icon = R.drawable.pinta_lasso; break;
+            case DrawingView.CLONE: icon = R.drawable.pinta_brush; break;
+            case DrawingView.RECOLOR: icon = R.drawable.pinta_bucket; break;
             case DrawingView.GRADIENT: icon = R.drawable.pinta_gradient; break;
             case DrawingView.MOVE_PIXELS: icon = R.drawable.pinta_move_pixels; break;
         }

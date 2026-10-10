@@ -172,3 +172,8 @@ Forma libre: arrastre para construir un contorno cerrado rasterizado en la capa 
 ## Verificación local del bloque de herramientas
 
 Se corrigieron declaraciones duplicadas de Forma libre causadas por cambios simultáneos y se confirmó una única variable `action` en la navegación. Compiladas y ejecutadas 15 suites Java y 15 suites C++ del árbol local. Las pruebas de degradado cubren también el modo radial y rechazan extremos numéricos que desbordan la longitud. Esto no acredita la compilación Android ni la interacción visual: SDK/Gradle no disponibles en el entorno y publicación bloqueada por revisión automática. Cambios conservados en la rama local `codex/pending-drawing-tools`; no se contabiliza un hito nuevo. Avance 17/20 = 85.00 %.
+
+
+## Tampón de clonar y Recoloración (validación en curso)
+
+Tampón de clonar sobre la capa activa: primer toque fija origen; seleccionar otra vez la herramienta permite cambiarlo. Cada trazo toma una copia estable de la capa y mantiene el desplazamiento origen/destino dentro del trazo. Fuera de la imagen no se pinta. Recoloración sustituye RGB del color inicial dentro de la tolerancia compartida con varita, conserva alfa y omite píxeles transparentes. Ambas usan radio, dureza, opacidad, presión y máscara de selección; un paso de historial por trazo. Iconos provisionales compartidos con pincel/cubeta. No equivalen aún a todas las opciones de Pinta. Pruebas C++ de solapamiento, selección, alfa, tolerancia y entradas inválidas; pruebas JNI de Undo/Redo añadidas a CI. Avance 17/20 = 85.00 %.

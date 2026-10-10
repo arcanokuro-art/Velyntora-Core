@@ -28,6 +28,8 @@ std::unique_ptr<velyntora::LayerDocument> layers;
 struct Snapshot { velyntora::LayerDocument layers; };
 std::vector<Snapshot> undoStack, redoStack;
 std::vector<std::uint8_t> brushMask,effectMask;
+std::vector<std::uint32_t> sampledSource;
+std::uint32_t sampledTarget;
 void applyEffectSelection(std::vector<std::uint32_t>& pixels){if(effectMask.empty())return;if(effectMask.size()!=pixels.size()){pixels=canvas->pixels();return;}for(std::size_t i=0;i<pixels.size();i++)if(!effectMask[i])pixels[i]=canvas->pixels()[i];}
 constexpr std::size_t limit=15;
 // Cap history memory across both stacks to avoid exhausting Android heap
@@ -1077,4 +1079,11 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeObject(JNIEnv*,jclass,jint kind,jint amount,jint tolerance,jint color,jboolean option){
  std::lock_guard<std::mutex> lock(guard);if(!canvas)return JNI_FALSE;
  try{auto pixels=velyntora::objectEffect(canvas->pixels(),canvas->width(),canvas->height(),kind,amount,tolerance,static_cast<std::uint32_t>(color),option,effectMask.empty()?nullptr:&effectMask);applyEffectSelection(pixels);if(pixels==canvas->pixels())return JNI_FALSE;checkpoint();canvas->setPixels(pixels);storeActive();return JNI_TRUE;}catch(const std::exception&){return JNI_FALSE;}
+}
+
+extern "C" JNIEXPORT void JNICALL Java_art_velyntora_core_DrawingView_nativeBeginSampled(JNIEnv*,jclass,jint x,jint y){
+ std::lock_guard<std::mutex> lock(guard);sampledSource.clear();if(!canvas)return;sampledSource=canvas->pixels();sampledTarget=(x>=0&&y>=0&&x<canvas->width()&&y<canvas->height())?sampledSource[y*canvas->width()+x]:0;
+}
+extern "C" JNIEXPORT void JNICALL Java_art_velyntora_core_DrawingView_nativeSampledStroke(JNIEnv*,jclass,jboolean clone,jint ox,jint oy,jint replacement,jint tolerance,jfloat x0,jfloat y0,jfloat x1,jfloat y1,jfloat radius,jfloat opacity,jfloat hardness){
+ std::lock_guard<std::mutex> lock(guard);if(!canvas)return;canvas->sampledStroke(sampledSource,clone,ox,oy,sampledTarget,replacement,tolerance,x0,y0,x1,y1,radius,opacity,hardness,brushMask.size()==canvas->pixels().size()?&brushMask:nullptr);storeActive();
 }

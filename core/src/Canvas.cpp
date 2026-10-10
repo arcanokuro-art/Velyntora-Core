@@ -8,6 +8,26 @@ Canvas::Canvas(int w,int h):width_(w),height_(h){
  if(w<=0||h<=0||static_cast<std::uint64_t>(w)*h>16000000ULL) throw std::invalid_argument("Invalid canvas size");
  pixels_.resize(static_cast<std::size_t>(w)*h,0xFFFFFFFFu);
 }
+void Canvas::sampledStroke(const std::vector<std::uint32_t>& source,bool clone,int ox,int oy,std::uint32_t target,std::uint32_t replacement,int tolerance,float x0,float y0,float x1,float y1,float radius,float opacity,float hardness,const std::vector<std::uint8_t>* mask){
+ if(source.size()!=pixels_.size()||(mask&&mask->size()!=pixels_.size())||!std::isfinite(x0)||!std::isfinite(y0)||!std::isfinite(x1)||!std::isfinite(y1)||!std::isfinite(radius)||!std::isfinite(opacity)||!std::isfinite(hardness)||radius<=0||radius>128)return;
+ opacity=std::clamp(opacity,0.f,1.f);hardness=std::clamp(hardness,0.f,1.f);tolerance=std::clamp(tolerance,0,255);
+ const int left=static_cast<int>(std::clamp(std::floor(std::min(x0,x1)-radius),0.f,float(width_))),right=static_cast<int>(std::clamp(std::ceil(std::max(x0,x1)+radius),0.f,float(width_)));
+ const int top=static_cast<int>(std::clamp(std::floor(std::min(y0,y1)-radius),0.f,float(height_))),bottom=static_cast<int>(std::clamp(std::ceil(std::max(y0,y1)+radius),0.f,float(height_)));
+ double dx=double(x1)-x0,dy=double(y1)-y0,length=dx*dx+dy*dy;
+ for(int y=top;y<bottom;y++)for(int x=left;x<right;x++){
+  auto i=static_cast<std::size_t>(y)*width_+x;if(mask&&!(*mask)[i])continue;
+  double t=length?std::clamp(((x+.5-x0)*dx+(y+.5-y0)*dy)/length,0.,1.):0.;
+  double d=std::hypot(x+.5-(x0+t*dx),y+.5-(y0+t*dy))/radius;if(d>1)continue;
+  double weight=opacity*(hardness>=1||d<=hardness?1:(1-d)/(1-hardness));if(weight<=0)continue;
+  auto old=pixels_[i];std::uint32_t sample;
+  if(clone){auto sx=static_cast<std::int64_t>(x)+ox,sy=static_cast<std::int64_t>(y)+oy;if(sx<0||sy<0||sx>=width_||sy>=height_)continue;sample=source[sy*width_+sx];}
+  else{sample=source[i];bool matches=true;for(int shift:{0,8,16})if(std::abs(int((sample>>shift)&255)-int((target>>shift)&255))>tolerance)matches=false;if(!matches||!(sample>>24))continue;sample=(old&0xff000000)|(replacement&0xffffff);}
+  double a=(sample>>24)/255.*weight,da=(old>>24)/255.,out=clone?a+da*(1-a):da;
+  if(out<=0){pixels_[i]=0;continue;}std::uint32_t result=static_cast<std::uint32_t>(std::lround(out*255))<<24;
+  for(int shift:{0,8,16}){double v=clone?(((sample>>shift)&255)*a+((old>>shift)&255)*da*(1-a))/out:((sample>>shift)&255)*weight+((old>>shift)&255)*(1-weight);result|=std::uint32_t(std::clamp(std::lround(v),0L,255L))<<shift;}
+  pixels_[i]=result;
+ }
+}
 void Canvas::clear(std::uint32_t color){std::fill(pixels_.begin(),pixels_.end(),color);}
 void Canvas::setPixels(const std::vector<std::uint32_t>& pixels){
  if(pixels.size()!=pixels_.size())throw std::invalid_argument("Pixel count mismatch");
