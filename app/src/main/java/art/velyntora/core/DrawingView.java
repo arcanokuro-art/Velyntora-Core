@@ -8,6 +8,14 @@ import android.view.MotionEvent;
 import android.view.View;
 
 public final class DrawingView extends View {
+  final CanvasEffects canvasEffects = new CanvasEffects(this);
+  final CanvasSelection canvasSelection = new CanvasSelection(this);
+  final CanvasDocument canvasDocument = new CanvasDocument(this);
+  final CanvasViewport canvasViewport = new CanvasViewport(this);
+  final CanvasInput canvasInput = new CanvasInput(this);
+  final LayerOperations layerOperations = new LayerOperations(this);
+  final CanvasRendering canvasRendering = new CanvasRendering(this);
+
   static {
     System.loadLibrary("velyntora_jni");
   }
@@ -15,109 +23,106 @@ public final class DrawingView extends View {
   static native boolean nativeTransformSelection(
       int left, int top, int width, int height, byte[] mask, float degrees, float sx, float sy);
 
-  private static native boolean nativeEffect(int kind, int amount);
+  static native boolean nativeEffect(int kind, int amount);
 
-  private static native boolean nativeUtility(int kind, int amount, int size, int parameter);
+  static native boolean nativeUtility(int kind, int amount, int size, int parameter);
 
   static native boolean nativeObject(
       int kind, int amount, int tolerance, int color, boolean option);
 
   public boolean utility(int kind, int amount, int size, int parameter) {
-    return nativeUtility(kind, amount, size, parameter);
+    return canvasEffects.utility(kind,amount,size,parameter);
   }
 
   public boolean objectEffect(int kind, int amount, int tolerance, boolean option) {
-    return nativeObject(kind, amount, tolerance, color, option);
+    return canvasEffects.objectEffect(kind,amount,tolerance,option);
   }
 
-  private static native boolean nativeRender(
+  static native boolean nativeRender(
       int kind, int scale, int detail, int seed, int first, int second);
 
   public boolean render(int kind, int scale, int detail, int seed, int second) {
-    return nativeRender(kind, scale, detail, seed, color, second);
+    return canvasEffects.render(kind,scale,detail,seed,second);
   }
 
-  private static native boolean nativeArtistic(int kind, int strength, int radius, int threshold);
+  static native boolean nativeArtistic(int kind, int strength, int radius, int threshold);
 
   public boolean artistic(int kind, int strength, int radius, int threshold) {
-    return nativeArtistic(kind, strength, radius, threshold);
+    return canvasEffects.artistic(kind,strength,radius,threshold);
   }
 
-  private static native boolean nativeDistortion(
+  static native boolean nativeDistortion(
       int kind, int amount, int size, int angle, int cx, int cy);
 
   public boolean distortion(int kind, int amount, int size, int angle, int cx, int cy) {
-    return nativeDistortion(kind, amount, size, angle, cx, cy);
+    return canvasEffects.distortion(kind,amount,size,angle,cx,cy);
   }
 
-  private static native boolean nativeBlur(int kind, int amount, int angle, int cx, int cy);
+  static native boolean nativeBlur(int kind, int amount, int angle, int cx, int cy);
 
   public boolean blur(int kind, int amount, int angle, int cx, int cy) {
-    return nativeBlur(kind, amount, angle, cx, cy);
+    return canvasEffects.blur(kind,amount,angle,cx,cy);
   }
 
-  private static native boolean nativeColorAdjustment(int kind, int[] values);
+  static native boolean nativeColorAdjustment(int kind, int[] values);
 
   public boolean colorAdjustment(int kind, int[] values) {
-    return nativeColorAdjustment(kind, values);
+    return canvasEffects.colorAdjustment(kind,values);
   }
 
   public boolean applyEffect(int kind, int amount) {
-    return nativeEffect(kind, amount);
+    return canvasEffects.applyEffect(kind,amount);
   }
 
-  private static native boolean nativeSetEffectSelection(byte[] mask);
+  static native boolean nativeSetEffectSelection(byte[] mask);
 
   byte[] selectionMask() {
-    return SelectionSupport.selectionMask(this);
+    return canvasSelection.selectionMask();
   }
 
   public boolean prepareEffectSelection() {
-    return nativeSetEffectSelection(selectionMask());
+    return canvasEffects.prepareEffectSelection();
   }
 
   public void effectApplied() {
-    refresh();
+    canvasEffects.effectApplied();
   }
 
-  private static native boolean nativeSaveProject(int fd);
+  static native boolean nativeSaveProject(int fd);
 
-  private static native boolean nativeOpenProject(int fd);
+  static native boolean nativeOpenProject(int fd);
 
-  private static native boolean nativeSaveRecovery(int fd, long expectedRevision);
+  static native boolean nativeSaveRecovery(int fd, long expectedRevision);
 
   public boolean writeRecovery(int fd, long expectedRevision) {
-    return nativeSaveRecovery(fd, expectedRevision);
+    return canvasDocument.writeRecovery(fd,expectedRevision);
   }
 
   public boolean writeProject(int fd) {
-    return nativeSaveProject(fd);
+    return canvasDocument.writeProject(fd);
   }
 
   public boolean readProject(int fd) {
-    return nativeOpenProject(fd);
+    return canvasDocument.readProject(fd);
   }
 
   public void projectOpened() {
-    resetDocumentTools();
-    deselect();
-    refresh();
-    fitCanvas();
+    canvasDocument.projectOpened();
   }
 
-  private static native boolean nativeCreate(int w, int h);
+  static native boolean nativeCreate(int w, int h);
 
   static native void nativeBeginEdit();
 
-  private static native boolean nativeClear();
+  static native boolean nativeClear();
 
-  private static native boolean nativeFlipActiveHorizontal();
+  static native boolean nativeFlipActiveHorizontal();
 
-  private static native boolean nativeFlipActiveVertical();
+  static native boolean nativeFlipActiveVertical();
 
-  private static native boolean nativeRotateActive180();
+  static native boolean nativeRotateActive180();
 
-  private static native boolean nativeRotateActive90(boolean clockwise);
+  static native boolean nativeRotateActive90(boolean clockwise);
 
   static native boolean nativeCropActiveSelection(int left, int top, int right, int bottom);
 
@@ -126,55 +131,55 @@ public final class DrawingView extends View {
   static native boolean nativeTrimActiveMasked(
       int left, int top, int width, int height, byte[] mask);
 
-  private static native boolean nativeInvertActiveColors();
+  static native boolean nativeInvertActiveColors();
 
-  private static native boolean nativeGrayscaleActive();
+  static native boolean nativeGrayscaleActive();
 
-  private static native boolean nativeSepiaActive();
+  static native boolean nativeSepiaActive();
 
-  private static native boolean nativeBrightnessActive(int adjustment);
+  static native boolean nativeBrightnessActive(int adjustment);
 
-  private static native boolean nativeContrastActive(int adjustment);
+  static native boolean nativeContrastActive(int adjustment);
 
-  private static native boolean nativeThresholdActive(int threshold);
+  static native boolean nativeThresholdActive(int threshold);
 
-  private static native boolean nativePosterizeActive(int levels);
+  static native boolean nativePosterizeActive(int levels);
 
-  private static native boolean nativeSolarizeActive(int threshold);
+  static native boolean nativeSolarizeActive(int threshold);
 
-  private static native boolean nativeSaturationActive(int adjustment);
+  static native boolean nativeSaturationActive(int adjustment);
 
-  private static native boolean nativeGammaActive(int percent);
+  static native boolean nativeGammaActive(int percent);
 
-  private static native boolean nativeTintActive(
+  static native boolean nativeTintActive(
       int redAdjustment, int greenAdjustment, int blueAdjustment);
 
-  private static native boolean nativeSwapChannelsActive(int mode);
+  static native boolean nativeSwapChannelsActive(int mode);
 
-  private static native boolean nativeColorBalanceActive(
+  static native boolean nativeColorBalanceActive(
       int redPercent, int greenPercent, int bluePercent);
 
-  private static native boolean nativeHueRotateActive(int degrees);
+  static native boolean nativeHueRotateActive(int degrees);
 
-  private static native boolean nativeLevelsActive(int blackPoint, int whitePoint);
+  static native boolean nativeLevelsActive(int blackPoint, int whitePoint);
 
-  private static native boolean nativeExposureActive(int percent);
+  static native boolean nativeExposureActive(int percent);
 
-  private static native boolean nativeDesaturateChannelActive(int channel);
+  static native boolean nativeDesaturateChannelActive(int channel);
 
-  private static native boolean nativeAdjustAlphaActive(int percent);
+  static native boolean nativeAdjustAlphaActive(int percent);
 
-  private static native boolean nativeRemoveChannelActive(int channel);
+  static native boolean nativeRemoveChannelActive(int channel);
 
-  private static native boolean nativeNormalizeActive();
+  static native boolean nativeNormalizeActive();
 
-  private static native boolean nativeQuantizeActive(int step);
+  static native boolean nativeQuantizeActive(int step);
 
-  private static native boolean nativeClampHighlightsActive(int ceiling);
+  static native boolean nativeClampHighlightsActive(int ceiling);
 
-  private static native boolean nativeLiftShadowsActive(int floor);
+  static native boolean nativeLiftShadowsActive(int floor);
 
-  private static native boolean nativeAdjustChannelActive(int channel, int adjustment);
+  static native boolean nativeAdjustChannelActive(int channel, int adjustment);
 
   static native void nativeSetBrushSelection(byte[] mask);
 
@@ -201,9 +206,9 @@ public final class DrawingView extends View {
 
   static native boolean nativeRedo();
 
-  private static native int[] nativePixels();
+  static native int[] nativePixels();
 
-  private static native boolean nativeImport(int[] pixels);
+  static native boolean nativeImport(int[] pixels);
 
   static native int nativePickColor(int x, int y);
 
@@ -220,47 +225,47 @@ public final class DrawingView extends View {
 
   static native boolean nativeMovePixels(int kind, int x0, int y0, int x1, int y1, int dx, int dy);
 
-  private static native int nativeLayerCount();
+  static native int nativeLayerCount();
 
-  private static native int nativeActiveLayer();
+  static native int nativeActiveLayer();
 
-  private static native boolean nativeAddLayer();
+  static native boolean nativeAddLayer();
 
-  private static native boolean nativeSelectLayer(int index);
+  static native boolean nativeSelectLayer(int index);
 
-  private static native boolean nativeDeleteLayer();
+  static native boolean nativeDeleteLayer();
 
-  private static native boolean nativeToggleLayer();
+  static native boolean nativeToggleLayer();
 
-  private static native boolean nativeLayerVisible(int index);
+  static native boolean nativeLayerVisible(int index);
 
-  private static native boolean nativeMoveLayer(int direction);
+  static native boolean nativeMoveLayer(int direction);
 
-  private static native boolean nativeSetLayerOpacity(float opacity);
+  static native boolean nativeSetLayerOpacity(float opacity);
 
-  private static native float nativeLayerOpacity();
+  static native float nativeLayerOpacity();
 
-  private static native int[] nativeLayerThumbnail(int index);
+  static native int[] nativeLayerThumbnail(int index);
 
   int canvasWidth = 800, canvasHeight = 800;
 
-  private static native boolean nativeLoadBitmap(int w, int h, int[] pixels);
+  static native boolean nativeLoadBitmap(int w, int h, int[] pixels);
 
-  private static native int nativeWidth();
+  static native int nativeWidth();
 
-  private static native int nativeHeight();
+  static native int nativeHeight();
 
-  private static native boolean nativeResizeDocument(int w, int h, boolean scalePixels);
+  static native boolean nativeResizeDocument(int w, int h, boolean scalePixels);
 
-  private static native boolean nativeResizeDocumentOptions(
+  static native boolean nativeResizeDocumentOptions(
       int w, int h, boolean scalePixels, boolean bilinear, int anchor);
 
-  private static native boolean nativeCropDocument(int left, int top, int w, int h);
+  static native boolean nativeCropDocument(int left, int top, int w, int h);
 
-  private static native long nativeRevision();
+  static native long nativeRevision();
 
   public long revision() {
-    return nativeRevision();
+    return canvasDocument.revision();
   }
 
   public boolean hasPendingCurve() {
@@ -272,35 +277,31 @@ public final class DrawingView extends View {
   }
 
   public int documentWidth() {
-    return canvasWidth;
+    return canvasDocument.documentWidth();
   }
 
   public int documentHeight() {
-    return canvasHeight;
+    return canvasDocument.documentHeight();
   }
 
   public boolean resizeDocument(int w, int h, boolean scalePixels) {
-    return resizeDocument(w, h, scalePixels, false, 0);
+    return canvasDocument.resizeDocument(w,h,scalePixels);
   }
 
   public boolean resizeDocument(int w, int h, boolean scalePixels, boolean bilinear, int anchor) {
-    if (!resizeDocumentPixels(w, h, scalePixels, bilinear, anchor)) return false;
-    documentResized();
-    return true;
+    return canvasDocument.resizeDocument(w,h,scalePixels,bilinear,anchor);
   }
 
   public boolean resizeDocumentPixels(
       int w, int h, boolean scalePixels, boolean bilinear, int anchor) {
-    return nativeResizeDocumentOptions(w, h, scalePixels, bilinear, anchor);
+    return canvasDocument.resizeDocumentPixels(w,h,scalePixels,bilinear,anchor);
   }
 
   public void documentResized() {
-    deselect();
-    refresh();
-    fitCanvas();
+    canvasDocument.documentResized();
   }
 
-  private void resetDocumentTools() {
+  void resetDocumentTools() {
     cursorX = cursorY = -1;
     cancelCurve();
     savedCurves.clear();
@@ -315,96 +316,63 @@ public final class DrawingView extends View {
   }
 
   public boolean newDocument(int w, int h) {
-    if (w <= 0 || h <= 0 || w > 8192 || h > 8192 || (long) w * h > 4000000 || !nativeCreate(w, h))
-      return false;
-    resetDocumentTools();
-    deselect();
-    refresh();
-    fitCanvas();
-    return true;
+    return canvasDocument.newDocument(w,h);
   }
 
   public boolean cropDocument() {
-    if (!hasSelection()) return false;
-    int left = (int) Math.floor(selectionLeft), top = (int) Math.floor(selectionTop);
-    if (!nativeCropDocument(
-        left, top, (int) Math.ceil(selectionRight) - left, (int) Math.ceil(selectionBottom) - top))
-      return false;
-    deselect();
-    refresh();
-    fitCanvas();
-    return true;
+    return canvasDocument.cropDocument();
   }
 
   final Viewport viewport = new Viewport(canvasWidth, canvasHeight);
-  private boolean navigating;
-  private float gestureX, gestureY, gestureDistance, gestureAngle;
-  private int cursorX = -1, cursorY = -1;
+  boolean navigating;
+  float gestureX, gestureY, gestureDistance, gestureAngle;
+  int cursorX = -1, cursorY = -1;
 
   public String cursorStatus() {
-    return cursorX < 0 ? "" : "  |  X: " + cursorX + " Y: " + cursorY;
+    return canvasViewport.cursorStatus();
   }
 
-  private void updateCursor(float x, float y) {
-    int cx = (int) Math.floor(x), cy = (int) Math.floor(y);
-    if (cx < 0 || cy < 0 || cx >= canvasWidth || cy >= canvasHeight) {
-      cx = -1;
-      cy = -1;
-    }
-    if (cx != cursorX || cy != cursorY) {
-      cursorX = cx;
-      cursorY = cy;
-      if (viewportChangedListener != null) viewportChangedListener.run();
-    }
+  void updateCursor(float x, float y) {
+    canvasInput.updateCursor(x,y);
   }
 
   @Override
   public boolean onHoverEvent(MotionEvent event) {
-    if (event.getActionMasked() == MotionEvent.ACTION_HOVER_EXIT) updateCursor(-1, -1);
-    else
-      updateCursor(
-          (float) viewport.documentX(event.getX(), event.getY()),
-          (float) viewport.documentY(event.getX(), event.getY()));
-    return true;
+    return canvasInput.onHoverEvent(event);
   }
 
-  private Runnable viewportChangedListener;
+  Runnable viewportChangedListener;
 
   public void setOnViewportChangedListener(Runnable listener) {
     viewportChangedListener = listener;
   }
 
   public float zoomPercent() {
-    return (float) (viewport.scale * 100);
+    return canvasViewport.zoomPercent();
   }
 
   public float rotationDegrees() {
-    return (float) viewport.angle;
+    return canvasViewport.rotationDegrees();
   }
 
   void viewportChanged() {
-    invalidate();
-    if (viewportChangedListener != null) viewportChangedListener.run();
+    canvasViewport.viewportChanged();
   }
 
   public void fitCanvas() {
-    viewport.fit(getWidth(), getHeight());
-    viewportChanged();
+    canvasViewport.fitCanvas();
   }
 
   public void zoomBy(float factor) {
-    viewport.zoom(viewport.scale * factor, getWidth() / 2., getHeight() / 2.);
-    viewportChanged();
+    canvasViewport.zoomBy(factor);
   }
 
   public void setZoomPercent(float percent) {
-    viewport.zoom(percent / 100., getWidth() / 2., getHeight() / 2.);
-    viewportChanged();
+    canvasViewport.setZoomPercent(percent);
   }
 
   public void rotateView(float degrees) {
-    viewport.rotate(degrees, getWidth() / 2., getHeight() / 2.);
-    viewportChanged();
+    canvasViewport.rotateView(degrees);
   }
 
   @Override
@@ -418,20 +386,12 @@ public final class DrawingView extends View {
     viewportChanged();
   }
 
-  private void recordGesture(MotionEvent event) {
-    gestureX = (event.getX(0) + event.getX(1)) / 2f;
-    gestureY = (event.getY(0) + event.getY(1)) / 2f;
-    float dx = event.getX(1) - event.getX(0), dy = event.getY(1) - event.getY(0);
-    gestureDistance = (float) Math.hypot(dx, dy);
-    gestureAngle = (float) Math.toDegrees(Math.atan2(dy, dx));
+  void recordGesture(MotionEvent event) {
+    canvasInput.recordGesture(event);
   }
 
-  private void cancelToolGesture() {
-    Tools.controller(tool).cancel(this);
-    drawing = false;
-    movingSelection = false;
-    movingPixels = false;
-    invalidate();
+  void cancelToolGesture() {
+    canvasInput.cancelToolGesture();
   }
 
   public static final int BRUSH = 0,
@@ -631,7 +591,7 @@ public final class DrawingView extends View {
   int selectionTool;
   float selectionLeft, selectionTop, selectionRight, selectionBottom;
   final Paint selectionPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-  private Runnable canvasChangedListener;
+  Runnable canvasChangedListener;
   java.util.function.IntConsumer pickedColorListener;
 
   public void setOnColorPickedListener(java.util.function.IntConsumer listener) {
@@ -653,78 +613,59 @@ public final class DrawingView extends View {
   }
 
   public boolean setLayerOpacity(float opacity) {
-    boolean ok = nativeSetLayerOpacity(opacity);
-    if (ok) refresh();
-    return ok;
+    return layerOperations.setLayerOpacity(opacity);
   }
 
   public float layerOpacity() {
-    return nativeLayerOpacity();
+    return layerOperations.layerOpacity();
   }
 
   public Bitmap layerThumbnail(int index) {
-    int[] pixels = nativeLayerThumbnail(index);
-    if (pixels == null || pixels.length != 48 * 48) return null;
-    return Bitmap.createBitmap(pixels, 48, 48, Bitmap.Config.ARGB_8888);
+    return layerOperations.layerThumbnail(index);
   }
 
-  private static native String nativeLayerName(int index);
+  static native String nativeLayerName(int index);
 
-  private static native boolean nativeRenameLayer(int index, String name);
+  static native boolean nativeRenameLayer(int index, String name);
 
   public String layerName(int index) {
-    String name = nativeLayerName(index);
-    return name == null ? "Capa " + (index + 1) : name;
+    return layerOperations.layerName(index);
   }
 
   public boolean renameLayer(int index, String name) {
-    if (name == null || name.trim().isEmpty()) return false;
-    boolean ok = nativeRenameLayer(index, name.trim());
-    if (ok) refresh();
-    return ok;
+    return layerOperations.renameLayer(index,name);
   }
 
   public int layerCount() {
-    return nativeLayerCount();
+    return layerOperations.layerCount();
   }
 
   public int activeLayer() {
-    return nativeActiveLayer();
+    return layerOperations.activeLayer();
   }
 
   public boolean layerVisible(int index) {
-    return nativeLayerVisible(index);
+    return layerOperations.layerVisible(index);
   }
 
   public boolean addLayer() {
-    boolean ok = nativeAddLayer();
-    if (ok) refresh();
-    return ok;
+    return layerOperations.addLayer();
   }
 
   public boolean selectLayer(int index) {
-    confirmCurve();
-    boolean ok = nativeSelectLayer(index);
-    if (ok) refresh();
-    return ok;
+    return layerOperations.selectLayer(index);
   }
 
   public boolean deleteLayer() {
-    boolean ok = nativeDeleteLayer();
-    if (ok) refresh();
-    return ok;
+    return layerOperations.deleteLayer();
   }
 
   public boolean toggleLayer() {
-    boolean ok = nativeToggleLayer();
-    if (ok) refresh();
-    return ok;
+    return layerOperations.toggleLayer();
   }
 
   public boolean moveLayer(int direction) {
-    boolean ok = nativeMoveLayer(direction);
-    if (ok) refresh();
-    return ok;
+    return layerOperations.moveLayer(direction);
   }
 
   public void setColor(int value) {
@@ -763,237 +704,151 @@ public final class DrawingView extends View {
   }
 
   public boolean transformSelection(float degrees, float sx, float sy) {
-    return MovePixelsTool.transformSelection(this, degrees, sx, sy);
+    return canvasSelection.transformSelection(degrees,sx,sy);
   }
 
   public boolean hasSelection() {
-    return hasSelection
-        && selectionRight - selectionLeft >= 1f
-        && selectionBottom - selectionTop >= 1f;
+    return canvasSelection.hasSelection();
   }
 
   public boolean shrinkSelectionOnePixel() {
-    return SelectionSupport.shrinkSelectionOnePixel(this);
+    return canvasSelection.shrinkSelectionOnePixel();
   }
 
   public boolean expandSelectionOnePixel() {
-    return SelectionSupport.expandSelectionOnePixel(this);
+    return canvasSelection.expandSelectionOnePixel();
   }
 
   public boolean invertSelection() {
-    return SelectionSupport.invertSelection(this);
+    return canvasSelection.invertSelection();
   }
 
   public boolean selectionContains(int px, int py) {
-    return SelectionSupport.selectionContains(this, px, py);
+    return canvasSelection.selectionContains(px,py);
   }
 
   public boolean flipActiveHorizontal() {
-    if (!nativeFlipActiveHorizontal()) return false;
-    deselect();
-    refresh();
-    return true;
+    return canvasEffects.flipActiveHorizontal();
   }
 
   public boolean flipActiveVertical() {
-    if (!nativeFlipActiveVertical()) return false;
-    deselect();
-    refresh();
-    return true;
+    return canvasEffects.flipActiveVertical();
   }
 
   public boolean rotateActive180() {
-    if (!nativeRotateActive180()) return false;
-    deselect();
-    refresh();
-    return true;
+    return canvasEffects.rotateActive180();
   }
 
   public boolean rotateActive90(boolean clockwise) {
-    if (!nativeRotateActive90(clockwise)) return false;
-    deselect();
-    refresh();
-    return true;
+    return canvasEffects.rotateActive90(clockwise);
   }
 
   public boolean adjustChannelActive(int channel, int adjustment) {
-    if (!nativeAdjustChannelActive(channel, adjustment)) return false;
-    deselect();
-    refresh();
-    return true;
+    return canvasEffects.adjustChannelActive(channel,adjustment);
   }
 
   public boolean liftShadowsActive(int floor) {
-    if (!nativeLiftShadowsActive(floor)) return false;
-    deselect();
-    refresh();
-    return true;
+    return canvasEffects.liftShadowsActive(floor);
   }
 
   public boolean clampHighlightsActive(int ceiling) {
-    if (!nativeClampHighlightsActive(ceiling)) return false;
-    deselect();
-    refresh();
-    return true;
+    return canvasEffects.clampHighlightsActive(ceiling);
   }
 
   public boolean quantizeActive(int step) {
-    if (!nativeQuantizeActive(step)) return false;
-    deselect();
-    refresh();
-    return true;
+    return canvasEffects.quantizeActive(step);
   }
 
   public boolean normalizeActive() {
-    if (!nativeNormalizeActive()) return false;
-    deselect();
-    refresh();
-    return true;
+    return canvasEffects.normalizeActive();
   }
 
   public boolean removeChannelActive(int channel) {
-    if (!nativeRemoveChannelActive(channel)) return false;
-    deselect();
-    refresh();
-    return true;
+    return canvasEffects.removeChannelActive(channel);
   }
 
   public boolean adjustAlphaActive(int percent) {
-    if (!nativeAdjustAlphaActive(percent)) return false;
-    deselect();
-    refresh();
-    return true;
+    return canvasEffects.adjustAlphaActive(percent);
   }
 
   public boolean grayscaleFromChannelActive(int channel) {
-    if (!nativeDesaturateChannelActive(channel)) return false;
-    deselect();
-    refresh();
-    return true;
+    return canvasEffects.grayscaleFromChannelActive(channel);
   }
 
   public boolean exposureActive(int percent) {
-    if (!nativeExposureActive(percent)) return false;
-    deselect();
-    refresh();
-    return true;
+    return canvasEffects.exposureActive(percent);
   }
 
   public boolean levelsActive(int blackPoint, int whitePoint) {
-    if (!nativeLevelsActive(blackPoint, whitePoint)) return false;
-    deselect();
-    refresh();
-    return true;
+    return canvasEffects.levelsActive(blackPoint,whitePoint);
   }
 
   public boolean hueRotateActive(int degrees) {
-    if (!nativeHueRotateActive(degrees)) return false;
-    deselect();
-    refresh();
-    return true;
+    return canvasEffects.hueRotateActive(degrees);
   }
 
   public boolean colorBalanceActive(int redPercent, int greenPercent, int bluePercent) {
-    if (!nativeColorBalanceActive(redPercent, greenPercent, bluePercent)) return false;
-    deselect();
-    refresh();
-    return true;
+    return canvasEffects.colorBalanceActive(redPercent,greenPercent,bluePercent);
   }
 
   public boolean swapChannelsActive(int mode) {
-    if (!nativeSwapChannelsActive(mode)) return false;
-    deselect();
-    refresh();
-    return true;
+    return canvasEffects.swapChannelsActive(mode);
   }
 
   public boolean tintActive(int red, int green, int blue) {
-    if (!nativeTintActive(red, green, blue)) return false;
-    deselect();
-    refresh();
-    return true;
+    return canvasEffects.tintActive(red,green,blue);
   }
 
   public boolean gammaActive(int percent) {
-    if (!nativeGammaActive(percent)) return false;
-    deselect();
-    refresh();
-    return true;
+    return canvasEffects.gammaActive(percent);
   }
 
   public boolean saturationActive(int adjustment) {
-    if (!nativeSaturationActive(adjustment)) return false;
-    deselect();
-    refresh();
-    return true;
+    return canvasEffects.saturationActive(adjustment);
   }
 
   public boolean solarizeActive(int threshold) {
-    if (!nativeSolarizeActive(threshold)) return false;
-    deselect();
-    refresh();
-    return true;
+    return canvasEffects.solarizeActive(threshold);
   }
 
   public boolean posterizeActive(int levels) {
-    if (!nativePosterizeActive(levels)) return false;
-    deselect();
-    refresh();
-    return true;
+    return canvasEffects.posterizeActive(levels);
   }
 
   public boolean thresholdActive(int threshold) {
-    if (!nativeThresholdActive(threshold)) return false;
-    deselect();
-    refresh();
-    return true;
+    return canvasEffects.thresholdActive(threshold);
   }
 
   public boolean contrastActive(int adjustment) {
-    if (!nativeContrastActive(adjustment)) return false;
-    deselect();
-    refresh();
-    return true;
+    return canvasEffects.contrastActive(adjustment);
   }
 
   public boolean brightnessActive(int adjustment) {
-    if (!nativeBrightnessActive(adjustment)) return false;
-    deselect();
-    refresh();
-    return true;
+    return canvasEffects.brightnessActive(adjustment);
   }
 
   public boolean sepiaActive() {
-    if (!nativeSepiaActive()) return false;
-    deselect();
-    refresh();
-    return true;
+    return canvasEffects.sepiaActive();
   }
 
   public boolean grayscaleActive() {
-    if (!nativeGrayscaleActive()) return false;
-    deselect();
-    refresh();
-    return true;
+    return canvasEffects.grayscaleActive();
   }
 
   public boolean invertActiveColors() {
-    if (!nativeInvertActiveColors()) return false;
-    deselect();
-    refresh();
-    return true;
+    return canvasEffects.invertActiveColors();
   }
 
   public boolean trimActiveToFreeSelection() {
-    return SelectionSupport.trimActiveToFreeSelection(this);
+    return canvasSelection.trimActiveToFreeSelection();
   }
 
   public boolean trimActiveToEllipseSelection() {
-    return SelectionSupport.trimActiveToEllipseSelection(this);
+    return canvasSelection.trimActiveToEllipseSelection();
   }
 
   public boolean trimActiveToRectSelection() {
-    return SelectionSupport.trimActiveToRectSelection(this);
+    return canvasSelection.trimActiveToRectSelection();
   }
 
   public void clear() {
@@ -1004,52 +859,31 @@ public final class DrawingView extends View {
   }
 
   public boolean pasteBitmap(Bitmap source) {
-    if (source == null || source.isRecycled()) return false;
-    int w = source.getWidth(), h = source.getHeight();
-    if (w <= 0
-        || h <= 0
-        || w > canvasWidth
-        || h > canvasHeight
-        || ((long) w * h) > canvasWidth * canvasHeight) return false;
-    int[] data = new int[2 + w * h];
-    data[0] = w;
-    data[1] = h;
-    source.getPixels(data, 2, w, 0, 0, w, h);
-    int x = hasSelection() ? (int) selectionLeft : (canvasWidth - w) / 2;
-    int y = hasSelection() ? (int) selectionTop : (canvasHeight - h) / 2;
-    x = Math.max(0, Math.min(canvasWidth - w, x));
-    y = Math.max(0, Math.min(canvasHeight - h, y));
-    boolean ok = nativePasteSelection(data, x, y);
-    if (ok) {
-      deselect();
-      refresh();
-    }
-    return ok;
+    return canvasDocument.pasteBitmap(source);
   }
 
   public Bitmap copySelection() {
-    return SelectionSupport.copySelection(this);
+    return canvasSelection.copySelection();
   }
 
   public boolean eraseSelection() {
-    return SelectionSupport.eraseSelection(this);
+    return canvasSelection.eraseSelection();
   }
 
   public void selectAll() {
-    SelectionSupport.selectAll(this);
+    canvasSelection.selectAll();
   }
 
   public void deselect() {
-    SelectionSupport.deselect(this);
+    canvasSelection.deselect();
   }
 
   public void enableSelectionMove() {
-    tool = MOVE_SELECTION;
-    invalidate();
+    canvasSelection.enableSelectionMove();
   }
 
   public boolean moveSelectedPixels(int dx, int dy) {
-    return MovePixelsTool.moveSelectedPixels(this, dx, dy);
+    return canvasSelection.moveSelectedPixels(dx,dy);
   }
 
   public void undo() {
@@ -1061,180 +895,146 @@ public final class DrawingView extends View {
   }
 
   public boolean loadBitmap(Bitmap source) {
-    if (source == null || source.isRecycled()) return false;
-    int w = source.getWidth(), h = source.getHeight();
-    if (w > 8192 || h > 8192 || (long) w * h > 4000000) return false;
-    int[] pixels = new int[w * h];
-    source.getPixels(pixels, 0, w, 0, 0, w, h);
-    if (!nativeLoadBitmap(w, h, pixels)) return false;
-    resetDocumentTools();
-    deselect();
-    refresh();
-    fitCanvas();
-    return true;
+    return canvasDocument.loadBitmap(source);
   }
 
   public Bitmap snapshot() {
-    if (strokeRefreshPending) refresh();
-    confirmCurve();
-    return bitmap.copy(Bitmap.Config.ARGB_8888, false);
+    return canvasDocument.snapshot();
   }
 
-  private boolean strokeRefreshPending;
-  private int dirtyLeft=Integer.MAX_VALUE, dirtyTop=Integer.MAX_VALUE, dirtyRight, dirtyBottom;
+  boolean strokeRefreshPending;
+  int dirtyLeft=Integer.MAX_VALUE, dirtyTop=Integer.MAX_VALUE, dirtyRight, dirtyBottom;
   static native int[] nativeRegionPixels(int x,int y,int width,int height);
 
   void noteStrokeBounds(float x0,float y0,float x1,float y1,float radius) {
-    float margin=Math.min(radius,2048)+2;
-    dirtyLeft=Math.min(dirtyLeft,Math.max(0,(int)Math.floor(Math.min(x0,x1)-margin)));
-    dirtyTop=Math.min(dirtyTop,Math.max(0,(int)Math.floor(Math.min(y0,y1)-margin)));
-    dirtyRight=Math.max(dirtyRight,Math.min(canvasWidth,(int)Math.ceil(Math.max(x0,x1)+margin)));
-    dirtyBottom=Math.max(dirtyBottom,Math.min(canvasHeight,(int)Math.ceil(Math.max(y0,y1)+margin)));
+    canvasRendering.noteStrokeBounds(x0,y0,x1,y1,radius);
   }
 
-  private void refreshStrokePixels() {
-    int w=dirtyRight-dirtyLeft,h=dirtyBottom-dirtyTop;
-    if(w>0 && h>0) {
-      int[] pixels=nativeRegionPixels(dirtyLeft,dirtyTop,w,h);
-      if(pixels!=null && pixels.length==w*h)
-        bitmap.setPixels(pixels,0,w,dirtyLeft,dirtyTop,w,h);
-    }
-    dirtyLeft=dirtyTop=Integer.MAX_VALUE;dirtyRight=dirtyBottom=0;
-    invalidate();
+  void refreshStrokePixels() {
+    canvasRendering.refreshStrokePixels();
   }
-  private final Runnable strokeRefresh = () -> {
+  final Runnable strokeRefresh = () -> {
     strokeRefreshPending = false;
     refreshStrokePixels();
   };
 
   // Coalesce pointer events into one pixel transfer per display frame.
   void requestStrokeRefresh() {
-    if (!strokeRefreshPending) {
-      strokeRefreshPending = true;
-      postOnAnimation(strokeRefresh);
-    }
+    canvasRendering.requestStrokeRefresh();
   }
 
   void refresh() {
-    removeCallbacks(strokeRefresh);
-    strokeRefreshPending = false;
-    dirtyLeft=dirtyTop=Integer.MAX_VALUE;dirtyRight=dirtyBottom=0;
-    refreshPixels();
-    if (canvasChangedListener != null) canvasChangedListener.run();
-    viewportChanged();
+    canvasRendering.refresh();
   }
 
-  private void refreshPixels() {
-    int width = nativeWidth(), height = nativeHeight();
-    int[] pixels = nativePixels();
-    if (width <= 0 || height <= 0 || pixels == null || pixels.length != (long) width * height)
-      return;
-    if (width != canvasWidth || height != canvasHeight) {
-      Bitmap replacement = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-      bitmap.recycle();
-      bitmap = replacement;
-      canvasWidth = width;
-      canvasHeight = height;
-      viewport.documentSize(width, height);
-    }
-    bitmap.setPixels(pixels, 0, width, 0, 0, width, height);
-    invalidate();
+  void refreshPixels() {
+    canvasRendering.refreshPixels();
   }
 
   final Paint checkerPaint = new Paint();
 
   @Override
   protected void onDraw(Canvas canvas) {
-    super.onDraw(canvas);
-    WorkspaceRenderer.draw(this, canvas);
+    canvasRendering.onDraw(canvas);
   }
 
   void selectMatchingRegion(int sx, int sy) {
-    MagicWandTool.selectMatchingRegion(this, sx, sy);
+    canvasSelection.selectMatchingRegion(sx,sy);
   }
 
   void translateSelectionMask(int dx, int dy) {
-    MoveSelectionTool.translateSelectionMask(this, dx, dy);
+    canvasSelection.translateSelectionMask(dx,dy);
   }
 
-  private void restoreMovedSelection() {
-    MoveSelectionTool.restoreMovedSelection(this);
+  void restoreMovedSelection() {
+    canvasSelection.restoreMovedSelection();
   }
 
   void updateMovedSelection(float x, float y) {
-    MoveSelectionTool.updateMovedSelection(this, x, y);
+    canvasSelection.updateMovedSelection(x,y);
   }
 
   void updateSelection(float x, float y) {
-    SelectionSupport.updateSelection(this, x, y);
+    canvasSelection.updateSelection(x,y);
   }
 
   @Override
   public boolean onTouchEvent(MotionEvent event) {
-    if (!isEnabled() || getWidth() <= 0 || getHeight() <= 0) return false;
-    int action = event.getActionMasked();
-    if (action == MotionEvent.ACTION_POINTER_DOWN && event.getPointerCount() >= 2) {
-      cancelToolGesture();
-      navigating = true;
-      recordGesture(event);
-      getParent().requestDisallowInterceptTouchEvent(true);
-      return true;
-    }
-    if (navigating) {
-      if (action == MotionEvent.ACTION_MOVE && event.getPointerCount() == 2) {
-        float oldX = gestureX,
-            oldY = gestureY,
-            oldDistance = gestureDistance,
-            oldAngle = gestureAngle;
-        recordGesture(event);
-        float delta = gestureAngle - oldAngle;
-        while (delta > 180) delta -= 360;
-        while (delta < -180) delta += 360;
-        if (oldDistance > 1)
-          viewport.gesture(oldX, oldY, gestureX, gestureY, gestureDistance / oldDistance, delta);
-        viewportChanged();
-      } else if (action == MotionEvent.ACTION_POINTER_UP && event.getPointerCount() > 2) {
-        gestureDistance = 0;
-      } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
-        navigating = false;
-        getParent().requestDisallowInterceptTouchEvent(false);
-      }
-      return true;
-    }
-    if (tool == PAN || tool == ZOOM) return Tools.controller(tool).screen(this, event);
-    float x = (float) viewport.documentX(event.getX(), event.getY());
-    float y = (float) viewport.documentY(event.getX(), event.getY());
-    updateCursor(x, y);
-    switch (event.getActionMasked()) {
-      case MotionEvent.ACTION_DOWN:
-        if (x < 0 || y < 0 || x >= canvasWidth || y >= canvasHeight) return true;
-        getParent().requestDisallowInterceptTouchEvent(true);
-        drawing = true;
-        strokeEditing = false;
-        startX = previousX = x;
-        startY = previousY = y;
-        Tools.controller(tool).down(this, x, y, event);
-        return true;
-      case MotionEvent.ACTION_MOVE:
-        if (!drawing) return true;
-        Tools.controller(tool).move(this, x, y, event);
-        previousX = x;
-        previousY = y;
-        return true;
-      case MotionEvent.ACTION_UP:
-        getParent().requestDisallowInterceptTouchEvent(false);
-        if (drawing) {
-          Tools.controller(tool).up(this, x, y, event);
-          drawing = false;
-          refresh();
-        }
-        return true;
-      case MotionEvent.ACTION_CANCEL:
-        getParent().requestDisallowInterceptTouchEvent(false);
-        cancelToolGesture();
-        return true;
-      default:
-        return true;
-    }
+    return canvasInput.onTouchEvent(event);
   }
+
+  void defaultDraw(Canvas canvas) { super.onDraw(canvas); }
+  boolean defaultTouchEvent(MotionEvent event) { return super.onTouchEvent(event); }
+  boolean defaultHoverEvent(MotionEvent event) { return super.onHoverEvent(event); }
+
+  // Workspace composition API: components do not access host fields directly.
+  int readDirtyLeft() { return dirtyLeft; }
+  int writeDirtyLeft(int value) { dirtyLeft = value; return value; }
+  int readDirtyTop() { return dirtyTop; }
+  int writeDirtyTop(int value) { dirtyTop = value; return value; }
+  int readDirtyRight() { return dirtyRight; }
+  int writeDirtyRight(int value) { dirtyRight = value; return value; }
+  int readCanvasWidth() { return canvasWidth; }
+  int writeCanvasWidth(int value) { canvasWidth = value; return value; }
+  int readDirtyBottom() { return dirtyBottom; }
+  int writeDirtyBottom(int value) { dirtyBottom = value; return value; }
+  int readCanvasHeight() { return canvasHeight; }
+  int writeCanvasHeight(int value) { canvasHeight = value; return value; }
+  android.graphics.Bitmap readBitmap() { return bitmap; }
+  android.graphics.Bitmap writeBitmap(android.graphics.Bitmap value) { bitmap = value; return value; }
+  boolean readStrokeRefreshPending() { return strokeRefreshPending; }
+  boolean writeStrokeRefreshPending(boolean value) { strokeRefreshPending = value; return value; }
+  java.lang.Runnable readStrokeRefresh() { return strokeRefresh; }
+  java.lang.Runnable readCanvasChangedListener() { return canvasChangedListener; }
+  java.lang.Runnable writeCanvasChangedListener(java.lang.Runnable value) { canvasChangedListener = value; return value; }
+  art.velyntora.core.Viewport readViewport() { return viewport; }
+  int readColor() { return color; }
+  int writeColor(int value) { color = value; return value; }
+  int readCursorX() { return cursorX; }
+  int writeCursorX(int value) { cursorX = value; return value; }
+  int readCursorY() { return cursorY; }
+  int writeCursorY(int value) { cursorY = value; return value; }
+  java.lang.Runnable readViewportChangedListener() { return viewportChangedListener; }
+  java.lang.Runnable writeViewportChangedListener(java.lang.Runnable value) { viewportChangedListener = value; return value; }
+  float readGestureX() { return gestureX; }
+  float writeGestureX(float value) { gestureX = value; return value; }
+  float readGestureY() { return gestureY; }
+  float writeGestureY(float value) { gestureY = value; return value; }
+  float readGestureDistance() { return gestureDistance; }
+  float writeGestureDistance(float value) { gestureDistance = value; return value; }
+  float readGestureAngle() { return gestureAngle; }
+  float writeGestureAngle(float value) { gestureAngle = value; return value; }
+  int readTool() { return tool; }
+  int writeTool(int value) { tool = value; return value; }
+  boolean readDrawing() { return drawing; }
+  boolean writeDrawing(boolean value) { drawing = value; return value; }
+  boolean readMovingSelection() { return movingSelection; }
+  boolean writeMovingSelection(boolean value) { movingSelection = value; return value; }
+  boolean readMovingPixels() { return movingPixels; }
+  boolean writeMovingPixels(boolean value) { movingPixels = value; return value; }
+  boolean readNavigating() { return navigating; }
+  boolean writeNavigating(boolean value) { navigating = value; return value; }
+  int readPAN() { return PAN; }
+  int readZOOM() { return ZOOM; }
+  boolean readStrokeEditing() { return strokeEditing; }
+  boolean writeStrokeEditing(boolean value) { strokeEditing = value; return value; }
+  float readStartX() { return startX; }
+  float writeStartX(float value) { startX = value; return value; }
+  float readPreviousX() { return previousX; }
+  float writePreviousX(float value) { previousX = value; return value; }
+  float readStartY() { return startY; }
+  float writeStartY(float value) { startY = value; return value; }
+  float readPreviousY() { return previousY; }
+  float writePreviousY(float value) { previousY = value; return value; }
+  float readSelectionLeft() { return selectionLeft; }
+  float writeSelectionLeft(float value) { selectionLeft = value; return value; }
+  float readSelectionTop() { return selectionTop; }
+  float writeSelectionTop(float value) { selectionTop = value; return value; }
+  float readSelectionRight() { return selectionRight; }
+  float writeSelectionRight(float value) { selectionRight = value; return value; }
+  float readSelectionBottom() { return selectionBottom; }
+  float writeSelectionBottom(float value) { selectionBottom = value; return value; }
+  boolean readHasSelection() { return hasSelection; }
+  boolean writeHasSelection(boolean value) { hasSelection = value; return value; }
+  int readMOVE_SELECTION() { return MOVE_SELECTION; }
 }
