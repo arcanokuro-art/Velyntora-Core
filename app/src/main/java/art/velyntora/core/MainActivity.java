@@ -571,8 +571,8 @@ public final class MainActivity extends Activity {
         menu(menus, "Capas", new String[]{"Añadir capa", "Seleccionar capa", "Eliminar capa", "Mostrar / ocultar", "Subir capa", "Bajar capa"},
             new Runnable[]{this::addLayer, this::chooseLayer, this::deleteLayer, this::toggleLayer,
                 () -> moveLayer(1), () -> moveLayer(-1)});
-        menu(menus, "Herramientas", new String[]{"Tolerancia de varita mágica", "Configurar pincel", "Elegir color…"},
-            new Runnable[]{this::configureWandTolerance, this::configureBrush, this::configureColor});
+        menu(menus, "Herramientas", new String[]{"Tolerancia de varita mágica", "Configurar pincel", "Elegir color…", "Confirmar Línea/Curva", "Cancelar Línea/Curva"},
+            new Runnable[]{this::configureWandTolerance, this::configureBrush, this::configureColor, drawing::confirmCurve, drawing::cancelCurve});
         AdjustmentDialogs filters=new AdjustmentDialogs(this,drawing);
         menu(menus, "Efectos",new String[]{"Básicos","Desenfoques","Distorsiones","Arte y fotografía","Generadores","Más filtros","Objetos"},new Runnable[]{()->new AlertDialog.Builder(this).setTitle("Efectos básicos").setItems(new String[]{"Desenfoque de caja…","Enfocar…","Detectar bordes…","Repujado…","Pixelar…","Ruido…","Viñeta…"},(d,k)->configureEffect(k)).show(),filters::openBlurMenu,filters::openDistortionMenu,filters::openArtisticMenu,filters::openRenderMenu,filters::openUtilityMenu,filters::openObjectMenu});
         menu(menus, "Ayuda", new String[]{"Acerca de"},

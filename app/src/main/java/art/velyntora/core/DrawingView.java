@@ -294,7 +294,7 @@ public final class DrawingView extends View {
  @Override public void setEnabled(boolean enabled){if(!enabled)confirmCurve();super.setEnabled(enabled);}
  public void setTool(int value){
   if(value<BRUSH||value>RECOLOR)return;
-  if(value!=LINE&&curve!=null)confirmCurve();
+  if(value!=LINE){if(curve!=null)confirmCurve();else if(canceledCurve!=null)cancelCurve();}
   if(value==CLONE)cloneOriginReady=false;
   tool=value;
   // Switching away from a selection tool must not leave a selection
@@ -558,7 +558,7 @@ public final class DrawingView extends View {
   if(ok){selectionLeft+=dx;selectionRight+=dx;selectionTop+=dy;selectionBottom+=dy;refresh();}
   return ok;
  }
- public void undo(){if(curve!=null){CurveDraft previous=curveHistory.undo(curve);if(previous!=null)curve=previous;else{canceledCurve=curve.copy();curve=null;}invalidate();return;}int tag=nativeCurveTag();if(nativeUndo()){SavedCurve saved=savedCurves.get(tag);deselect();if(saved!=null){curve=saved.geometry.copy();color=saved.color;brushRadius=saved.radius;brushOpacity=saved.opacity;tool=LINE;curveHistory.clear();canceledCurve=null;saved.selection.restore();if(pickedColorListener!=null)pickedColorListener.accept(color);}refresh();}}
+ public void undo(){if(curve!=null){CurveDraft previous=curveHistory.undo(curve);if(previous!=null)curve=previous;else{canceledCurve=curve.copy();curve=null;}invalidate();return;}canceledCurve=null;curveHistory.clear();int tag=nativeCurveTag();if(nativeUndo()){SavedCurve saved=savedCurves.get(tag);deselect();if(saved!=null){curve=saved.geometry.copy();color=saved.color;brushRadius=saved.radius;brushOpacity=saved.opacity;tool=LINE;curveHistory.clear();canceledCurve=null;saved.selection.restore();if(pickedColorListener!=null)pickedColorListener.accept(color);}refresh();}}
  public void redo(){if(canceledCurve!=null){curve=canceledCurve;canceledCurve=null;invalidate();return;}if(curve!=null){CurveDraft next=curveHistory.redo(curve);if(next!=null){curve=next;invalidate();return;}}cancelCurve();if(nativeRedo()){deselect();refresh();}}
  public boolean loadBitmap(Bitmap source){
   if(source==null||source.isRecycled())return false;
