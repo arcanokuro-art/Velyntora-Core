@@ -674,7 +674,7 @@ public final class MainActivity extends Activity {
         tool(toolGrid, "Triángulo", DrawingView.TRIANGLE);
         tool(toolGrid, "Triángulo relleno", DrawingView.FILLED_TRIANGLE);
         tool(toolGrid, "Texto", DrawingView.TEXT);
-        tool(toolGrid, "Degradado: color a transparente; mantener pulsado para elegir tipo", DrawingView.GRADIENT);
+        tool(toolGrid, "Degradado: mantener pulsado para configurar", DrawingView.GRADIENT);
         tool(toolGrid, "Tampón de clonar: primer toque fija origen; seleccionar de nuevo para cambiarlo", DrawingView.CLONE);
         tool(toolGrid, "Recoloración: sustituye el color inicial; tolerancia de varita", DrawingView.RECOLOR);
         tool(toolGrid, "Cubeta", DrawingView.BUCKET);

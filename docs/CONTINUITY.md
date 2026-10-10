@@ -16,6 +16,6 @@ Fuente revisada: conversación compartida https://chatgpt.com/share/6ac933b5-76e
 
 ## Cómo continuar
 
-Consultar `PROGRESS.md`, no aumentar el porcentaje por cantidad de commits. Completar los bloques abiertos 09, 16 y 20. Las implementaciones parciales se describen expresamente y no puntúan como hitos cerrados. Para la paridad exhaustiva, comparar los comandos y herramientas con la referencia Pinta: el denominador de 20 hitos no es una lista de cada comando de Pinta.
+El plan de 20 hitos queda cerrado en `PROGRESS.md` con la integración del PR #3. No aumentar ni reinterpretar el porcentaje por cantidad de commits. Las diferencias de formatos y efectos permanecen en `FORMAT_SUPPORT.md` y `EFFECTS_PARITY.md`; el 100 % del plan no equivale a paridad exhaustiva con cada comando o variante de Pinta. La revisión del APK en el teléfono es la siguiente fase independiente. Nuevas ampliaciones requieren un inventario propio y no deben alterar retroactivamente este denominador.
 
 Comprobar las ejecuciones Android APK y Core tests del SHA publicado. Core tests incluye pruebas de píxeles, capas, proyectos, redimensionado, pinceles y efectos, coordenadas Java y pruebas del puente JNI con llamadas desde una JVM. Mantener el documento intacto al rechazar archivos o entradas inválidas.
