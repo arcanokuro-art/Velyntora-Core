@@ -32,7 +32,7 @@ public final class DrawingView extends View {
  private static native boolean nativeOpenProject(int fd);
  public boolean writeProject(int fd){return nativeSaveProject(fd);}
  public boolean readProject(int fd){return nativeOpenProject(fd);}
- public void projectOpened(){cancelCurve();savedCurves.clear();deselect();refresh();fitCanvas();}
+ public void projectOpened(){resetDocumentTools();deselect();refresh();fitCanvas();}
  private static native boolean nativeCreate(int w,int h);
  private static native void nativeBeginEdit();
  private static native boolean nativeClear();
@@ -107,7 +107,8 @@ public final class DrawingView extends View {
  public boolean resizeDocument(int w,int h,boolean scalePixels,boolean bilinear,int anchor){if(!resizeDocumentPixels(w,h,scalePixels,bilinear,anchor))return false;documentResized();return true;}
  public boolean resizeDocumentPixels(int w,int h,boolean scalePixels,boolean bilinear,int anchor){return nativeResizeDocumentOptions(w,h,scalePixels,bilinear,anchor);}
  public void documentResized(){deselect();refresh();fitCanvas();}
- public boolean newDocument(int w,int h){if(w<=0||h<=0||w>8192||h>8192||(long)w*h>4000000||!nativeCreate(w,h))return false;deselect();refresh();fitCanvas();return true;}
+ private void resetDocumentTools(){cancelCurve();savedCurves.clear();cloneOriginReady=false;drawing=false;strokeEditing=false;movingSelection=false;movingPixels=false;navigating=false;shapePath.reset();dragBackup=null;}
+ public boolean newDocument(int w,int h){if(w<=0||h<=0||w>8192||h>8192||(long)w*h>4000000||!nativeCreate(w,h))return false;resetDocumentTools();deselect();refresh();fitCanvas();return true;}
  public boolean cropDocument(){if(!hasSelection())return false;int left=(int)Math.floor(selectionLeft),top=(int)Math.floor(selectionTop);if(!nativeCropDocument(left,top,(int)Math.ceil(selectionRight)-left,(int)Math.ceil(selectionBottom)-top))return false;deselect();refresh();fitCanvas();return true;}
  private final Viewport viewport=new Viewport(canvasWidth,canvasHeight);
  private boolean navigating;
@@ -566,7 +567,7 @@ public final class DrawingView extends View {
   if(w>8192||h>8192||(long)w*h>4000000)return false;
   int[] pixels=new int[w*h];source.getPixels(pixels,0,w,0,0,w,h);
   if(!nativeLoadBitmap(w,h,pixels))return false;
-  deselect();refresh();fitCanvas();return true;
+  resetDocumentTools();deselect();refresh();fitCanvas();return true;
  }
  public Bitmap snapshot(){confirmCurve();return bitmap.copy(Bitmap.Config.ARGB_8888,false);}
  private void refresh(){

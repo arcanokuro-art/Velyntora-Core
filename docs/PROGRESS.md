@@ -192,3 +192,8 @@ Cada arrastre completado de un tirador tiene Deshacer/Rehacer del borrador, sepa
 ## Netpbm ampliado (hito 16 parcial)
 
 Abrir PBM P1/P4 (blanco/negro) y PGM P2/P5 (escala de grises), además de PPM P3/P6. PBM binario conserva el relleno independiente de cada fila; PGM admite muestras de 8/16 bits con máximo hasta 65535. Rechaza muestras fuera de rango, datos truncados y adicionales. Exportación sigue siendo PPM RGB. No incluye PAM ni secuencias; avance permanece 17/20 = 85.00 %.
+
+
+## Limpieza al cambiar documento y estado visual de herramientas
+
+Crear o abrir otro documento elimina borradores de curvas/formas, caché de curvas, origen de clonación y estados de arrastre/navegación. El motor libera la copia de origen de clonación al reiniciar el historial. La herramienta activa del panel y su descripción accesible se sincronizan también después de Deshacer/Rehacer que cambia a Línea/Curva. Clonación y Recoloración usan ahora vectores adaptados de sus recursos originales de Pinta almacenados en el repositorio. Prueba JNI de reinicio de marcas y ausencia de historial tras cargar documento. No se da por concluido el pulido completo; avance 17/20 = 85.00 %.
