@@ -18,6 +18,9 @@ public final class WorkspaceDeviceTests {
   instrumentation=InstrumentationRegistry.getInstrumentation();
   Intent intent=new Intent(instrumentation.getTargetContext(),MainActivity.class);intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
   activity=(MainActivity)instrumentation.startActivitySync(intent);instrumentation.waitForIdleSync();
+  instrumentation.runOnMainSync(()->activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT));
+  long deadline=android.os.SystemClock.uptimeMillis()+5000;java.util.concurrent.atomic.AtomicBoolean ready=new java.util.concurrent.atomic.AtomicBoolean();
+  do{instrumentation.waitForIdleSync();instrumentation.runOnMainSync(()->ready.set(activity.getResources().getConfiguration().orientation==1&&drawing()!=null&&drawing().isLaidOut()&&!drawing().isLayoutRequested()&&drawing().getWidth()>0&&drawing().getHeight()>0));if(!ready.get())android.os.SystemClock.sleep(50);}while(!ready.get()&&android.os.SystemClock.uptimeMillis()<deadline);assertTrue("Workspace must finish layout before gestures",ready.get());
  }
  @After public void close(){instrumentation.runOnMainSync(()->activity.finish());instrumentation.waitForIdleSync();}
  private DrawingView drawing(){return findDrawing(activity.getWindow().getDecorView());}
@@ -116,10 +119,10 @@ public final class WorkspaceDeviceTests {
   long deadline=android.os.SystemClock.uptimeMillis()+5000;while(activity.getResources().getConfiguration().orientation!=2&&android.os.SystemClock.uptimeMillis()<deadline)android.os.SystemClock.sleep(50);
   instrumentation.waitForIdleSync();instrumentation.runOnMainSync(()->{drawing().rotateView(-drawing().rotationDegrees());drawing().fitCanvas();});instrumentation.waitForIdleSync();
   Bitmap screenshot=instrumentation.getUiAutomation().takeScreenshot();assertNotNull(screenshot);
-  java.io.File file=new java.io.File(instrumentation.getTargetContext().getExternalFilesDir(null),"workspace-"+activity.getResources().getConfiguration().fontScale+".png");
-  try(java.io.FileOutputStream out=new java.io.FileOutputStream(file)){assertTrue(screenshot.compress(Bitmap.CompressFormat.PNG,100,out));}finally{screenshot.recycle();}
-  String command="mkdir -p /sdcard/Download/velyntora-core-workspace && cp '"+file.getAbsolutePath()+"' /sdcard/Download/velyntora-core-workspace/ && echo OK";
-  try(android.os.ParcelFileDescriptor result=instrumentation.getUiAutomation().executeShellCommand(command);java.io.FileInputStream input=new java.io.FileInputStream(result.getFileDescriptor())){java.io.ByteArrayOutputStream bytes=new java.io.ByteArrayOutputStream();byte[] buffer=new byte[1024];for(int n;(n=input.read(buffer))!=-1;)bytes.write(buffer,0,n);assertTrue(bytes.toString("UTF-8").contains("OK"));}
+  java.io.ByteArrayOutputStream png=new java.io.ByteArrayOutputStream();try{assertTrue(screenshot.compress(Bitmap.CompressFormat.PNG,100,png));}finally{screenshot.recycle();}
+  String payload=android.util.Base64.encodeToString(png.toByteArray(),android.util.Base64.NO_WRAP);
+  String command="mkdir -p /sdcard/Download/velyntora-core-workspace && printf '%s' '"+payload+"' | base64 -d > /sdcard/Download/velyntora-core-workspace/workspace-"+activity.getResources().getConfiguration().fontScale+".png && echo OK";
+  try(android.os.ParcelFileDescriptor result=instrumentation.getUiAutomation().executeShellCommand(command);java.io.FileInputStream input=new java.io.FileInputStream(result.getFileDescriptor())){java.io.ByteArrayOutputStream bytes=new java.io.ByteArrayOutputStream();byte[] buffer=new byte[1024];for(int n;(n=input.read(buffer))!=-1;)bytes.write(buffer,0,n);assertTrue("Screenshot shell transfer must complete",bytes.toString("UTF-8").contains("OK"));}
  }
 
 }
