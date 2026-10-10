@@ -111,4 +111,13 @@ public final class WorkspaceDeviceTests {
   });
  }
 
+ @Test public void captureLandscapeWorkspace()throws Exception{
+  instrumentation.runOnMainSync(()->{activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);assertTrue(drawing().newDocument(800,600));drawing().setTool(DrawingView.LINE);});
+  long deadline=android.os.SystemClock.uptimeMillis()+5000;while(activity.getResources().getConfiguration().orientation!=2&&android.os.SystemClock.uptimeMillis()<deadline)android.os.SystemClock.sleep(50);
+  instrumentation.waitForIdleSync();instrumentation.runOnMainSync(()->{drawing().rotateView(-drawing().rotationDegrees());drawing().fitCanvas();});instrumentation.waitForIdleSync();
+  Bitmap screenshot=instrumentation.getUiAutomation().takeScreenshot();assertNotNull(screenshot);
+  java.io.File file=new java.io.File(instrumentation.getTargetContext().getExternalFilesDir(null),"workspace-"+activity.getResources().getConfiguration().fontScale+".png");
+  try(java.io.FileOutputStream out=new java.io.FileOutputStream(file)){assertTrue(screenshot.compress(Bitmap.CompressFormat.PNG,100,out));}finally{screenshot.recycle();}
+ }
+
 }

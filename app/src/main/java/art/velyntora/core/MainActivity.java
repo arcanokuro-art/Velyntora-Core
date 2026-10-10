@@ -941,7 +941,7 @@ public final class MainActivity extends Activity {
     private Button iconButton(LinearLayout parent,String label,String glyph,Runnable action){
         Button button=button(parent,label,action);button.setText("");button.setPadding(dp(12),dp(12),dp(12),dp(12));
         WorkspaceIconDrawable icon=new WorkspaceIconDrawable(glyph);icon.setBounds(0,0,dp(24),dp(24));button.setCompoundDrawables(icon,null,null,null);
-        button.setLayoutParams(new LinearLayout.LayoutParams(dp(48),dp(48)));button.setTooltipText(label);return button;
+        button.setLayoutParams(new LinearLayout.LayoutParams(dp(48),dp(48)));if(android.os.Build.VERSION.SDK_INT>=26)button.setTooltipText(label);return button;
     }
     private void openMainMenu(){
         String[] labels=new String[menuRegistry.getChildCount()];for(int i=0;i<labels.length;i++)labels[i]=((Button)menuRegistry.getChildAt(i)).getText().toString();

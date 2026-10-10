@@ -33,6 +33,9 @@ jobs:
             gradle :app:connectedDebugAndroidTest --no-daemon
             adb shell settings put system font_scale 1.8
             gradle :app:connectedDebugAndroidTest --no-daemon --rerun-tasks
+      - name: Collect workspace screenshots
+        if: always()
+        run: adb pull /sdcard/Android/data/art.velyntora.core/files/ workspace-screenshots/ || true
       - name: Print device test failures
         if: failure()
         run: |
@@ -42,5 +45,6 @@ jobs:
         with:
           name: android-device-test-results
           path: |
+            workspace-screenshots/
             app/build/reports/androidTests/
             app/build/outputs/androidTest-results/
