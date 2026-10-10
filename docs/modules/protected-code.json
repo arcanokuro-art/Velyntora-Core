@@ -58,6 +58,13 @@
     "tools/rectangle/native/Raster.cpp": "e1681e0ad00d44ed2513ff4870f70de6061ab7453dee43a26b1401ff8a214168",
     "tools/rectangle_selection/RectangleSelectionIcon.java": "8b86c875f23385d2bdedd1d4a8f208ee86d380ab717a2fbd41c8a3f56619971d",
     "tools/rectangle_selection/RectangleSelectionTool.java": "bbfa4a67d97e8421002d090e2195d4afdb5293299ebbf2400055cda401773ff4",
+    "tools/remove_ai/README.md": "154cb3b3f286d09bad2cd7346bf67cfa3a62b76e334d5befd530c885aa530693",
+    "tools/remove_ai/RemoveAiBackend.java": "277ec670e937fefc393f172bfc3a51dc764244def956778af13d65c1a45cb5ff",
+    "tools/remove_ai/RemoveAiIcon.java": "d90bae85a8752ac5d9b327d26b74987b6025bd7f2bafdf488547c0415389279d",
+    "tools/remove_ai/RemoveAiModule.java": "179e29989669b5c67d770442d040ab6f0f534db7075d243101a1ad294e88cdbb",
+    "tools/remove_ai/RemoveAiTool.java": "b16a871248f62fe2dc077e8f841ae8b3b0a58e26c6ce3ba5326c2d008951e04b",
+    "tools/remove_ai/assets/remove_ai/MI-GAN-LICENSE.txt": "674e33456b8d03693b84ab305aa7372d93c91e68b234651b0adad106d518e6eb",
+    "tools/remove_ai/assets/remove_ai/remove_ai.webp": "605ba1877afa85bd8613f7b41b2efc965b4f64b2e7895db01168deab55f557c2",
     "tools/rounded_rectangle/RoundedRectangleIcon.java": "01b5db2479cf123171180d4c1cb671499eb86152c32790a2f898d4cef92bb45f",
     "tools/rounded_rectangle/RoundedRectangleTool.java": "785e82af3c168985cae099add3e85ba625747f7d2d2fe9ce52c063767e76be4d",
     "tools/shared/Checkerboard.java": "11a64f3b66abc6e7b9d130aadef68c574cac14b434011189211f779008595eec",
@@ -70,7 +77,7 @@
     "tools/shared/ShapeTool.java": "c6f58987c0f47e6d2fed08ae9a6c21e035c5bcded11863a7f0b9d398031dc161",
     "tools/shared/StrokeSupport.java": "6ca559618273b59f6900fc6698579501d509b7420bc91b16cef4eff548e982de",
     "tools/shared/ToolIcon.java": "b673eb85c621a1655cd577ca77cb16b612f39fd9763af7172de473940e3a046b",
-    "tools/shared/Tools.java": "185bd0558ea44b92f1ec7616192a87096c721be52db87228247e96ee3dd97d62",
+    "tools/shared/Tools.java": "d47e542339103d4f0308311e3c2497353f6a1dd9318267fd7d4a282ac17cd16f",
     "tools/shared/Viewport.java": "de133bfab6f16858b99d763f945aad4f5bb0a48b953e7b44fc5a131bbb45c365",
     "tools/shared/native/Raster.cpp": "34ae05cdde00acd6aa9e6cd68d7477175fd5526824deb1ca6fdb7a9c4ac541bd",
     "tools/text/TextIcon.java": "18c3f3308c99ea9a6288887e59988b4b07bfbda7cb0eeb5f4f932efda75a4e85",
@@ -173,7 +180,9 @@
     "nativeLayerBlendMode": "6d398cb5819a8077409e14244e4648168d1468999140f6610c52173434324507",
     "nativeLayerAction": "c099ccf2c71f63b62fa6e5d3bdb626033aa12c51426513459cc2bd8ed1fd28dd",
     "nativeLayerProperties": "5fa078f31db2f35aa9bda904dbf66c63847125c7031ecde7aac1540d910bc4f5",
-    "nativeIndexedLayerOpacity": "ed5562eb570b1d0ad613e70ea5b979e1b44dfa92606211a79fd974f342150515"
+    "nativeIndexedLayerOpacity": "ed5562eb570b1d0ad613e70ea5b979e1b44dfa92606211a79fd974f342150515",
+    "nativeRemoveSource": "d3d7674b65160e899e79fe3524b378bd0766d0197da218e6a6d81b0ef8adc43e",
+    "nativeRemoveCommit": "6689179514f508855d078e7691b10400dc4ec7b33f4028d17e8ba780c2468908"
   },
   "session": "a11c1fd503885a58ae4ab1c27c3fdd26d1dd79bb55808afd8e22e0b0d991d27f"
 }

@@ -107,7 +107,8 @@ final class CanvasInput {
         if (host.readDrawing()) {
           Tools.controller(host.readTool()).up(host, x, y, event);
           host.writeDrawing(false);
-          host.refresh();
+          if (host.readTool() == DrawingView.REMOVE_AI) host.invalidate();
+          else host.refresh();
         }
         return true;
       case MotionEvent.ACTION_CANCEL:

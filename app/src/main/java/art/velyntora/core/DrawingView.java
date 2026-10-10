@@ -430,7 +430,8 @@ public final class DrawingView extends View {
       FREEFORM = 24,
       CIRCLE = 25,
       CLONE = 26,
-      RECOLOR = 27;
+      RECOLOR = 27,
+      REMOVE_AI = 28;
   final Paint paint = new Paint(Paint.FILTER_BITMAP_FLAG);
   Bitmap bitmap = Bitmap.createBitmap(canvasWidth, canvasHeight, Bitmap.Config.ARGB_8888);
   java.util.function.BiConsumer<Integer, Integer> textPositionListener;
@@ -689,6 +690,16 @@ public final class DrawingView extends View {
     return brushRadius;
   }
 
+  private RemoveAiModule removeAiModule;
+  Runnable removeAiControlsChanged;
+  RemoveAiModule removeAi() { if (removeAiModule == null) removeAiModule = new RemoveAiModule(this); return removeAiModule; }
+  static native int[] nativeRemoveSource();
+  static native boolean nativeRemoveCommit(int[] pixels, byte[] mask, int width, int height, int layer, long revision);
+  @Override protected void onDetachedFromWindow() {
+    if (removeAiModule != null) { removeAiModule.dispose(); removeAiModule = null; }
+    super.onDetachedFromWindow();
+  }
+
   public int currentTool() {
     return tool;
   }
@@ -700,13 +711,15 @@ public final class DrawingView extends View {
   }
 
   public void setTool(int value) {
-    if (value < BRUSH || value > RECOLOR) return;
+    if (value < BRUSH || value > REMOVE_AI) return;
     if (value != LINE) {
       if (curve != null) confirmCurve();
       else if (canceledCurve != null) cancelCurve();
     }
     if (value == CLONE) cloneOriginReady = false;
+    if (tool == REMOVE_AI || value == REMOVE_AI) removeAi().clear();
     tool = value;
+    if (removeAiControlsChanged != null) removeAiControlsChanged.run();
     // Switching away from a selection tool must not leave a selection
     // permanently active as an accidental overlay on subsequent drawings.
     invalidate();

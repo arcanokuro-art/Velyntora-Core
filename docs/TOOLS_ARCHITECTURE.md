@@ -61,4 +61,4 @@ El motor compartido permanece en `core/include`, `core/src`, `core/document` y `
 2. Para una herramienta nueva, agregar controlador e icono y registrarlos en `Tools`; conservar los identificadores existentes. Añadir fuentes nativas explícitas a CMake cuando corresponda.
 3. Ejecutar Core tests, Android APK y Android device tests. Las pruebas Android comprueban píxeles ampliados, formas/undo, selección frente a movimiento de píxeles, Enter/Ctrl+Z y los 28 iconos, además de ciclo de vida y formatos.
 
-La interfaz de dos columnas aprobada continúa vigente. Remove permanece en pausa y Core no añade animación.
+La interfaz de dos columnas aprobada continúa vigente. Remove AI se integra en `tools/remove_ai/` y Core no añade animación.

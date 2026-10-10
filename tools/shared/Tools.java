@@ -32,13 +32,19 @@ final class Tools {
     new FreeformTool(),
     new CircleTool(),
     new CloneTool(),
-    new RecolorTool()
+    new RecolorTool(),
+    new RemoveAiTool()
   };
 
   static DrawingTool controller(int id) {
     if (id < 0 || id >= CONTROLLERS.length)
       throw new IllegalArgumentException("Unknown tool: " + id);
     return CONTROLLERS[id];
+  }
+
+  static Drawable icon(int id, android.content.Context context) {
+    if (id == DrawingView.REMOVE_AI) return RemoveAiIcon.load(context);
+    return icon(id);
   }
 
   static Drawable icon(int id) {

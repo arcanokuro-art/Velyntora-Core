@@ -67,7 +67,7 @@ final class ToolControls {
     iconButton.setSelected(tool == host.readDrawing().currentTool());
     host.readToolButtons().put(tool, iconButton);
     host.readToolLabels().put(tool, label);
-    android.graphics.drawable.Drawable graphic = Tools.icon(tool);
+    android.graphics.drawable.Drawable graphic = Tools.icon(tool, host);
     graphic.setBounds(0, 0, host.dp(24), host.dp(24));
     iconButton.setCompoundDrawables(null, graphic, null, null);
     iconButton.setText("");
@@ -232,6 +232,7 @@ final class ToolControls {
     host.tool(toolGrid, "Elipse rellena", DrawingView.FILLED_ELLIPSE);
     host.tool(toolGrid, "Redondeado relleno", DrawingView.FILLED_ROUNDED_RECTANGLE);
     host.tool(toolGrid, "Triángulo relleno", DrawingView.FILLED_TRIANGLE);
+    host.tool(toolGrid, "Remove AI: pinta el objeto y pulsa Eliminar", DrawingView.REMOVE_AI);
     TextView brushSizeLabel = host.text("Anchura del pincel: 8 px");
     brushSizeLabel.setSingleLine(true);
     // Reserve the widest value so changing digit counts cannot move the slider.
@@ -273,6 +274,7 @@ final class ToolControls {
     host.writeGradientOptions(host.iconButton(options, "Configurar degradado", "gradient", host::configureGradient));
     host.writeCurveConfirm(host.iconButton(options, "Confirmar Línea/Curva", "confirm", host.readDrawing()::confirmCurve));
     host.writeCurveCancel(host.iconButton(options, "Cancelar Línea/Curva", "cancel", host.readDrawing()::cancelCurve));
+    host.readDrawing().removeAi().controls(options);
     host.addScrollable(root, options);
     ScrollView toolScroll = new ScrollView(host);
     toolScroll.addView(sidebar);

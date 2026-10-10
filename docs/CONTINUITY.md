@@ -10,7 +10,7 @@ Fuente revisada: conversación compartida https://chatgpt.com/share/6ac933b5-76e
 - No introducir animación en Velyntora Core.
 - Pinta-2.0 se consulta como referencia; no se modifica.
 - Conservar los recursos originales de Pinta en `reference/pinta-assets`; vincular los necesarios a la interfaz Android.
-- Mantener Remove en pausa.
+- Remove se retoma por autorización del usuario el 10 de octubre: MI-GAN 512 local Android en `tools/remove_ai/`.
 - Continuar implementación, revisión y correcciones sin confirmaciones entre etapas.
 - Publicar porcentaje basado en entregables verificados. El 100 % significa terminar la programación; la prueba manual posterior en el teléfono no se incluye, pero sí las compilaciones y pruebas de desarrollo.
 
@@ -28,5 +28,5 @@ La petición de reorganizar el código por herramienta queda integrada y verific
 - Código C++ específico: `tools/<herramienta>/native/`.
 - Componentes compartidos: `tools/shared/`; codecs, documentos, ajustes y espacio de trabajo en sus carpetas de `app/src/main/java/art/velyntora/core/`.
 - Conservar el paquete Java y los identificadores estables; `DrawingView` mantiene el estado de interacción y la fachada JNI, y `MainActivity` la interfaz.
-- Interfaz aprobada de dos columnas y zoom nítido desde 100 % conservados. Remove continúa en pausa.
+- Interfaz aprobada de dos columnas y zoom nítido desde 100 % conservados. Remove AI es una ampliación independiente autorizada; no modifica Línea/Curva.
 - Las 23 suites Java, 16 C++, las dos integraciones JNI, el APK y 13 pruebas Android repetidas con fuentes 1.0 y 1.8 están aprobados. La revisión manual en el teléfono sigue como fase independiente.
