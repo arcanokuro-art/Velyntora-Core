@@ -43,7 +43,7 @@ final class LayersPanel {
     }
     if(delete!=null){delete.setEnabled(count>1);duplicate.setEnabled(count<32);merge.setEnabled(active>0);up.setEnabled(active<count-1);down.setEnabled(active>0);for(Button control:new Button[]{delete,duplicate,merge,up,down})control.setAlpha(control.isEnabled()?1f:.35f);}
   }
-  private float layerOpacity(int index){return DrawingView.nativeIndexedLayerOpacity(index);}
+  private float layerOpacity(int index){return host.readDrawing().layerOpacity(index);}
 
   void addLayer() {
     if (!host.readDrawing().addLayer()) host.message("Límite de capas o memoria alcanzado");

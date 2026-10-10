@@ -83,4 +83,18 @@ final class LayerOperations {
     if (ok) host.refresh();
     return ok;
   }
+
+  boolean applyLayerProperties(int index,String name,boolean visible,float opacity,int mode) {
+    boolean ok=host.nativeLayerProperties(index,name,visible,opacity,mode);
+    if(ok)host.refresh();
+    return ok;
+  }
+  int layerBlendMode(int index) {return host.nativeLayerBlendMode(index);}
+  float layerOpacity(int index) {return host.nativeIndexedLayerOpacity(index);}
+  boolean layerAction(int action) {
+    host.confirmCurve();
+    boolean ok=host.nativeLayerAction(action);
+    if(ok)host.refresh();
+    return ok;
+  }
 }
