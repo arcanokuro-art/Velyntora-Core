@@ -118,6 +118,8 @@ public final class WorkspaceDeviceTests {
   Bitmap screenshot=instrumentation.getUiAutomation().takeScreenshot();assertNotNull(screenshot);
   java.io.File file=new java.io.File(instrumentation.getTargetContext().getExternalFilesDir(null),"workspace-"+activity.getResources().getConfiguration().fontScale+".png");
   try(java.io.FileOutputStream out=new java.io.FileOutputStream(file)){assertTrue(screenshot.compress(Bitmap.CompressFormat.PNG,100,out));}finally{screenshot.recycle();}
+  String command="mkdir -p /sdcard/Download/velyntora-core-workspace && cp '"+file.getAbsolutePath()+"' /sdcard/Download/velyntora-core-workspace/ && echo OK";
+  try(android.os.ParcelFileDescriptor result=instrumentation.getUiAutomation().executeShellCommand(command);java.io.FileInputStream input=new java.io.FileInputStream(result.getFileDescriptor())){java.io.ByteArrayOutputStream bytes=new java.io.ByteArrayOutputStream();byte[] buffer=new byte[1024];for(int n;(n=input.read(buffer))!=-1;)bytes.write(buffer,0,n);assertTrue(bytes.toString("UTF-8").contains("OK"));}
  }
 
 }
