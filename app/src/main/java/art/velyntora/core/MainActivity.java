@@ -644,7 +644,7 @@ public final class MainActivity extends Activity {
         LinearLayout commands = row();
         button(commands, "Nuevo", () -> protectDocument(() -> configureDimensions(0)));
         button(commands, "Abrir", this::openImage);
-        button(commands, "Guardar", this::savePng);
+        button(commands, "Guardar", () -> projectPicker(true));
         button(commands, "Deshacer", this::undo);
         button(commands, "Rehacer", this::redo);
         button(commands, "Herramientas", () -> togglePanel(toolScroll));
@@ -736,7 +736,7 @@ public final class MainActivity extends Activity {
             @Override public void onStartTrackingTouch(SeekBar bar) {}
             @Override public void onStopTrackingTouch(SeekBar bar) {
                 // One history checkpoint per gesture, not one per slider tick.
-                drawing.setLayerOpacity(bar.getProgress() / 100f);
+                if(projectProgress==null)drawing.setLayerOpacity(bar.getProgress() / 100f);
             }
         });
         layerPanel.addView(opacity);
@@ -1234,7 +1234,7 @@ public final class MainActivity extends Activity {
     private void transferOpenRaster(Uri uri,boolean save){
         if(projectProgress!=null){message("Espera a que termine la operación actual");return;}
         android.app.ProgressDialog progress=new android.app.ProgressDialog(this);progress.setMessage(save?"Guardando OpenRaster…":"Abriendo OpenRaster…");progress.setCancelable(false);projectProgress=progress;progress.show();drawing.setEnabled(false);
-        new Thread(()->{boolean success=false;try{OpenRasterProjects.transfer(this,drawing,uri,save);success=true;}catch(Exception e){success=false;}final boolean ok=success;runOnUiThread(()->{if(!isDestroyed()){progress.dismiss();projectProgress=null;drawing.setEnabled(true);if(ok){if(!save)drawing.projectOpened();markDocumentClean(fileName(uri));}message(ok?"Proyecto OpenRaster listo": "OpenRaster incompatible, incompleto o demasiado grande; se admiten capas normales sin grupos");}});},"velyntora-openraster").start();
+        new Thread(()->{fileName(uri);boolean success=false;try{OpenRasterProjects.transfer(this,drawing,uri,save);success=true;}catch(Exception e){success=false;}final boolean ok=success;runOnUiThread(()->{if(!isDestroyed()){progress.dismiss();projectProgress=null;drawing.setEnabled(true);if(ok){if(!save)drawing.projectOpened();markDocumentClean(fileName(uri));}message(ok?"Proyecto OpenRaster listo": "OpenRaster incompatible, incompleto o demasiado grande; se admiten capas normales sin grupos");}});},"velyntora-openraster").start();
     }
 
     private void transferProject(Uri uri, boolean save) {
@@ -1246,7 +1246,7 @@ public final class MainActivity extends Activity {
         progress.show();
         drawing.setEnabled(false);
         new Thread(() -> {
-            boolean success = false;
+            fileName(uri);boolean success = false;
             try (android.os.ParcelFileDescriptor file = getContentResolver().openFileDescriptor(uri, save ? "wt" : "r")) {
                 if (file != null) success = save ? drawing.writeProject(file.getFd()) : drawing.readProject(file.getFd());
             } catch (Exception e) { success = false; }
@@ -1305,7 +1305,7 @@ public final class MainActivity extends Activity {
         if(projectProgress!=null){message("Espera a que termine la operación actual");return;}
         final String format=request==OPEN_TIFF?"TIFF":request==OPEN_ICO?"ICO":request==OPEN_PPM?"Netpbm":request==OPEN_BMP?"BMP":request==OPEN_PCX?"PCX":request==OPEN_XBM?"XBM":request==OPEN_XPM?"XPM":request==OPEN_SVG?"SVG":request==OPEN_CONTAINER?"ANI/ICNS/QuickTime":"TGA";
         android.app.ProgressDialog progress=new android.app.ProgressDialog(this);progress.setMessage("Abriendo "+format+"…");progress.setCancelable(false);projectProgress=progress;progress.show();drawing.setEnabled(false);
-        new Thread(()->{int[] pixels=null;int width=0,height=0;try(InputStream input=getContentResolver().openInputStream(uri)){
+        new Thread(()->{fileName(uri);int[] pixels=null;int width=0,height=0;try(InputStream input=getContentResolver().openInputStream(uri)){
                 if(input==null)throw new java.io.IOException("Sin archivo");
                 if(request==OPEN_PCX){PcxReader.Image image=PcxReader.read(input);pixels=image.pixels;width=image.width;height=image.height;}
                 else if(request==OPEN_XBM||request==OPEN_XPM){XRasterReader.Image image=request==OPEN_XBM?XRasterReader.xbm(input):XRasterReader.xpm(input);pixels=image.pixels;width=image.width;height=image.height;}
@@ -1331,14 +1331,17 @@ public final class MainActivity extends Activity {
     private void importImage(Uri uri){
         if(projectProgress!=null){message("Espera a que termine la operación actual");return;}
         android.app.ProgressDialog progress=new android.app.ProgressDialog(this);progress.setMessage("Abriendo imagen…");progress.setCancelable(false);projectProgress=progress;progress.show();drawing.setEnabled(false);
-        new Thread(()->{Bitmap decoded=null;try{decoded=decodeImage(uri);}catch(Exception e){decoded=null;}final Bitmap image=decoded;
+        new Thread(()->{fileName(uri);Bitmap decoded=null;try{decoded=decodeImage(uri);}catch(Exception e){decoded=null;}final Bitmap image=decoded;
             runOnUiThread(()->{try{if(!isDestroyed()){progress.dismiss();projectProgress=null;drawing.setEnabled(true);if(image==null||!drawing.loadBitmap(image))message("No se pudo abrir la imagen");else markDocumentClean(fileName(uri));}}finally{if(image!=null)image.recycle();}});
         },"velyntora-image-import").start();
     }
 
+    private final java.util.concurrent.ConcurrentHashMap<String,String> fileNames=new java.util.concurrent.ConcurrentHashMap<>();
     private String fileName(Uri uri){
+        String cached=fileNames.get(uri.toString());if(cached!=null)return cached;
+        if(android.os.Looper.myLooper()==android.os.Looper.getMainLooper())return uri.getLastPathSegment();
         try(android.database.Cursor cursor=getContentResolver().query(uri,new String[]{android.provider.OpenableColumns.DISPLAY_NAME},null,null,null)){
-            if(cursor!=null&&cursor.moveToFirst())return cursor.getString(0);
+            if(cursor!=null&&cursor.moveToFirst()){String name=cursor.getString(0);if(name!=null){fileNames.put(uri.toString(),name);return name;}}
         }catch(Exception ignored){}return uri.getLastPathSegment();
     }
     private IconContainers.Image decodeContainerImage(byte[] encoded)throws java.io.IOException{

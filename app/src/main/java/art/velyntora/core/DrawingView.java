@@ -578,8 +578,8 @@ public final class DrawingView extends View {
   if(ok){selectionLeft+=dx;selectionRight+=dx;selectionTop+=dy;selectionBottom+=dy;refresh();}
   return ok;
  }
- public void undo(){if(curve!=null){CurveDraft previous=curveHistory.undo(curve);if(previous!=null)curve=previous;else{canceledCurve=curve.copy();curve=null;}invalidate();return;}canceledCurve=null;curveHistory.clear();int tag=nativeCurveTag();if(nativeUndo()){SavedCurve saved=savedCurves.get(tag);deselect();if(saved!=null){curve=saved.geometry.copy();color=saved.color;brushRadius=saved.radius;brushOpacity=saved.opacity;tool=LINE;curveHistory.clear();canceledCurve=null;saved.selection.restore();if(pickedColorListener!=null)pickedColorListener.accept(color);}refresh();}}
- public void redo(){if(canceledCurve!=null){curve=canceledCurve;canceledCurve=null;invalidate();return;}if(curve!=null){CurveDraft next=curveHistory.redo(curve);if(next!=null){curve=next;invalidate();return;}}cancelCurve();if(nativeRedo()){deselect();refresh();}}
+ public void undo(){if(curve!=null){CurveDraft previous=curveHistory.undo(curve);if(previous!=null)curve=previous;else{canceledCurve=curve.copy();curve=null;}viewportChanged();return;}canceledCurve=null;curveHistory.clear();int tag=nativeCurveTag();if(nativeUndo()){SavedCurve saved=savedCurves.get(tag);deselect();if(saved!=null){curve=saved.geometry.copy();color=saved.color;brushRadius=saved.radius;brushOpacity=saved.opacity;tool=LINE;curveHistory.clear();canceledCurve=null;saved.selection.restore();if(pickedColorListener!=null)pickedColorListener.accept(color);}refresh();}}
+ public void redo(){if(canceledCurve!=null){curve=canceledCurve;canceledCurve=null;viewportChanged();return;}if(curve!=null){CurveDraft next=curveHistory.redo(curve);if(next!=null){curve=next;viewportChanged();return;}}cancelCurve();if(nativeRedo()){deselect();refresh();}}
  public boolean loadBitmap(Bitmap source){
   if(source==null||source.isRecycled())return false;
   int w=source.getWidth(),h=source.getHeight();
