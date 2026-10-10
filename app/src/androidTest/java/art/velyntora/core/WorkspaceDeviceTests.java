@@ -567,20 +567,23 @@ public final class WorkspaceDeviceTests {
         v.setZoomPercent(100);
         v.setTool(tool);
         v.setColor(0xffff0000);
+        Bitmap initial=v.snapshot();
+        int initialPixel;
+        try { initialPixel=initial.getPixel(32,32); } finally { initial.recycle(); }
         long now=android.os.SystemClock.uptimeMillis();
         float left=v.getWidth()/2f-64, top=v.getHeight()/2f-64;
         android.view.MotionEvent down=android.view.MotionEvent.obtain(now,now,
             android.view.MotionEvent.ACTION_DOWN,left+32,top+32,0);
         v.onTouchEvent(down);down.recycle();
         Bitmap dot=v.snapshot();
-        try { assertTrue("Stroke must start on touch",(dot.getPixel(32,32)>>>24)>0); }
+        try { assertTrue("Stroke must start on touch",dot.getPixel(32,32)!=initialPixel); }
         finally { dot.recycle(); }
         android.view.MotionEvent up=android.view.MotionEvent.obtain(now,now+10,
             android.view.MotionEvent.ACTION_UP,left+32,top+32,0);
         v.onTouchEvent(up);up.recycle();
         v.undo();
         Bitmap undone=v.snapshot();
-        try { assertEquals("One undo removes the whole stroke",0,undone.getPixel(32,32)); }
+        try { assertEquals("One undo removes the whole stroke",initialPixel,undone.getPixel(32,32)); }
         finally { undone.recycle(); }
       }
       for (int tool : new int[]{DrawingView.RECTANGLE,DrawingView.ELLIPSE,
