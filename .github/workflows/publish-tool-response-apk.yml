@@ -17,14 +17,14 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: 27acb24729536532a1c784430b875d22f0c58a14
-      RELEASE_TAG: v0.1.0-tool-response-preview
+      VERIFIED_SHA: 5b356dd0d266f1067df88537b5e68c371f2e250b
+      RELEASE_TAG: v0.1.0-partial-refresh-preview
     steps:
       - name: Wait for the exact source build and tests
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 38066510420 38066510540 38066510393; do
+          for run_id in 38067335536 38067335498 38067335515; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "main"' run.json
@@ -40,24 +40,25 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 38066510420 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 38067335536 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
-          cp apk/*.apk Velyntora-Core-Respuesta.apk
-          sha256sum Velyntora-Core-Respuesta.apk > Velyntora-Core-Respuesta.apk.sha256
+          cp apk/*.apk Velyntora-Core-Fluidez.apk
+          sha256sum Velyntora-Core-Fluidez.apk > Velyntora-Core-Fluidez.apk.sha256
       - name: Publish the updated APK
         shell: bash
         run: |
           set -euo pipefail
           cat > notes.md <<'NOTES'
-          Respuesta de lápiz, pincel, borrador, clonado y recolorear: inicio al tocar y actualización de pantalla agrupada por fotograma.
+          Actualización parcial: los trazos copian y mezclan únicamente la región modificada, evitando recorrer todo el lienzo en cada movimiento.
+          Fondo cuadriculado con textura repetida para reducir comandos de dibujo.
           Previsualización de rectángulos, elipses, círculo, triángulos y formas redondeadas durante el arrastre.
           Línea/Curva y Forma libre conservan su código.
           
-          APK debug para prueba en teléfono, procedente del commit 27acb24729536532a1c784430b875d22f0c58a14.
+          APK debug para prueba en teléfono, procedente del commit 5b356dd0d266f1067df88537b5e68c371f2e250b.
           Compilación Android y pruebas del núcleo y del emulador aprobadas antes de publicar.
-          Descargar Velyntora-Core-Respuesta.apk. Suma SHA-256 adjunta.
+          Descargar Velyntora-Core-Fluidez.apk. Suma SHA-256 adjunta.
           NOTES
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
             gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "${{ github.sha }}" --title "Velyntora Core — respuesta de herramientas" --notes-file notes.md --prerelease
           fi
-          gh release upload "$RELEASE_TAG" Velyntora-Core-Respuesta.apk Velyntora-Core-Respuesta.apk.sha256 --repo "$GH_REPO" --clobber
+          gh release upload "$RELEASE_TAG" Velyntora-Core-Fluidez.apk Velyntora-Core-Fluidez.apk.sha256 --repo "$GH_REPO" --clobber
