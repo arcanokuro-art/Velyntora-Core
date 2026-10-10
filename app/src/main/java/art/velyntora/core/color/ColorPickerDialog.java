@@ -36,7 +36,10 @@ final class ColorPickerDialog {
   private LinearLayout row() { LinearLayout view=new LinearLayout(context); view.setGravity(Gravity.CENTER_VERTICAL); return view; }
   private Button button(String text, Runnable action) {
     Button button=new Button(context); button.setText(text); button.setAllCaps(false);
-    button.setTextColor(Color.WHITE); button.setTextSize(13); button.setOnClickListener(v->action.run()); return button;
+    button.setTextColor(Color.WHITE); button.setTextSize(13);
+    LinearLayout.LayoutParams spacing=new LinearLayout.LayoutParams(-2,-2);
+    spacing.setMargins(0,dp(4),dp(8),dp(4));button.setLayoutParams(spacing);
+    button.setOnClickListener(v->action.run()); return button;
   }
   private EditText entry(int width) {
     EditText view=new EditText(context); view.setTextColor(Color.WHITE); view.setSingleLine(true);
@@ -47,11 +50,11 @@ final class ColorPickerDialog {
     context=ctx; colors=new int[]{primary,secondary}; original=colors.clone(); selected=editSecondary?1:0;
     dialog=new Dialog(ctx); dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
     LinearLayout root=new LinearLayout(ctx); root.setOrientation(LinearLayout.VERTICAL);
-    root.setPadding(dp(12),dp(8),dp(12),dp(12)); root.setBackgroundColor(0xff303030);
+    root.setPadding(dp(20),dp(12),dp(20),dp(16)); root.setBackgroundColor(0xff303030);
     LinearLayout header=row(); header.addView(button("Restablecer",()->{System.arraycopy(original,0,colors,0,2); load();}));
     TextView title=label("Selector de color"); title.setGravity(Gravity.CENTER);
     header.addView(title,new LinearLayout.LayoutParams(0,dp(48),1)); root.addView(header);
-    ScrollView scroll=new ScrollView(ctx); LinearLayout contents=new LinearLayout(ctx); contents.setOrientation(LinearLayout.VERTICAL);
+    ScrollView scroll=new ScrollView(ctx); LinearLayout contents=new LinearLayout(ctx); contents.setOrientation(LinearLayout.VERTICAL); contents.setPadding(0,dp(8),0,dp(8));
     scroll.addView(contents); root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
     HorizontalScrollView tabsScroll=new HorizontalScrollView(ctx); LinearLayout tabs=row();
     tabs.addView(button("⇄",()->{int value=colors[0]; colors[0]=colors[1]; colors[1]=value;load();}));
@@ -60,7 +63,10 @@ final class ColorPickerDialog {
     LinearLayout hexRow=row(); hexRow.addView(label("Hexadecimal  ")); hex=entry(130);
     hex.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS);
     hex.setFilters(new InputFilter[]{new InputFilter.LengthFilter(8)}); hex.setContentDescription("Hexadecimal RGBA"); hexRow.addView(hex); contents.addView(hexRow);
-    LinearLayout body=new LinearLayout(ctx); boolean wide=ctx.getResources().getConfiguration().screenWidthDp>=600;
+    LinearLayout body=new LinearLayout(ctx);
+    int availableDp=Math.min(ctx.getResources().getConfiguration().screenWidthDp-24,860);
+    boolean wide=availableDp>=700 && ctx.getResources().getConfiguration().fontScale<=1.4f;
+    body.setPadding(0,dp(14),0,dp(8));
     body.setOrientation(wide?LinearLayout.HORIZONTAL:LinearLayout.VERTICAL); contents.addView(body);
     LinearLayout palette=row(); LinearLayout swatchColumn=new LinearLayout(ctx); swatchColumn.setOrientation(LinearLayout.VERTICAL);
     for(int i=0;i<2;i++){ final int slot=i; swatches[i]=new View(ctx);swatches[i].setContentDescription(i==0?"Color primario":"Color secundario");
@@ -71,11 +77,16 @@ final class ColorPickerDialog {
     CheckBox value=new CheckBox(ctx);value.setText("Mostrar valor");value.setTextColor(Color.WHITE);value.setChecked(true);
     value.setOnCheckedChangeListener((b,checked)->{showValue=checked;plane.invalidate();});surface.addView(value);palette.addView(surface);body.addView(palette);
     LinearLayout controls=new LinearLayout(ctx);controls.setOrientation(LinearLayout.VERTICAL);
-    body.addView(controls,new LinearLayout.LayoutParams(wide?0:-1,-2,wide?1:0));
+    LinearLayout.LayoutParams controlsLayout=new LinearLayout.LayoutParams(wide?0:-1,-2,wide?1:0);
+    controlsLayout.setMargins(wide?dp(28):0,wide?0:dp(20),0,0);
+    body.addView(controls,controlsLayout);
+    TextView measure=label("Saturación");
+    int labelWidth=Math.max(dp(85),(int)Math.ceil(measure.getPaint().measureText("Saturación"))+dp(16));
+    int numberWidth=Math.max(dp(58),(int)Math.ceil(measure.getPaint().measureText("888"))+dp(22));
     for(int i=0;i<7;i++){final int channel=i;if(i==3||i==6){View separator=new View(ctx);separator.setBackgroundColor(0xff555555);controls.addView(separator,new LinearLayout.LayoutParams(-1,dp(1)));}
-      LinearLayout line=row();TextView name=label(names[i]);line.addView(name,new LinearLayout.LayoutParams(dp(85),dp(44)));
-      sliders[i]=new Channel(ctx,i);sliders[i].setContentDescription(names[i]);line.addView(sliders[i],new LinearLayout.LayoutParams(0,dp(44),1));
-      numbers[i]=entry(58);numbers[i].setInputType(android.text.InputType.TYPE_CLASS_NUMBER);numbers[i].setContentDescription("Valor de "+names[i]);line.addView(numbers[i]);controls.addView(line);
+      LinearLayout line=row();TextView name=label(names[i]);line.addView(name,new LinearLayout.LayoutParams(labelWidth,dp(48)));
+      sliders[i]=new Channel(ctx,i);sliders[i].setContentDescription(names[i]);line.addView(sliders[i],new LinearLayout.LayoutParams(0,dp(48),1));
+      numbers[i]=entry(Math.round(numberWidth/ctx.getResources().getDisplayMetrics().density));numbers[i].setInputType(android.text.InputType.TYPE_CLASS_NUMBER);numbers[i].setContentDescription("Valor de "+names[i]);line.addView(numbers[i]);controls.addView(line);
       numbers[i].addTextChangedListener(watcher(()->{try{int n=Integer.parseInt(numbers[channel].getText().toString());if(n>=0&&n<=maxima[channel]) change(channel,n);}catch(NumberFormatException ignored){}}));
       numbers[i].setOnFocusChangeListener((v,focus)->{if(!focus)refresh();}); }
     hex.addTextChangedListener(watcher(()->{String text=hex.getText().toString();if(text.matches("[0-9a-fA-F]{8}")){long rgba=Long.parseLong(text,16);colors[selected]=(int)((rgba>>>8)|((rgba&255)<<24));load();}}));
@@ -83,7 +94,7 @@ final class ColorPickerDialog {
     LinearLayout footer=row();Space space=new Space(ctx);footer.addView(space,new LinearLayout.LayoutParams(0,1,1));footer.addView(button("Cancelar",dialog::dismiss));
     Button accept=button("Aceptar",()->{listener.accept(colors[0],colors[1]);dialog.dismiss();});accept.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xff39734d));footer.addView(accept);root.addView(footer);
     dialog.setContentView(root);load();dialog.show();
-    Window window=dialog.getWindow();if(window!=null){int width=Math.min(ctx.getResources().getDisplayMetrics().widthPixels-dp(24),dp(780));int height=Math.min(ctx.getResources().getDisplayMetrics().heightPixels-dp(32),dp(520));window.setLayout(width,height);window.setBackgroundDrawableResource(android.R.color.transparent);window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);}
+    Window window=dialog.getWindow();if(window!=null){int width=Math.min(ctx.getResources().getDisplayMetrics().widthPixels-dp(24),dp(860));int height=Math.min(ctx.getResources().getDisplayMetrics().heightPixels-dp(32),dp(560));window.setLayout(width,height);window.setBackgroundDrawableResource(android.R.color.transparent);window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);}
   }
   private TextWatcher watcher(Runnable change){return new TextWatcher(){public void beforeTextChanged(CharSequence s,int start,int count,int after){}public void onTextChanged(CharSequence s,int start,int before,int count){if(!updating)change.run();}public void afterTextChanged(Editable e){}};}
   private void load(){Color.colorToHSV(colors[selected],hsv);alpha=Color.alpha(colors[selected]);refresh();}
