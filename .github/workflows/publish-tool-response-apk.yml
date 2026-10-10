@@ -17,14 +17,14 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: 610d94990fa55e55f5963f3952b7d506a9851ad2
-      RELEASE_TAG: v0.1.0-stable-width-preview
+      VERIFIED_SHA: 5e6085f0f1391cfdf5cd26e5c4cf2a9923c4ce67
+      RELEASE_TAG: v0.1.0-color-picker-preview
     steps:
       - name: Wait for the exact source build and tests
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 38070282879 38070282887 38070282891; do
+          for run_id in 38071992604 38071992703 38071992683; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "main"' run.json
@@ -40,23 +40,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 38070282887 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 38071992604 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
-          cp apk/*.apk Velyntora-Core-Anchura-Estable.apk
-          sha256sum Velyntora-Core-Anchura-Estable.apk > Velyntora-Core-Anchura-Estable.apk.sha256
+          cp apk/*.apk Velyntora-Core-Colores.apk
+          sha256sum Velyntora-Core-Colores.apk > Velyntora-Core-Colores.apk.sha256
       - name: Publish the updated APK
         shell: bash
         run: |
           set -euo pipefail
           cat > notes.md <<'NOTES'
-          Anchura estable: espacio fijo para el valor numérico, evitando que el deslizador se desplace al cambiar de uno, dos o tres dígitos.
-          Se conserva la captura del gesto, la optimización de fluidez y el código de Línea/Curva.
-          
-          APK debug para prueba en teléfono, procedente del commit 610d94990fa55e55f5963f3952b7d506a9851ad2.
-          Compilación Android y pruebas del núcleo y del emulador aprobadas antes de publicar.
-          Descargar Velyntora-Core-Anchura-Estable.apk. Suma SHA-256 adjunta.
+          Selector de color inspirado en Pinta: círculo de tono/saturación, cuadrado de saturación/valor, HSV, RGBA, hexadecimal RRGGBBAA y muestras de ambos colores.
+          Edición local hasta Aceptar; Cancelar descarta; Restablecer recupera ambos colores iniciales.
+          APK debug del commit 5e6085f0f1391cfdf5cd26e5c4cf2a9923c4ce67. Compilación y pruebas Android verificadas antes de publicar.
+          Descargar Velyntora-Core-Colores.apk. SHA-256 adjunta.
           NOTES
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "${{ github.sha }}" --title "Velyntora Core — respuesta de herramientas" --notes-file notes.md --prerelease
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "${{ github.sha }}" --title "Velyntora Core — selector de colores" --notes-file notes.md --prerelease
           fi
-          gh release upload "$RELEASE_TAG" Velyntora-Core-Anchura-Estable.apk Velyntora-Core-Anchura-Estable.apk.sha256 --repo "$GH_REPO" --clobber
+          gh release upload "$RELEASE_TAG" Velyntora-Core-Colores.apk Velyntora-Core-Colores.apk.sha256 --repo "$GH_REPO" --clobber
