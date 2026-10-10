@@ -959,7 +959,7 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
   auto restoredCanvas=std::make_unique<velyntora::Canvas>(restored->width(),restored->height());
   restoredCanvas->setPixels(restored->layer(restored->activeIndex()).pixels);
   // Publish only after the entire file has been validated and allocated.
-  layers=std::move(restored);canvas=std::move(restoredCanvas);curveTag=snapshot.curveTag;resetHistory();return JNI_TRUE;
+  layers=std::move(restored);canvas=std::move(restoredCanvas);curveTag=0;resetHistory();return JNI_TRUE;
  }catch(...){return JNI_FALSE;}
 }
 
