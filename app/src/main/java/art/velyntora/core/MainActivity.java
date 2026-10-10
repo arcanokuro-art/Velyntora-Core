@@ -28,6 +28,7 @@ public final class MainActivity extends Activity {
     private static final int OPEN_IMAGE = 42;
     private DrawingView drawing;
     private TextView status, documentTitle;
+    private Button gradientOptions, curveConfirm, curveCancel;
     private LinearLayout menuRegistry;
     private TextView selectedTool;
     private LinearLayout layerItems;
@@ -659,7 +660,7 @@ public final class MainActivity extends Activity {
         iconButton(header,"Menú principal","menu",this::openMainMenu);
         root.addView(header);
         LinearLayout options=row();
-        selectedTool=text("Pincel");selectedTool.setSingleLine(true);selectedTool.setMaxWidth(dp(160));options.addView(selectedTool);
+        selectedTool=text("Pincel");selectedTool.setPadding(dp(8),0,dp(16),0);selectedTool.setSingleLine(true);selectedTool.setMaxWidth(dp(160));options.addView(selectedTool);
 
         LinearLayout sidebar = new LinearLayout(this);
         sidebar.setOrientation(LinearLayout.VERTICAL);
@@ -695,7 +696,7 @@ public final class MainActivity extends Activity {
         tool(toolGrid, "Elipse rellena", DrawingView.FILLED_ELLIPSE);
         tool(toolGrid, "Redondeado relleno", DrawingView.FILLED_ROUNDED_RECTANGLE);
         tool(toolGrid, "Triángulo relleno", DrawingView.FILLED_TRIANGLE);
-        TextView brushSizeLabel = text("Radio: 4 px");
+        TextView brushSizeLabel = text("Anchura del pincel: 8 px");
         options.addView(brushSizeLabel);
         SeekBar brushSize = new SeekBar(this);
         brushSize.setContentDescription("Radio del pincel en píxeles");
@@ -704,7 +705,7 @@ public final class MainActivity extends Activity {
         brushSize.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
                 int size = progress + 1;
-                brushSizeLabel.setText("Radio: " + size + " px");
+                brushSizeLabel.setText("Anchura del pincel: " + size*2 + " px");
                 drawing.setBrushRadius(size);
             }
             @Override public void onStartTrackingTouch(SeekBar bar) {}
@@ -712,9 +713,9 @@ public final class MainActivity extends Activity {
         });
         options.addView(brushSize,new LinearLayout.LayoutParams(dp(120),dp(48)));
         iconButton(options,"Configurar pincel","settings",this::configureBrush);
-        iconButton(options,"Configurar degradado","gradient",this::configureGradient);
-        iconButton(options,"Confirmar Línea/Curva","confirm",drawing::confirmCurve);
-        iconButton(options,"Cancelar Línea/Curva","cancel",drawing::cancelCurve);
+        gradientOptions=iconButton(options,"Configurar degradado","gradient",this::configureGradient);
+        curveConfirm=iconButton(options,"Confirmar Línea/Curva","confirm",drawing::confirmCurve);
+        curveCancel=iconButton(options,"Cancelar Línea/Curva","cancel",drawing::cancelCurve);
         addScrollable(root,options);
         ScrollView toolScroll = new ScrollView(this);toolScroll.addView(sidebar);
         this.toolScroll=toolScroll;
@@ -735,7 +736,7 @@ public final class MainActivity extends Activity {
         iconButton(layerCommands, "Mostrar / ocultar", "eye", this::toggleLayer);
         TextView opacityLabel = text("Opacidad: 100%");
         opacityLabel.setPadding(dp(6), dp(8), dp(6), dp(2));
-        layerPanel.addView(opacityLabel);
+
         SeekBar opacity = new SeekBar(this);
         opacity.setContentDescription("Opacidad de la capa activa");
         opacity.setMax(100);
@@ -750,13 +751,13 @@ public final class MainActivity extends Activity {
                 if(projectProgress==null)drawing.setLayerOpacity(bar.getProgress() / 100f);
             }
         });
-        layerPanel.addView(opacity);
+
         this.layerOpacity = opacity;
         LinearLayout layerItems = new LinearLayout(this);
         layerItems.setOrientation(LinearLayout.VERTICAL);
-        layerPanel.addView(layerItems);
-        layerPanel.addView(layerCommands);layerPanel.addView(layerOrder);
-        ScrollView layerScroll = new ScrollView(this);
+        layerPanel.addView(layerItems,new LinearLayout.LayoutParams(-1,0,1));
+        layerPanel.addView(layerCommands);layerPanel.addView(layerOrder);layerPanel.addView(opacityLabel);layerPanel.addView(opacity);
+        ScrollView layerScroll = new ScrollView(this);layerScroll.setFillViewport(true);
         layerScroll.addView(layerPanel);
 
         this.layerItems = layerItems;
@@ -785,7 +786,7 @@ public final class MainActivity extends Activity {
         status.setPadding(dp(10), dp(4), dp(10), dp(4));
         root.addView(status);
         drawing.setOnViewportChangedListener(this::updateStatus);
-        setContentView(root);updateStatus();if(freshProcess)recoverDocument();
+        setContentView(root);syncToolState();updateStatus();if(freshProcess)recoverDocument();
     }
 
     private void configureColor(){configureColor(false);}
@@ -876,46 +877,9 @@ public final class MainActivity extends Activity {
         iconButton.setAllCaps(false);
         iconButton.setMinWidth(0);
         iconButton.setMinimumWidth(0);iconButton.setBackgroundResource(R.drawable.tool_button_background);iconButton.setBackgroundTintList(null);iconButton.setSelected(tool==drawing.currentTool());toolButtons.put(tool,iconButton);toolLabels.put(tool,label);
-        int icon = 0;
-        switch (tool) {
-            case DrawingView.PENCIL: icon = R.drawable.pinta_pencil; break;
-            case DrawingView.PAN: icon = R.drawable.pinta_pan; break;
-            case DrawingView.ZOOM: icon = R.drawable.pinta_zoom; break;
-            case DrawingView.BRUSH: icon = R.drawable.pinta_brush; break;
-            case DrawingView.LINE: icon = R.drawable.pinta_line; break;
-            case DrawingView.RECTANGLE:
-            case DrawingView.FILLED_RECTANGLE: icon = R.drawable.pinta_rectangle; break;
-            case DrawingView.ELLIPSE:
-            case DrawingView.FILLED_ELLIPSE: icon = R.drawable.pinta_ellipse; break;
-            case DrawingView.BUCKET: icon = R.drawable.pinta_bucket; break;
-            case DrawingView.PICKER: icon = R.drawable.pinta_picker; break;
-            case DrawingView.ERASER: icon = R.drawable.pinta_eraser; break;
-            case DrawingView.SELECT_RECTANGLE: icon = R.drawable.pinta_select_rectangle; break;
-            case DrawingView.SELECT_ELLIPSE: icon = R.drawable.pinta_select_ellipse; break;
-            case DrawingView.TEXT: icon = R.drawable.pinta_text; break;
-            case DrawingView.ROUNDED_RECTANGLE:
-            case DrawingView.FILLED_ROUNDED_RECTANGLE: icon = R.drawable.pinta_rounded; break;
-            case DrawingView.TRIANGLE:
-            case DrawingView.FILLED_TRIANGLE: icon = R.drawable.pinta_triangle; break;
-            case DrawingView.SELECT_FREE: icon = R.drawable.pinta_lasso; break;
-            case DrawingView.MAGIC_WAND: icon = R.drawable.pinta_wand; break;
-            case DrawingView.MOVE_SELECTION: icon = R.drawable.pinta_move_selection; break;
-            case DrawingView.CIRCLE: icon = R.drawable.pinta_ellipse; break;
-            case DrawingView.FREEFORM: icon = R.drawable.pinta_lasso; break;
-            case DrawingView.CLONE: icon = R.drawable.pinta_clone; break;
-            case DrawingView.RECOLOR: icon = R.drawable.pinta_recolor; break;
-            case DrawingView.GRADIENT: icon = R.drawable.pinta_gradient; break;
-            case DrawingView.MOVE_PIXELS: icon = R.drawable.pinta_move_pixels; break;
-        }
-        if (icon != 0) {
-            android.graphics.drawable.Drawable graphic = getDrawable(icon).mutate();graphic.setTint(0xFFF0F0F0);
-            boolean filled = tool == DrawingView.FILLED_RECTANGLE || tool == DrawingView.FILLED_ELLIPSE || tool == DrawingView.FILLED_ROUNDED_RECTANGLE || tool == DrawingView.FILLED_TRIANGLE;
-            if(filled){android.graphics.drawable.GradientDrawable marker=new android.graphics.drawable.GradientDrawable();marker.setShape(android.graphics.drawable.GradientDrawable.OVAL);marker.setColor(0xfff0f0f0);android.graphics.drawable.LayerDrawable layers=new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{graphic,marker});layers.setLayerSize(1,dp(6),dp(6));layers.setLayerGravity(1,Gravity.BOTTOM|Gravity.RIGHT);graphic=layers;}
-            graphic.setBounds(0,0,dp(24),dp(24));iconButton.setCompoundDrawables(null,graphic,null,null);iconButton.setText("");iconButton.setPadding(0,dp(12),0,dp(12));
-            iconButton.setContentDescription(label);
-            if(android.os.Build.VERSION.SDK_INT>=30)iconButton.setStateDescription(tool==drawing.currentTool()?"Activa":"");
-            if (android.os.Build.VERSION.SDK_INT >= 26) iconButton.setTooltipText(label);
-        }
+        android.graphics.drawable.Drawable graphic=new ToolGlyphDrawable(tool);
+        graphic.setBounds(0,0,dp(24),dp(24));iconButton.setCompoundDrawables(null,graphic,null,null);iconButton.setText("");iconButton.setPadding(0,dp(12),0,dp(12));iconButton.setContentDescription(label);
+        if(android.os.Build.VERSION.SDK_INT>=26)iconButton.setTooltipText(label);
         if(tool==DrawingView.GRADIENT)iconButton.setOnLongClickListener(v -> {
             if(projectProgress!=null)return true;
             configureGradient();
@@ -936,6 +900,9 @@ public final class MainActivity extends Activity {
         if(drawing==null)return;int active=drawing.currentTool();
         for(int i=0;i<toolButtons.size();i++){boolean selected=toolButtons.keyAt(i)==active;Button button=toolButtons.valueAt(i);button.setSelected(selected);if(android.os.Build.VERSION.SDK_INT>=30)button.setStateDescription(selected?"Activa":"");}
         if(selectedTool!=null&&toolLabels.get(active)!=null)selectedTool.setText(toolLabels.get(active).split(":",2)[0]);
+        if(gradientOptions!=null)gradientOptions.setVisibility(active==DrawingView.GRADIENT?View.VISIBLE:View.GONE);
+        if(curveConfirm!=null)curveConfirm.setVisibility(active==DrawingView.LINE?View.VISIBLE:View.GONE);
+        if(curveCancel!=null)curveCancel.setVisibility(active==DrawingView.LINE?View.VISIBLE:View.GONE);
     }
 
     private Button iconButton(LinearLayout parent,String label,String glyph,Runnable action){
@@ -971,7 +938,7 @@ public final class MainActivity extends Activity {
 
     private void refreshLayerPanel() {
         if (layerItems == null) return;
-        layerItems.removeAllViews();
+        layerItems.removeAllViews();layerItems.setMinimumHeight(dp(48*drawing.layerCount()));
         for (Bitmap old : thumbnails) old.recycle();
         thumbnails.clear();
         if (layerOpacity != null) layerOpacity.setProgress(Math.round(drawing.layerOpacity() * 100));
