@@ -1506,7 +1506,12 @@ public final class MainActivity extends Activity {
     tool(toolGrid, "Redondeado relleno", DrawingView.FILLED_ROUNDED_RECTANGLE);
     tool(toolGrid, "Triángulo relleno", DrawingView.FILLED_TRIANGLE);
     TextView brushSizeLabel = text("Anchura del pincel: 8 px");
-    options.addView(brushSizeLabel);
+    brushSizeLabel.setSingleLine(true);
+    // Reserve the widest value so changing digit counts cannot move the slider.
+    int widthLabelSpace = (int) Math.ceil(
+        brushSizeLabel.getPaint().measureText("Anchura del pincel: 888 px"))
+        + brushSizeLabel.getPaddingLeft() + brushSizeLabel.getPaddingRight() + dp(8);
+    options.addView(brushSizeLabel, new LinearLayout.LayoutParams(widthLabelSpace, -2));
     SeekBar brushSize = new SeekBar(this);
     brushSize.setContentDescription("Radio del pincel en píxeles");
     brushSize.setMax(127);
