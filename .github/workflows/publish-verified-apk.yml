@@ -1,0 +1,54 @@
+name: Publish verified APK
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/publish-verified-apk.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: publish-verified-apk-v0.1.0
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      VERIFIED_SHA: d1c987f07b1068d1b15fadd17ce91b64b370ad2c
+      RELEASE_TAG: v0.1.0-core-preview
+    steps:
+      - name: Check successful builds and tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          for run_id in 38019803637 38019803506 38019803501; do
+            gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
+            jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "main" and .status == "completed" and .conclusion == "success"' run.json
+          done
+      - name: Download the tested APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh run download 38019803637 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
+          cp apk/*.apk Velyntora-Core-v0.1.0.apk
+          sha256sum Velyntora-Core-v0.1.0.apk > Velyntora-Core-v0.1.0.apk.sha256
+      - name: Publish release and assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > notes.md <<'NOTES'
+          APK de Velyntora Core compilado desde main, commit d1c987f07b1068d1b15fadd17ce91b64b370ad2c.
+
+          Compilación Android, pruebas Java/C++/JNI y pruebas en emulador Android con dos tamaños de fuente aprobadas.
+
+          Descargar e instalar Velyntora-Core-v0.1.0.apk. Es la compilación debug verificada, publicada como versión preliminar para probar en el teléfono.
+
+          El plan de 20 hitos está completado. Los formatos compatibles y sus limitaciones están documentados en docs/FORMAT_SUPPORT.md.
+          NOTES
+          if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$VERIFIED_SHA" --title "Velyntora Core v0.1.0 — APK Android" --notes-file notes.md --prerelease
+          fi
+          gh release upload "$RELEASE_TAG" Velyntora-Core-v0.1.0.apk Velyntora-Core-v0.1.0.apk.sha256 --repo "$GH_REPO" --clobber
