@@ -16,6 +16,13 @@ jobs:
           java-version: '17'
       - name: Modular ownership and protected code
         run: python scripts/check_modular_boundaries.py
+      - name: Layer blends, alpha, operations and persistence
+        run: |
+          mkdir -p build/java-tests
+          g++ -std=c++20 -Icore/include tests/layer_blend_tests.cpp core/document/LayerDocument.cpp core/document/ProjectIO.cpp -o build/layer_blend_tests
+          build/layer_blend_tests > build/blend-vectors.txt
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/components/layers/blending/*/*.java app/src/main/java/art/velyntora/core/document/project/VlyProjectStream.java app/src/main/java/art/velyntora/core/document/openraster/OpenRasterArchive.java tests/LayerBlendTests.java
+          java -cp build/java-tests art.velyntora.core.LayerBlendTests build/blend-vectors.txt
       - name: Independent color model
         run: |
           mkdir -p build/java-tests
@@ -24,14 +31,14 @@ jobs:
       - name: Legacy raster and icon containers
         run: |
           mkdir -p build/java-tests
-          javac -d build/java-tests app/src/main/java/art/velyntora/core/document/project/VlyProjectStream.java app/src/main/java/art/velyntora/core/document/openraster/OpenRasterArchive.java app/src/main/java/art/velyntora/core/formats/pcx/PcxReader.java app/src/main/java/art/velyntora/core/formats/xbitmap/XRasterReader.java app/src/main/java/art/velyntora/core/formats/containers/IconContainers.java tests/{PcxReaderTests,XRasterReaderTests,IconContainersTests}.java
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/components/layers/blending/*/*.java app/src/main/java/art/velyntora/core/document/project/VlyProjectStream.java app/src/main/java/art/velyntora/core/document/openraster/OpenRasterArchive.java app/src/main/java/art/velyntora/core/formats/pcx/PcxReader.java app/src/main/java/art/velyntora/core/formats/xbitmap/XRasterReader.java app/src/main/java/art/velyntora/core/formats/containers/IconContainers.java tests/{PcxReaderTests,XRasterReaderTests,IconContainersTests}.java
           java -cp build/java-tests art.velyntora.core.PcxReaderTests
           java -cp build/java-tests:app/src/main/resources art.velyntora.core.XRasterReaderTests
           java -cp build/java-tests art.velyntora.core.IconContainersTests
       - name: BMP decoding, format detection and EXIF orientation
         run: |
           mkdir -p build/java-tests
-          javac -d build/java-tests app/src/main/java/art/velyntora/core/document/project/VlyProjectStream.java app/src/main/java/art/velyntora/core/document/openraster/OpenRasterArchive.java app/src/main/java/art/velyntora/core/formats/shared/RasterFileWriter.java app/src/main/java/art/velyntora/core/formats/bmp/BmpReader.java app/src/main/java/art/velyntora/core/formats/shared/RasterFormat.java app/src/main/java/art/velyntora/core/formats/metadata/ExifOrientation.java tests/{BmpReaderTests,RasterFormatTests,ExifOrientationTests}.java
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/components/layers/blending/*/*.java app/src/main/java/art/velyntora/core/document/project/VlyProjectStream.java app/src/main/java/art/velyntora/core/document/openraster/OpenRasterArchive.java app/src/main/java/art/velyntora/core/formats/shared/RasterFileWriter.java app/src/main/java/art/velyntora/core/formats/bmp/BmpReader.java app/src/main/java/art/velyntora/core/formats/shared/RasterFormat.java app/src/main/java/art/velyntora/core/formats/metadata/ExifOrientation.java tests/{BmpReaderTests,RasterFormatTests,ExifOrientationTests}.java
           java -cp build/java-tests art.velyntora.core.BmpReaderTests
           java -cp build/java-tests art.velyntora.core.RasterFormatTests
           java -cp build/java-tests art.velyntora.core.ExifOrientationTests
@@ -82,11 +89,11 @@ jobs:
           java -cp build/java-tests art.velyntora.core.TgaReaderTests
       - name: PPM file interchange tests
         run: |
-          javac -d build/java-tests app/src/main/java/art/velyntora/core/document/project/VlyProjectStream.java app/src/main/java/art/velyntora/core/document/openraster/OpenRasterArchive.java app/src/main/java/art/velyntora/core/formats/shared/RasterFileWriter.java app/src/main/java/art/velyntora/core/formats/ppm/PpmCodec.java tests/PpmCodecTests.java
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/components/layers/blending/*/*.java app/src/main/java/art/velyntora/core/document/project/VlyProjectStream.java app/src/main/java/art/velyntora/core/document/openraster/OpenRasterArchive.java app/src/main/java/art/velyntora/core/formats/shared/RasterFileWriter.java app/src/main/java/art/velyntora/core/formats/ppm/PpmCodec.java tests/PpmCodecTests.java
           java -cp build/java-tests art.velyntora.core.PpmCodecTests
       - name: ICO file interchange tests
         run: |
-          javac -d build/java-tests app/src/main/java/art/velyntora/core/document/project/VlyProjectStream.java app/src/main/java/art/velyntora/core/document/openraster/OpenRasterArchive.java app/src/main/java/art/velyntora/core/formats/shared/RasterFileWriter.java app/src/main/java/art/velyntora/core/formats/ico/IcoCodec.java tests/IcoCodecTests.java
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/components/layers/blending/*/*.java app/src/main/java/art/velyntora/core/document/project/VlyProjectStream.java app/src/main/java/art/velyntora/core/document/openraster/OpenRasterArchive.java app/src/main/java/art/velyntora/core/formats/shared/RasterFileWriter.java app/src/main/java/art/velyntora/core/formats/ico/IcoCodec.java tests/IcoCodecTests.java
           java -cp build/java-tests art.velyntora.core.IcoCodecTests
       - name: GIF file export tests
         run: |
@@ -98,11 +105,11 @@ jobs:
           java -cp build/java-tests art.velyntora.core.TiffWriterTests
       - name: TIFF file import tests
         run: |
-          javac -d build/java-tests app/src/main/java/art/velyntora/core/document/project/VlyProjectStream.java app/src/main/java/art/velyntora/core/document/openraster/OpenRasterArchive.java app/src/main/java/art/velyntora/core/formats/shared/RasterFileWriter.java app/src/main/java/art/velyntora/core/formats/tiff/TiffWriter.java app/src/main/java/art/velyntora/core/formats/tiff/TiffReader.java tests/TiffReaderTests.java
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/components/layers/blending/*/*.java app/src/main/java/art/velyntora/core/document/project/VlyProjectStream.java app/src/main/java/art/velyntora/core/document/openraster/OpenRasterArchive.java app/src/main/java/art/velyntora/core/formats/shared/RasterFileWriter.java app/src/main/java/art/velyntora/core/formats/tiff/TiffWriter.java app/src/main/java/art/velyntora/core/formats/tiff/TiffReader.java tests/TiffReaderTests.java
           java -cp build/java-tests art.velyntora.core.TiffReaderTests
       - name: OpenRaster project interchange tests
         run: |
-          javac -d build/java-tests app/src/main/java/art/velyntora/core/document/project/VlyProjectStream.java app/src/main/java/art/velyntora/core/document/openraster/OpenRasterArchive.java tests/OpenRasterTests.java
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/components/layers/blending/*/*.java app/src/main/java/art/velyntora/core/document/project/VlyProjectStream.java app/src/main/java/art/velyntora/core/document/openraster/OpenRasterArchive.java tests/OpenRasterTests.java
           java -cp build/java-tests art.velyntora.core.OpenRasterTests
       - run: cmake -S tests -B build/tests -DCMAKE_BUILD_TYPE=Debug
       - run: cmake --build build/tests --parallel

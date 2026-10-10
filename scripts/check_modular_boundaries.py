@@ -25,4 +25,4 @@ for p in base.rglob('*.java'):
 for p in (base/'components').rglob('*.java'):
  if not (p.parent/'README.md').exists():errors.append('Missing component documentation: '+str(p.parent.relative_to(root)))
 if errors:print('\n'.join(errors),file=sys.stderr);sys.exit(1)
-print(f'Modular boundaries OK: {len(actual)} protected tool files, {len(exports)} unchanged JNI exports.')
+print(f'Modular boundaries OK: {len(actual)} protected tool files, {len(exports)} validated JNI exports.')

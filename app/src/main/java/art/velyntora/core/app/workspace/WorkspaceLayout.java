@@ -15,7 +15,7 @@ final class WorkspaceLayout {
     toolsWidth = Math.min(102, Math.max(48, widthDp - 48));
     layersWidth =
         Math.min(
-            Math.min(320, Math.round(192 * Math.max(1f, Math.min(2f, fontScale)))),
+            Math.min(320, Math.round(264 * Math.max(1f, Math.min(2f, fontScale)))),
             Math.max(48, widthDp - 48));
     inline = widthDp >= 720 && widthDp - toolsWidth - layersWidth >= 240;
     compact = heightDp < 480;

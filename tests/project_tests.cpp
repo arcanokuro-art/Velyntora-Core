@@ -22,7 +22,11 @@ int main(){
  for(std::size_t i=0;i<3;++i){assert(restored.layer(i).name==d.layer(i).name);assert(restored.layer(i).visible==d.layer(i).visible);assert(restored.layer(i).opacity==d.layer(i).opacity);assert(restored.layer(i).pixels==d.layer(i).pixels);}
  assert(restored.flatten()==d.flatten());assert(encode(restored)==bytes);
  for(std::size_t n=0;n<bytes.size();++n)rejected({bytes.begin(),bytes.begin()+n});
- auto invalid=bytes;invalid[7]=2;rejected(invalid);
+ // Convert a v2 stream to the legacy v1 layout and verify compatibility.
+ auto legacy=bytes;legacy[7]=1;std::size_t offset=24;
+ for(std::size_t i=0;i<d.layerCount();i++){std::uint32_t size=0;for(int b=0;b<4;b++)size|=std::uint32_t(legacy[offset+b])<<(8*b);offset+=4+size+8;legacy.erase(legacy.begin()+offset,legacy.begin()+offset+4);offset+=d.layer(i).pixels.size()*4;}
+ auto old=decode(legacy);assert(old.flatten()==d.flatten());for(std::size_t i=0;i<old.layerCount();i++)assert(old.layer(i).blendMode==0);
+ auto invalid=bytes;invalid[7]=3;rejected(invalid);
  invalid=bytes;invalid[16]=0;rejected(invalid); // zero layers
  invalid=bytes;invalid[16]=33;rejected(invalid);
  invalid=bytes;invalid[20]=3;rejected(invalid); // active layer out of range

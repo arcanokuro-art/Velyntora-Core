@@ -22,6 +22,7 @@ final class OpenRasterArchive {
     String name, source;
     boolean visible = true;
     float opacity = 1;
+    int blendMode;
     int x, y;
   }
 
@@ -78,28 +79,12 @@ final class OpenRasterArchive {
                 + layer.opacity
                 + "\" visibility=\""
                 + (layer.visible ? "visible" : "hidden")
-                + "\" composite-op=\"svg:src-over\" x=\"0\" y=\"0\""
+                + "\" composite-op=\"" + VlyProjectStream.ORA_MODES[layer.blendMode] + "\" x=\"0\" y=\"0\""
                 + (i == reader.active ? " selected=\"true\"" : "")
                 + "/>";
         if (layer.visible)
           for (int p = 0; p < merged.length; p++) {
-            int src = layer.pixels[p], dst = merged[p];
-            double sa = (src >>> 24) / 255. * layer.opacity,
-                da = (dst >>> 24) / 255.,
-                a = sa + da * (1 - sa);
-            if (a <= 0) continue;
-            int value = Math.min(255, (int) Math.round(a * 255)) << 24;
-            for (int shift = 0; shift <= 16; shift += 8)
-              value |=
-                  Math.min(
-                          255,
-                          (int)
-                              Math.round(
-                                  (((src >>> shift) & 255) * sa
-                                          + ((dst >>> shift) & 255) * da * (1 - sa))
-                                      / a))
-                      << shift;
-            merged[p] = value;
+            merged[p]=VlyProjectStream.composite(layer.pixels[p],merged[p],layer.opacity,layer.blendMode);
           }
       }
       reader.finish();
@@ -202,8 +187,7 @@ final class OpenRasterArchive {
                       || layer.source.contains("\\"))
                     throw new IOException("Ruta de capa inválida");
                   String mode = a.getValue("composite-op");
-                  if (mode != null && !mode.equals("svg:src-over"))
-                    throw new IOException("Modo de mezcla no compatible");
+                  if(mode!=null){layer.blendMode=java.util.Arrays.asList(VlyProjectStream.ORA_MODES).indexOf(mode);if(layer.blendMode<0)throw new IOException("Modo de mezcla no compatible");}
                   layer.name = a.getValue("name");
                   if (layer.name == null) layer.name = "Capa";
                   if (layer.name.getBytes(StandardCharsets.UTF_8).length > 4096)
@@ -287,7 +271,7 @@ final class OpenRasterArchive {
         }
         VlyProjectStream.layer(
             out,
-            new VlyProjectStream.Layer(layer.name, layer.visible, layer.opacity, pixels),
+            new VlyProjectStream.Layer(layer.name, layer.visible, layer.opacity, pixels,layer.blendMode),
             stack.width * stack.height);
       }
       out.flush();

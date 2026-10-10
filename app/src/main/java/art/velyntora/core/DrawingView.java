@@ -20,6 +20,14 @@ public final class DrawingView extends View {
     System.loadLibrary("velyntora_jni");
   }
 
+  static native float nativeIndexedLayerOpacity(int index);
+  static native int nativeLayerBlendMode(int index);
+  static native boolean nativeLayerAction(int action);
+  static native boolean nativeLayerProperties(int index,String name,boolean visible,float opacity,int mode);
+  boolean applyLayerProperties(int index,String name,boolean visible,float opacity,int mode){boolean ok=nativeLayerProperties(index,name,visible,opacity,mode);if(ok)refresh();return ok;}
+  int layerBlendMode(int index){return nativeLayerBlendMode(index);}
+  boolean layerAction(int action){confirmCurve();boolean ok=nativeLayerAction(action);if(ok)refresh();return ok;}
+
   static native boolean nativeTransformSelection(
       int left, int top, int width, int height, byte[] mask, float degrees, float sx, float sy);
 

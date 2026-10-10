@@ -169,7 +169,11 @@
     "nativeRevision": "956b369d91ba1eb7662ece86b410b8cdb05491713545621b0d15c74e36a707b7",
     "nativeFillSelection": "b6af46583ea8a68b2d24353929bd5ab02f5a04de07e727a5eb10a4f0e08244c9",
     "nativeLayerName": "a2fd021cfcfd1f7fedf00e1008f4eebbe6dba2eab97b11b405b50233bcf076fd",
-    "nativeRenameLayer": "c29758e1a1f09a4a52e1e8b4f45acad2aa012eec09bd3abd80dcb8f17f6af278"
+    "nativeRenameLayer": "c29758e1a1f09a4a52e1e8b4f45acad2aa012eec09bd3abd80dcb8f17f6af278",
+    "nativeLayerBlendMode": "6d398cb5819a8077409e14244e4648168d1468999140f6610c52173434324507",
+    "nativeLayerAction": "c099ccf2c71f63b62fa6e5d3bdb626033aa12c51426513459cc2bd8ed1fd28dd",
+    "nativeLayerProperties": "5fa078f31db2f35aa9bda904dbf66c63847125c7031ecde7aac1540d910bc4f5",
+    "nativeIndexedLayerOpacity": "ed5562eb570b1d0ad613e70ea5b979e1b44dfa92606211a79fd974f342150515"
   },
   "session": "a11c1fd503885a58ae4ab1c27c3fdd26d1dd79bb55808afd8e22e0b0d991d27f"
 }
