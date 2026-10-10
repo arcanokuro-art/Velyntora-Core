@@ -2,6 +2,8 @@ package art.velyntora.core;
 import java.util.Arrays;
 class DrawingView {
  static {System.loadLibrary("velyntora_host");}
+ static native String nativeLayerName(int index);
+ static native boolean nativeRenameLayer(int index,String name);
  static native long nativeRevision();
  static native int nativeCurveTag();
  static native void nativeMarkCurve(int tag);
@@ -33,6 +35,10 @@ class DrawingView {
 public final class NativeRasterTests {
  static void check(boolean ok){if(!ok)throw new AssertionError();}
  public static void main(String[] args){
+  check(DrawingView.nativeCreate(1,1));long named=DrawingView.nativeRevision();String originalName=DrawingView.nativeLayerName(0);String unicodeName="Línea 🖌️ 水";
+  check(DrawingView.nativeRenameLayer(0,unicodeName));check(unicodeName.equals(DrawingView.nativeLayerName(0)));long renamed=DrawingView.nativeRevision();check(renamed!=named);
+  check(DrawingView.nativeRenameLayer(0,unicodeName));check(DrawingView.nativeRevision()==renamed);check(DrawingView.nativeUndo());check(originalName.equals(DrawingView.nativeLayerName(0)));check(DrawingView.nativeRevision()==named);check(DrawingView.nativeRedo());check(unicodeName.equals(DrawingView.nativeLayerName(0)));
+  check(!DrawingView.nativeRenameLayer(0,""));check(!DrawingView.nativeRenameLayer(0,"x".repeat(4097)));check(!DrawingView.nativeRenameLayer(0,"nul\0name"));check(!DrawingView.nativeRenameLayer(-1,"x"));check(DrawingView.nativeRevision()==renamed);
   check(DrawingView.nativeLoadBitmap(5,1,new int[5]));long fillBefore=DrawingView.nativeRevision();
   check(DrawingView.nativeFillSelection(0,0,0xffff0000,.5f,new byte[]{1,1,0,1,1}));check(Arrays.equals(DrawingView.nativePixels(),new int[]{0x80ff0000,0x80ff0000,0,0,0}));
   check(DrawingView.nativeUndo());check(DrawingView.nativeRevision()==fillBefore);check(DrawingView.nativeRedo());long fillAfter=DrawingView.nativeRevision();

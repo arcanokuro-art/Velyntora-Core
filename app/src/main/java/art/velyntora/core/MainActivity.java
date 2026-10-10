@@ -630,8 +630,8 @@ public final class MainActivity extends Activity {
                 () -> {if(!drawing.trimActiveToRectSelection())message("Selecciona un rectángulo válido con contenido exterior");},
                 () -> {if(!drawing.trimActiveToEllipseSelection())message("Selecciona una elipse válida con contenido exterior");},
                 () -> {if(!drawing.trimActiveToFreeSelection())message("Selecciona una región libre o con varita que tenga contenido exterior");}});
-        menu(menus, "Capas", new String[]{"Añadir capa", "Seleccionar capa", "Eliminar capa", "Mostrar / ocultar", "Subir capa", "Bajar capa"},
-            new Runnable[]{this::addLayer, this::chooseLayer, this::deleteLayer, this::toggleLayer,
+        menu(menus, "Capas", new String[]{"Añadir capa", "Seleccionar capa", "Renombrar capa…", "Eliminar capa", "Mostrar / ocultar", "Subir capa", "Bajar capa"},
+            new Runnable[]{this::addLayer, this::chooseLayer, () -> renameLayer(drawing.activeLayer()), this::deleteLayer, this::toggleLayer,
                 () -> moveLayer(1), () -> moveLayer(-1)});
         menu(menus, "Herramientas", new String[]{"Tolerancia de varita mágica", "Configurar pincel", "Elegir color…", "Confirmar Línea/Curva", "Cancelar Línea/Curva"},
             new Runnable[]{this::configureWandTolerance, this::configureBrush, this::configureColor, drawing::confirmCurve, drawing::cancelCurve});
@@ -953,7 +953,7 @@ public final class MainActivity extends Activity {
         if (layerOpacity != null) layerOpacity.setProgress(Math.round(drawing.layerOpacity() * 100));
         for (int i = drawing.layerCount() - 1; i >= 0; --i) {
             final int index = i;
-            String label = "Capa " + (index + 1) + (drawing.layerVisible(index)?"":" · Oculta");
+            String label = drawing.layerName(index) + (drawing.layerVisible(index)?"":" · Oculta");
             LinearLayout item = row();
             Bitmap preview = drawing.layerThumbnail(index);
             if (preview != null) {
@@ -968,7 +968,8 @@ public final class MainActivity extends Activity {
                 refreshLayerPanel();
             });
             layerButton.setSelected(index==drawing.activeLayer());layerButton.setBackgroundResource(R.drawable.tool_button_background);layerButton.setBackgroundTintList(null);
-            layerButton.setContentDescription("Capa "+(index+1)+(index==drawing.activeLayer()?", activa":"")+(drawing.layerVisible(index)?", visible":", oculta"));
+            layerButton.setOnLongClickListener(v->{if(projectProgress==null)renameLayer(index);return true;});
+            layerButton.setContentDescription(drawing.layerName(index)+(index==drawing.activeLayer()?", activa":"")+(drawing.layerVisible(index)?", visible":", oculta"));
             if(android.os.Build.VERSION.SDK_INT>=30)layerButton.setStateDescription(index==drawing.activeLayer()?"Activa":"");
             item.setOnClickListener(view -> {
                 if(projectProgress!=null)return;
@@ -985,12 +986,18 @@ public final class MainActivity extends Activity {
         refreshLayerPanel();
     }
 
+    private void renameLayer(int index){
+        android.widget.EditText name=new android.widget.EditText(this);name.setSingleLine(true);name.setText(drawing.layerName(index));name.setSelectAllOnFocus(true);name.setContentDescription("Nombre de capa");name.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(4096)});
+        AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Renombrar capa").setView(name).setNegativeButton("Cancelar",null).setPositiveButton("Aplicar",null).create();
+        dialog.setOnShowListener(d->dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{if(!drawing.renameLayer(index,name.getText().toString())){name.setError("Escribe un nombre de hasta 4096 bytes UTF-8");return;}dialog.dismiss();refreshLayerPanel();}));dialog.show();
+    }
+
     private void chooseLayer() {
         int count = drawing.layerCount();
         String[] items = new String[count];
         for (int i = 0; i < count; ++i) {
             items[i] = (i == drawing.activeLayer() ? "● " : "  ") +
-                "Capa " + (i + 1) + (drawing.layerVisible(i) ? "" : " (oculta)");
+                drawing.layerName(i) + (drawing.layerVisible(i) ? "" : " (oculta)");
         }
         new AlertDialog.Builder(this).setTitle("Capas").setItems(items,
             (dialog, index) -> {drawing.selectLayer(index); refreshLayerPanel();}).show();

@@ -67,7 +67,7 @@ public final class WorkspaceDeviceTests {
  }
  @Test public void shapesRespectSelectionOpacityAndCanceledGesture(){
   instrumentation.runOnMainSync(()->{
-   DrawingView view=drawing();assertTrue(view.newDocument(64,64));view.setZoomPercent(100);view.setTool(DrawingView.SELECT_RECTANGLE);gesture(view,8,8,24,24,false);assertTrue(view.hasSelection());
+   DrawingView view=drawing();Bitmap blank=Bitmap.createBitmap(64,64,Bitmap.Config.ARGB_8888);try{assertTrue(view.loadBitmap(blank));}finally{blank.recycle();}view.setZoomPercent(100);view.setTool(DrawingView.SELECT_RECTANGLE);gesture(view,8,8,24,24,false);assertTrue(view.hasSelection());
    view.setColor(0xffff0000);view.configureBrush(.5f,1,false,false);view.setTool(DrawingView.FILLED_RECTANGLE);gesture(view,0,0,32,32,false);
    assertTrue("Painting a shape must preserve selection",view.hasSelection());Bitmap image=view.snapshot();try{assertEquals(0x80ff0000,image.getPixel(10,10));assertEquals(0,image.getPixel(2,2));assertEquals(0,image.getPixel(30,30));}finally{image.recycle();}
    long revision=view.revision();view.setTool(DrawingView.RECTANGLE);gesture(view,9,9,20,20,true);assertEquals("Canceled shape must not create history",revision,view.revision());

@@ -1120,3 +1120,24 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
   checkpoint();canvas->setPixels(filled.pixels());storeActive();return JNI_TRUE;
  }catch(const std::exception&){return JNI_FALSE;}
 }
+
+extern "C" JNIEXPORT jstring JNICALL Java_art_velyntora_core_DrawingView_nativeLayerName(JNIEnv* env,jclass,jint index){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!layers||index<0||static_cast<std::size_t>(index)>=layers->layerCount())return nullptr;
+ const auto& name=layers->layer(static_cast<std::size_t>(index)).name;
+ jbyteArray bytes=env->NewByteArray(static_cast<jsize>(name.size()));if(!bytes)return nullptr;
+ env->SetByteArrayRegion(bytes,0,static_cast<jsize>(name.size()),reinterpret_cast<const jbyte*>(name.data()));
+ jclass strings=env->FindClass("java/lang/String");jmethodID constructor=env->GetMethodID(strings,"<init>","([BLjava/lang/String;)V");jstring charset=env->NewStringUTF("UTF-8");
+ return static_cast<jstring>(env->NewObject(strings,constructor,bytes,charset));
+}
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeRenameLayer(JNIEnv* env,jclass,jint index,jstring name){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!layers||!name||index<0||static_cast<std::size_t>(index)>=layers->layerCount()||env->GetStringLength(name)<1||env->GetStringLength(name)>4096)return JNI_FALSE;
+ try{
+  jclass strings=env->FindClass("java/lang/String");jmethodID getBytes=env->GetMethodID(strings,"getBytes","(Ljava/lang/String;)[B");jstring charset=env->NewStringUTF("UTF-8");
+  auto bytes=static_cast<jbyteArray>(env->CallObjectMethod(name,getBytes,charset));if(env->ExceptionCheck()||!bytes)return JNI_FALSE;
+  jsize length=env->GetArrayLength(bytes);if(length<1||length>4096)return JNI_FALSE;std::string utf8(static_cast<std::size_t>(length),'\0');env->GetByteArrayRegion(bytes,0,length,reinterpret_cast<jbyte*>(utf8.data()));if(env->ExceptionCheck()||utf8.find('\0')!=std::string::npos)return JNI_FALSE;
+  if(layers->layer(static_cast<std::size_t>(index)).name==utf8)return JNI_TRUE;
+  checkpoint();return layers->renameLayer(static_cast<std::size_t>(index),utf8)?JNI_TRUE:JNI_FALSE;
+ }catch(const std::exception&){return JNI_FALSE;}
+}

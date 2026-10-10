@@ -295,6 +295,10 @@ public final class DrawingView extends View {
   if(pixels==null||pixels.length!=48*48)return null;
   return Bitmap.createBitmap(pixels,48,48,Bitmap.Config.ARGB_8888);
  }
+ private static native String nativeLayerName(int index);
+ private static native boolean nativeRenameLayer(int index,String name);
+ public String layerName(int index){String name=nativeLayerName(index);return name==null?"Capa "+(index+1):name;}
+ public boolean renameLayer(int index,String name){if(name==null||name.trim().isEmpty())return false;boolean ok=nativeRenameLayer(index,name.trim());if(ok)refresh();return ok;}
  public int layerCount(){return nativeLayerCount();}
  public int activeLayer(){return nativeActiveLayer();}
  public boolean layerVisible(int index){return nativeLayerVisible(index);}
