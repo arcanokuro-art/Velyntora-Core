@@ -38,4 +38,22 @@ public final class RemoveAiDeviceTests {
    assertNotNull(Tools.icon(DrawingView.REMOVE_AI,activity));
   });}finally{inst.runOnMainSync(activity::finish);}
  }
+ @Test public void eliminateCommandCommitsAndCancelDiscards()throws Exception{
+  android.app.Instrumentation inst=InstrumentationRegistry.getInstrumentation();android.content.Intent intent=new android.content.Intent(inst.getTargetContext(),MainActivity.class);intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);MainActivity activity=(MainActivity)inst.startActivitySync(intent);
+  int[] source=new int[160*96];Arrays.fill(source,0xff969696);for(int y=25;y<55;y++)for(int x=70;x<95;x++)source[y*160+x]=0xff000000;
+  try{
+   inst.runOnMainSync(()->{DrawingView v=activity.readDrawing();assertTrue(v.newDocument(160,96));assertTrue(DrawingView.nativeImport(source));v.refresh();v.setTool(DrawingView.REMOVE_AI);v.setBrushRadius(14);v.removeAi().down(82,40);v.removeAi().finishStroke();v.removeAi().apply();});
+   waitForRemove(inst,activity);
+   inst.runOnMainSync(()->{assertFalse(Arrays.equals(source,DrawingView.nativeRemoveSource()));activity.readDrawing().undo();assertArrayEquals(source,DrawingView.nativeRemoveSource());});
+   inst.runOnMainSync(()->{DrawingView v=activity.readDrawing();v.removeAi().down(82,40);v.removeAi().finishStroke();v.removeAi().apply();v.removeAi().clear();});
+   waitForRemove(inst,activity);
+   inst.runOnMainSync(()->assertArrayEquals("Cancelled generation cannot change pixels",source,DrawingView.nativeRemoveSource()));
+  }finally{inst.runOnMainSync(activity::finish);}
+ }
+ private void waitForRemove(android.app.Instrumentation inst,MainActivity activity)throws Exception{
+  long deadline=android.os.SystemClock.uptimeMillis()+90000;
+  while(activity.readDrawing().removeAi().busy()&&android.os.SystemClock.uptimeMillis()<deadline)Thread.sleep(50);
+  inst.waitForIdleSync();assertFalse("Inference must finish",activity.readDrawing().removeAi().busy());
+ }
+
 }

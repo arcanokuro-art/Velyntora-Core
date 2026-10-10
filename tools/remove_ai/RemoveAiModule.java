@@ -27,6 +27,7 @@ final class RemoveAiModule {
  void down(float x,float y){if(busy)return;ensure();recycleBackup();strokeBackup=mask.copy(Bitmap.Config.ARGB_8888,true);previousX=x;previousY=y;line(x,y);}
  void move(float x,float y,MotionEvent event){if(busy||!valid())return;for(int i=0;i<event.getHistorySize();i++)line((float)view.readViewport().documentX(event.getHistoricalX(i),event.getHistoricalY(i)),(float)view.readViewport().documentY(event.getHistoricalX(i),event.getHistoricalY(i)));line(x,y);}
  private void line(float x,float y){brush.setStrokeWidth(view.brushRadius()*2);maskCanvas.drawLine(previousX,previousY,x,y,brush);maskCanvas.drawCircle(x,y,view.brushRadius(),brush);previousX=x;previousY=y;view.invalidate();}
+ void finishStroke(){recycleBackup();}
  void cancelStroke(){if(busy)return;if(strokeBackup!=null){if(mask!=null)mask.recycle();mask=strokeBackup;strokeBackup=null;maskCanvas=new Canvas(mask);view.invalidate();}}
  void preview(Canvas canvas){if(valid())canvas.drawBitmap(mask,0,0,overlay);}
  private void recycleBackup(){if(strokeBackup!=null){strokeBackup.recycle();strokeBackup=null;}}
