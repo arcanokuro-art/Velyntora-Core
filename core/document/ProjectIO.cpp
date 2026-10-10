@@ -11,7 +11,7 @@ namespace velyntora {
 namespace {
 constexpr std::size_t maxLayers = 32, maxName = 4096;
 constexpr std::uint64_t maxPixels = 24000000;
-constexpr std::array<unsigned char, 8> magic = {'V', 'L', 'Y', 'C', 'O', 'R', 'E', 1};
+constexpr std::array<unsigned char, 8> magic = {'V', 'L', 'Y', 'C', 'O', 'R', 'E', 2};
 void put(const ProjectWrite& write, std::uint32_t value) {
   unsigned char b[4];
   for (int i = 0; i < 4; ++i) b[i] = static_cast<unsigned char>(value >> (8 * i));
@@ -46,6 +46,7 @@ void writeProject(const LayerDocument& doc, const ProjectWrite& write) {
     write(layer.name.data(), layer.name.size());
     put(write, layer.visible ? 1 : 0);
     put(write, std::bit_cast<std::uint32_t>(layer.opacity));
+    put(write,layer.blendMode);
     for (std::size_t offset = 0; offset < layer.pixels.size(); offset += block.size() / 4) {
       auto count = std::min(block.size() / 4, layer.pixels.size() - offset);
       for (std::size_t p = 0; p < count; ++p)
@@ -59,7 +60,8 @@ LayerDocument readProject(const ProjectRead& read, int requiredWidth, int requir
                           std::uint64_t maxDocumentPixels) {
   std::array<unsigned char, 8> signature{};
   read(signature.data(), signature.size());
-  if (signature != magic) throw std::invalid_argument("Unsupported project format");
+  const auto version=signature[7]; signature[7]=2;
+  if (signature != magic || (version!=1 && version!=2)) throw std::invalid_argument("Unsupported project format");
   auto w = get(read), h = get(read), count = get(read), active = get(read);
   dimensions(w, h, count);
   if (std::uint64_t(w) * h > maxDocumentPixels || active >= count ||
@@ -76,6 +78,8 @@ LayerDocument readProject(const ProjectRead& read, int requiredWidth, int requir
     read(name.data(), size);
     auto visible = get(read);
     float opacity = std::bit_cast<float>(get(read));
+    auto mode=version>=2?get(read):0;
+    if(mode>15)throw std::invalid_argument("Invalid blend mode");
     if (visible > 1 || !std::isfinite(opacity) || opacity < 0 || opacity > 1)
       throw std::invalid_argument("Invalid layer properties");
     if (i == 0)
@@ -85,6 +89,7 @@ LayerDocument readProject(const ProjectRead& read, int requiredWidth, int requir
     doc.selectLayer(i);
     doc.setVisible(i, visible != 0);
     doc.setOpacity(i, opacity);
+    doc.setBlendMode(i, mode);
     for (std::size_t offset = 0; offset < pixels.size(); offset += block.size() / 4) {
       auto n = std::min(block.size() / 4, pixels.size() - offset);
       read(block.data(), n * 4);

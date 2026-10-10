@@ -1,4 +1,5 @@
 #include "velyntora/LayerDocument.hpp"
+#include "../components/layers/blending/BlendModes.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -27,7 +28,7 @@ LayerDocument LayerDocument::resized(int w, int h, bool scalePixels, bool biline
   const int offsetY = int(std::floor((double(h) - height_) * (anchor / 3) / 2));
   for (const auto& layer : layers_) {
     Layer output{layer.name, std::vector<std::uint32_t>(std::size_t(w) * h, 0u), layer.visible,
-                 layer.opacity};
+                 layer.opacity, layer.blendMode};
     for (int y = 0; y < h; ++y)
       for (int x = 0; x < w; ++x) {
         if (scalePixels && bilinear) {
@@ -74,7 +75,7 @@ LayerDocument LayerDocument::cropped(int left, int top, int w, int h) const {
   result.layers_.clear();
   for (const auto& layer : layers_) {
     Layer output{layer.name, std::vector<std::uint32_t>(std::size_t(w) * h), layer.visible,
-                 layer.opacity};
+                 layer.opacity, layer.blendMode};
     for (int y = 0; y < h; ++y)
       std::copy_n(layer.pixels.begin() + std::size_t(y + top) * width_ + left, w,
                   output.pixels.begin() + std::size_t(y) * w);
@@ -140,24 +141,7 @@ std::vector<std::uint32_t> LayerDocument::flatten() const {
     if (!layer.visible || layer.opacity <= 0.f) continue;
     for (std::size_t i = 0; i < result.size(); ++i) {
       const std::uint32_t src = layer.pixels[i], dst = result[i];
-      const float sa = ((src >> 24) & 255) / 255.f * layer.opacity;
-      const float da = ((dst >> 24) & 255) / 255.f;
-      const float oa = sa + da * (1.f - sa);
-      if (oa <= 0.f) {
-        result[i] = 0;
-        continue;
-      }
-      std::uint32_t channels = 0;
-      for (int shift : {0, 8, 16}) {
-        float s = static_cast<float>((src >> shift) & 255),
-              d = static_cast<float>((dst >> shift) & 255);
-        int v = static_cast<int>(std::lround((s * sa + d * da * (1.f - sa)) / oa));
-        channels |= static_cast<std::uint32_t>(std::clamp(v, 0, 255)) << shift;
-      }
-      result[i] =
-          (static_cast<std::uint32_t>(std::clamp(static_cast<int>(std::lround(oa * 255)), 0, 255))
-           << 24) |
-          channels;
+      result[i] = blending::composite(src,dst,layer.opacity,layer.blendMode);
     }
   }
   return result;
@@ -180,26 +164,16 @@ std::vector<std::uint32_t> LayerDocument::flattenRegion(int x, int y, int w, int
     if (!layer.visible || layer.opacity <= 0.f) continue;
     for (std::size_t i = 0; i < result.size(); ++i) {
       const std::uint32_t src = layer.pixels[std::size_t(y + i / w) * width_ + x + i % w], dst = result[i];
-      const float sa = ((src >> 24) & 255) / 255.f * layer.opacity;
-      const float da = ((dst >> 24) & 255) / 255.f;
-      const float oa = sa + da * (1.f - sa);
-      if (oa <= 0.f) {
-        result[i] = 0;
-        continue;
-      }
-      std::uint32_t channels = 0;
-      for (int shift : {0, 8, 16}) {
-        float s = static_cast<float>((src >> shift) & 255),
-              d = static_cast<float>((dst >> shift) & 255);
-        int v = static_cast<int>(std::lround((s * sa + d * da * (1.f - sa)) / oa));
-        channels |= static_cast<std::uint32_t>(std::clamp(v, 0, 255)) << shift;
-      }
-      result[i] =
-          (static_cast<std::uint32_t>(std::clamp(static_cast<int>(std::lround(oa * 255)), 0, 255))
-           << 24) |
-          channels;
+      result[i] = blending::composite(src,dst,layer.opacity,layer.blendMode);
     }
   }
   return result;
 }
 }  // namespace velyntora
+
+namespace velyntora {
+bool LayerDocument::setBlendMode(std::size_t i,int mode){if(i>=layers_.size()||mode<0||mode>15)return false;layers_[i].blendMode=mode;return true;}
+bool LayerDocument::duplicateActive(){Layer copy=layers_[active_];copy.name+=" copia";layers_.insert(layers_.begin()+active_+1,std::move(copy));++active_;return true;}
+bool LayerDocument::mergeDown(){if(active_==0)return false;auto& upper=layers_[active_];auto& lower=layers_[active_-1];
+ for(std::size_t i=0;i<lower.pixels.size();i++){auto dst=blending::composite(lower.pixels[i],0,lower.visible?lower.opacity:0,0);lower.pixels[i]=blending::composite(upper.pixels[i],dst,upper.visible?upper.opacity:0,upper.blendMode);}lower.opacity=1;lower.visible=true;lower.blendMode=0;layers_.erase(layers_.begin()+active_);--active_;return true;}
+}

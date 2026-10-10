@@ -12,6 +12,7 @@ struct Layer {
   std::vector<std::uint32_t> pixels;
   bool visible = true;
   float opacity = 1.f;
+  int blendMode = 0;
 };
 class LayerDocument {
  public:
@@ -31,6 +32,9 @@ class LayerDocument {
   bool moveLayer(std::size_t from, std::size_t to);
   bool setVisible(std::size_t index, bool visible);
   bool setOpacity(std::size_t index, float opacity);
+  bool setBlendMode(std::size_t index, int mode);
+  bool duplicateActive();
+  bool mergeDown();
   void replaceActivePixels(const std::vector<std::uint32_t>& pixels);
   std::vector<std::uint32_t> flatten() const;
   void replaceActiveRegion(const std::vector<std::uint32_t>& pixels, int x, int y, int w, int h);
