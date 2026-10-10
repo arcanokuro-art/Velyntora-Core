@@ -8,7 +8,7 @@ permissions:
   contents: write
   actions: read
 concurrency:
-  group: publish-tool-response-apk
+  group: publish-color-layout-verified-apk
   cancel-in-progress: false
 jobs:
   publish:
@@ -17,14 +17,14 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: f00d898e31bae59768e90aa7258c201028ff3c93
+      VERIFIED_SHA: 797182127be75d1cd4ca0bb2f6913ea2dc7f5413
       RELEASE_TAG: v0.1.0-color-picker-layout-preview
     steps:
       - name: Wait for the exact source build and tests
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 38073717328 38073717319 38073717353; do
+          for run_id in 38073740966 38073740800 38073740796; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "main"' run.json
@@ -40,7 +40,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 38073717328 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 38073740966 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
           cp apk/*.apk Velyntora-Core-Colores-Ordenados.apk
           sha256sum Velyntora-Core-Colores-Ordenados.apk > Velyntora-Core-Colores-Ordenados.apk.sha256
@@ -51,7 +51,7 @@ jobs:
           cat > notes.md <<'NOTES'
           Panel de color reorganizado con separación entre columnas, etiquetas medidas según tamaño de letra, márgenes y botones separados. Selector de color inspirado en Pinta: círculo de tono/saturación, cuadrado de saturación/valor, HSV, RGBA, hexadecimal RRGGBBAA y muestras de ambos colores.
           Edición local hasta Aceptar; Cancelar descarta; Restablecer recupera ambos colores iniciales.
-          APK debug del commit f00d898e31bae59768e90aa7258c201028ff3c93. Compilación y pruebas Android verificadas antes de publicar.
+          APK debug del commit 797182127be75d1cd4ca0bb2f6913ea2dc7f5413. Compilación y pruebas Android verificadas antes de publicar.
           Descargar Velyntora-Core-Colores-Ordenados.apk. SHA-256 adjunta.
           NOTES
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
