@@ -30,6 +30,8 @@ jobs:
           profile: pixel_2
           disable-animations: true
           script: |
+            adb shell wm size 768x1366
+            adb shell wm density 160
             mkdir -p workspace-screenshots/font-1.0 workspace-screenshots/font-1.8
             gradle :app:connectedDebugAndroidTest --no-daemon
             adb pull /sdcard/Download/velyntora-core-workspace/ workspace-screenshots/font-1.0/
