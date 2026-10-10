@@ -1,5 +1,7 @@
 # Velyntora Core — progreso verificable
 
+Reorganización por herramientas del 10 de octubre: **8/8 entregables, 100.00 %**, con APK y 13 pruebas Android aprobadas en cada uno de los dos tamaños de fuente. Evidencia y denominador independiente: [REORGANIZATION.md](REORGANIZATION.md). Organización actual: [TOOLS_ARCHITECTURE.md](TOOLS_ARCHITECTURE.md).
+
 El plan mantiene **20 entregables de igual peso (5 puntos cada uno)**. Un hito se contabiliza al integrarse y superar compilación y pruebas; no se asignan puntos a implementaciones parciales. El plan mide una aplicación Android de dibujo inspirada en Pinta, no un inventario exhaustivo de todos sus comandos, variantes de codecs o igualdad de algoritmos.
 
 **Programación del plan: 20/20 = 100.00 %.** Cerrados 09, 16 y 20 con los criterios y pruebas detallados abajo.
