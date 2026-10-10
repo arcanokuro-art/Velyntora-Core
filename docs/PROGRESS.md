@@ -159,3 +159,36 @@ Color activo visible sobre tablero de transparencia, actualizado desde la paleta
 ## Herramientas de la lista del usuario (implementación parcial)
 
 Lápiz dedicado de un píxel: trazo alineado a centros de píxel, borde duro, sin presión ni suavizado; respeta alfa del color, selección e historial del pincel. Desplazamiento con un dedo y zoom como herramientas del panel: toque acerca, toque largo aleja y arrastre vertical cambia escala alrededor del punto inicial. Navegar no edita píxeles ni añade historial; conserva los gestos existentes de dos dedos. Iconos derivados de los recursos SVG originales de Pinta ya almacenados en el repositorio. Pruebas Java de navegación anclada. Siguen pendientes degradado, forma libre de dibujo, tampón de clonar, recoloración, curvas editables, mover contornos de lazo/varita y restricción circular. Avance global **85.00 %**.
+
+## Degradado lineal y movimiento de máscaras (parcial)
+
+Degradado del color activo a transparente por arrastre, aplicado sólo a la selección si existe y con una operación de historial. Extremos con alfa gradual y sin RGB visible al llegar a transparencia total. Incluye modos lineal y radial, seleccionables manteniendo pulsada la herramienta. No incluye segundo color ni edición posterior de tiradores. El movimiento del contorno de lazo y varita conserva y traslada su máscara en píxeles enteros; cancelar restaura la posición. Estos cambios no cierran los entregables abiertos: avance 17/20 = 85.00 %. Las pruebas de degradado forman parte de CI.
+
+## Formas pendientes (parcial)
+
+Forma libre: arrastre para construir un contorno cerrado rasterizado en la capa activa, respetando la selección y con un solo paso de historial. Vista previa durante el arrastre; cancelar no escribe píxeles. Círculo: variante de la elipse que impone ancho y alto iguales. Quedan Línea/Curva editable, Tampón de clonar, Recoloración y variantes avanzadas del degradado. Las funciones nuevas siguen pendientes de compilación/verificación del cambio completo; avance global 85.00 %.
+
+
+## Verificación local del bloque de herramientas
+
+Se corrigieron declaraciones duplicadas de Forma libre causadas por cambios simultáneos y se confirmó una única variable `action` en la navegación. Compiladas y ejecutadas 15 suites Java y 15 suites C++ del árbol local. Las pruebas de degradado cubren también el modo radial y rechazan extremos numéricos que desbordan la longitud. Esto no acredita la compilación Android ni la interacción visual: SDK/Gradle no disponibles en el entorno y publicación bloqueada por revisión automática. Cambios conservados en la rama local `codex/pending-drawing-tools`; no se contabiliza un hito nuevo. Avance 17/20 = 85.00 %.
+
+
+## Tampón de clonar y Recoloración (validación en curso)
+
+Tampón de clonar sobre la capa activa: primer toque fija origen; seleccionar otra vez la herramienta permite cambiarlo. Cada trazo toma una copia estable de la capa y mantiene el desplazamiento origen/destino dentro del trazo. Fuera de la imagen no se pinta. Recoloración sustituye RGB del color inicial dentro de la tolerancia compartida con varita, conserva alfa y omite píxeles transparentes. Ambas usan radio, dureza, opacidad, presión y máscara de selección; un paso de historial por trazo. Iconos provisionales compartidos con pincel/cubeta. No equivalen aún a todas las opciones de Pinta. Pruebas C++ de solapamiento, selección, alfa, tolerancia y entradas inválidas; pruebas JNI de Undo/Redo añadidas a CI. Avance 17/20 = 85.00 %.
+
+
+## Línea/Curva editable (integración pendiente de CI)
+
+Una herramienta conserva un borrador cúbico con dos extremos y dos tiradores interiores. Arrastrar un tirador modifica la curva sin escribir píxeles. Enter o mantener pulsada la herramienta confirma; Escape cancela. Cambiar herramienta, capa o iniciar una operación que bloquea la vista confirma el borrador. Al deshacer una confirmación se recupera el borrador si su geometría sigue en la caché de 15 curvas; Rehacer elimina el borrador y recupera los píxeles. Marcas de historial JNI evitan confundir una curva con otras ediciones. La rasterización respeta la selección, radio, opacidad y alfa. No se afirma paridad completa con todos los modos y transiciones de Pinta; edición del borrador no tiene historial por tirador y la selección se descarta al deshacer. Pruebas Java de geometría y JNI de identidad de historial. Avance 17/20 = 85.00 %.
+
+
+## Historial de tiradores y selección de curvas (validación pendiente)
+
+Cada arrastre completado de un tirador tiene Deshacer/Rehacer del borrador, separado del historial de píxeles y limitado a 100 movimientos. Arrastres sin cambios no añaden historial; una nueva edición elimina la rama de Rehacer. Deshacer al inicio del borrador lo retira y Rehacer lo recupera; Escape descarta su historial. Ctrl+Shift+Z ejecuta Rehacer. Al recuperar una curva confirmada se restauran la selección original (tipo, contorno y región), color, opacidad y radio. La caché mantiene 15 geometrías confirmadas; su reapertura inicia un historial de tiradores vacío. No se contabiliza otro hito: avance 17/20 = 85.00 %.
+
+
+## Netpbm ampliado (hito 16 parcial)
+
+Abrir PBM P1/P4 (blanco/negro) y PGM P2/P5 (escala de grises), además de PPM P3/P6. PBM binario conserva el relleno independiente de cada fila; PGM admite muestras de 8/16 bits con máximo hasta 65535. Rechaza muestras fuera de rango, datos truncados y adicionales. Exportación sigue siendo PPM RGB. No incluye PAM ni secuencias; avance permanece 17/20 = 85.00 %.

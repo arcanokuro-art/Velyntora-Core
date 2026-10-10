@@ -548,7 +548,7 @@ public final class MainActivity extends Activity {
         root.setBackgroundColor(0xFFF1F1F1);
 
         LinearLayout menus = row();
-        menu(menus, "Archivo", new String[]{"Nuevo…", "Abrir imagen", "Abrir TGA", "Abrir TIFF", "Abrir ICO", "Abrir PPM", "Abrir OpenRaster", "Guardar OpenRaster", "Guardar PNG", "Guardar JPEG", "Guardar WebP", "Guardar BMP", "Guardar TGA", "Guardar TIFF", "Guardar GIF (imagen fija)", "Guardar ICO (hasta 256 px)", "Guardar PPM", "Abrir proyecto", "Guardar proyecto"},
+        menu(menus, "Archivo", new String[]{"Nuevo…", "Abrir imagen", "Abrir TGA", "Abrir TIFF", "Abrir ICO", "Abrir Netpbm (PBM/PGM/PPM)", "Abrir OpenRaster", "Guardar OpenRaster", "Guardar PNG", "Guardar JPEG", "Guardar WebP", "Guardar BMP", "Guardar TGA", "Guardar TIFF", "Guardar GIF (imagen fija)", "Guardar ICO (hasta 256 px)", "Guardar PPM", "Abrir proyecto", "Guardar proyecto"},
             new Runnable[]{() -> configureDimensions(0), this::openImage, this::openTga, this::openTiff, this::openIco, this::openPpm, () -> openRasterPicker(false), () -> openRasterPicker(true), this::savePng, () -> saveImage("image/jpeg", "dibujo.jpg", SAVE_JPEG), () -> saveImage("image/webp", "dibujo.webp", SAVE_WEBP), () -> saveImage("image/bmp", "dibujo.bmp", SAVE_BMP), () -> saveImage("image/x-tga", "dibujo.tga", SAVE_TGA), () -> saveImage("image/tiff", "dibujo.tiff", SAVE_TIFF), () -> {message("GIF: colores reducidos y transparencia sin semitransparencias");saveImage("image/gif", "dibujo.gif", SAVE_GIF);}, () -> saveImage("image/vnd.microsoft.icon", "dibujo.ico", SAVE_ICO), () -> saveImage("image/x-portable-pixmap", "dibujo.ppm", SAVE_PPM), () -> projectPicker(false), () -> projectPicker(true)});
         menu(menus, "Editar", new String[]{"Deshacer", "Rehacer", "Copiar selección", "Cortar selección", "Pegar selección", "Duplicar selección", "Mover contenido…", "Transformar selección…", "Seleccionar todo", "Invertir selección", "Expandir selección 1 px", "Contraer selección 1 px", "Borrar selección", "Deseleccionar"},
             new Runnable[]{this::undo, this::redo, this::copySelection, this::cutSelection, this::pasteSelection, this::duplicateSelection, this::moveSelectedContent, this::configureSelectionTransform, drawing::selectAll, () -> {if(!drawing.invertSelection())message("No se pudo invertir la selección");}, () -> {if(!drawing.expandSelectionOnePixel())message("No se pudo expandir la selección");}, () -> {if(!drawing.shrinkSelectionOnePixel())message("No se pudo contraer la selección");}, () -> {if(!drawing.eraseSelection())message("No hay selección válida");}, drawing::deselect});
@@ -571,8 +571,8 @@ public final class MainActivity extends Activity {
         menu(menus, "Capas", new String[]{"Añadir capa", "Seleccionar capa", "Eliminar capa", "Mostrar / ocultar", "Subir capa", "Bajar capa"},
             new Runnable[]{this::addLayer, this::chooseLayer, this::deleteLayer, this::toggleLayer,
                 () -> moveLayer(1), () -> moveLayer(-1)});
-        menu(menus, "Herramientas", new String[]{"Tolerancia de varita mágica", "Configurar pincel", "Elegir color…"},
-            new Runnable[]{this::configureWandTolerance, this::configureBrush, this::configureColor});
+        menu(menus, "Herramientas", new String[]{"Tolerancia de varita mágica", "Configurar pincel", "Elegir color…", "Confirmar Línea/Curva", "Cancelar Línea/Curva"},
+            new Runnable[]{this::configureWandTolerance, this::configureBrush, this::configureColor, drawing::confirmCurve, drawing::cancelCurve});
         AdjustmentDialogs filters=new AdjustmentDialogs(this,drawing);
         menu(menus, "Efectos",new String[]{"Básicos","Desenfoques","Distorsiones","Arte y fotografía","Generadores","Más filtros","Objetos"},new Runnable[]{()->new AlertDialog.Builder(this).setTitle("Efectos básicos").setItems(new String[]{"Desenfoque de caja…","Enfocar…","Detectar bordes…","Repujado…","Pixelar…","Ruido…","Viñeta…"},(d,k)->configureEffect(k)).show(),filters::openBlurMenu,filters::openDistortionMenu,filters::openArtisticMenu,filters::openRenderMenu,filters::openUtilityMenu,filters::openObjectMenu});
         menu(menus, "Ayuda", new String[]{"Acerca de"},
@@ -600,8 +600,10 @@ public final class MainActivity extends Activity {
         tool(toolGrid, "Lápiz (1 píxel)", DrawingView.PENCIL);
         tool(toolGrid, "Desplazamiento", DrawingView.PAN);
         tool(toolGrid, "Zoom: toque acerca; toque largo aleja; arrastre vertical", DrawingView.ZOOM);
-        tool(toolGrid, "Línea", DrawingView.LINE);
+        tool(toolGrid, "Línea/Curva: arrastrar tiradores; mantener pulsado para confirmar", DrawingView.LINE);
         tool(toolGrid, "Rectángulo", DrawingView.RECTANGLE);
+        tool(toolGrid, "Círculo", DrawingView.CIRCLE);
+        tool(toolGrid, "Forma libre (contorno cerrado)", DrawingView.FREEFORM);
         tool(toolGrid, "Elipse", DrawingView.ELLIPSE);
         tool(toolGrid, "Rectángulo relleno", DrawingView.FILLED_RECTANGLE);
         tool(toolGrid, "Elipse rellena", DrawingView.FILLED_ELLIPSE);
@@ -610,6 +612,9 @@ public final class MainActivity extends Activity {
         tool(toolGrid, "Triángulo", DrawingView.TRIANGLE);
         tool(toolGrid, "Triángulo relleno", DrawingView.FILLED_TRIANGLE);
         tool(toolGrid, "Texto", DrawingView.TEXT);
+        tool(toolGrid, "Degradado: color a transparente; mantener pulsado para elegir tipo", DrawingView.GRADIENT);
+        tool(toolGrid, "Tampón de clonar: primer toque fija origen; seleccionar de nuevo para cambiarlo", DrawingView.CLONE);
+        tool(toolGrid, "Recoloración: sustituye el color inicial; tolerancia de varita", DrawingView.RECOLOR);
         tool(toolGrid, "Cubeta", DrawingView.BUCKET);
         tool(toolGrid, "Cuentagotas", DrawingView.PICKER);
         tool(toolGrid, "Borrador", DrawingView.ERASER);
@@ -819,6 +824,11 @@ public final class MainActivity extends Activity {
             case DrawingView.SELECT_FREE: icon = R.drawable.pinta_lasso; break;
             case DrawingView.MAGIC_WAND: icon = R.drawable.pinta_wand; break;
             case DrawingView.MOVE_SELECTION: icon = R.drawable.pinta_move_selection; break;
+            case DrawingView.CIRCLE: icon = R.drawable.pinta_ellipse; break;
+            case DrawingView.FREEFORM: icon = R.drawable.pinta_lasso; break;
+            case DrawingView.CLONE: icon = R.drawable.pinta_brush; break;
+            case DrawingView.RECOLOR: icon = R.drawable.pinta_bucket; break;
+            case DrawingView.GRADIENT: icon = R.drawable.pinta_gradient; break;
             case DrawingView.MOVE_PIXELS: icon = R.drawable.pinta_move_pixels; break;
         }
         if (icon != 0) {
@@ -830,6 +840,12 @@ public final class MainActivity extends Activity {
             if(android.os.Build.VERSION.SDK_INT>=30)iconButton.setStateDescription(tool==drawing.currentTool()?"Activa":"");
             if (android.os.Build.VERSION.SDK_INT >= 26) iconButton.setTooltipText(label);
         }
+        if(tool==DrawingView.GRADIENT)iconButton.setOnLongClickListener(v -> {
+            new AlertDialog.Builder(this).setTitle("Tipo de degradado")
+                .setItems(new String[]{"Lineal","Radial"},(dialog,index)->drawing.setRadialGradient(index==1)).show();
+            return true;
+        });
+        if(tool==DrawingView.LINE)iconButton.setOnLongClickListener(v->{drawing.confirmCurve();return true;});
         iconButton.setOnClickListener(v -> {
             drawing.setTool(tool);
             drawing.setColor(activeColor);
@@ -1204,7 +1220,7 @@ public final class MainActivity extends Activity {
     private void importTga(Uri uri){importRaster(uri,OPEN_TGA);}
     private void importRaster(Uri uri,int request){
         if(projectProgress!=null){message("Espera a que termine la operación actual");return;}
-        final String format=request==OPEN_TIFF?"TIFF":request==OPEN_ICO?"ICO":request==OPEN_PPM?"PPM":"TGA";
+        final String format=request==OPEN_TIFF?"TIFF":request==OPEN_ICO?"ICO":request==OPEN_PPM?"Netpbm":"TGA";
         android.app.ProgressDialog progress=new android.app.ProgressDialog(this);progress.setMessage("Abriendo "+format+"…");progress.setCancelable(false);projectProgress=progress;progress.show();drawing.setEnabled(false);
         new Thread(()->{int[] pixels=null;int width=0,height=0;try(InputStream input=getContentResolver().openInputStream(uri)){
                 if(input==null)throw new java.io.IOException("Sin archivo");
