@@ -18,11 +18,14 @@ public final class WorkspaceDeviceTests {
   instrumentation=InstrumentationRegistry.getInstrumentation();
   Intent intent=new Intent(instrumentation.getTargetContext(),MainActivity.class);intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
   activity=(MainActivity)instrumentation.startActivitySync(intent);instrumentation.waitForIdleSync();
+  instrumentation.runOnMainSync(()->activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT));
+  long deadline=android.os.SystemClock.uptimeMillis()+5000;java.util.concurrent.atomic.AtomicBoolean ready=new java.util.concurrent.atomic.AtomicBoolean();
+  do{instrumentation.waitForIdleSync();instrumentation.runOnMainSync(()->ready.set(activity.getResources().getConfiguration().orientation==1&&drawing()!=null&&drawing().isLaidOut()&&!drawing().isLayoutRequested()&&drawing().getWidth()>0&&drawing().getHeight()>0));if(!ready.get())android.os.SystemClock.sleep(50);}while(!ready.get()&&android.os.SystemClock.uptimeMillis()<deadline);assertTrue("Workspace must finish layout before gestures",ready.get());
  }
  @After public void close(){instrumentation.runOnMainSync(()->activity.finish());instrumentation.waitForIdleSync();}
  private DrawingView drawing(){return findDrawing(activity.getWindow().getDecorView());}
  private DrawingView findDrawing(View view){if(view instanceof DrawingView)return (DrawingView)view;if(view instanceof ViewGroup){ViewGroup group=(ViewGroup)view;for(int i=0;i<group.getChildCount();i++){DrawingView found=findDrawing(group.getChildAt(i));if(found!=null)return found;}}return null;}
- private Button findButton(View view,String label){if(view instanceof Button&&label.contentEquals(((Button)view).getText()))return (Button)view;if(view instanceof ViewGroup){ViewGroup group=(ViewGroup)view;for(int i=0;i<group.getChildCount();i++){Button found=findButton(group.getChildAt(i),label);if(found!=null)return found;}}return null;}
+ private Button findButton(View view,String label){if(view instanceof Button&&(label.contentEquals(((Button)view).getText())||label.contentEquals(view.getContentDescription())))return (Button)view;if(view instanceof ViewGroup){ViewGroup group=(ViewGroup)view;for(int i=0;i<group.getChildCount();i++){Button found=findButton(group.getChildAt(i),label);if(found!=null)return found;}}return null;}
  @Test public void rotationRetainsLayersAndGivesCanvasSpace(){
   instrumentation.runOnMainSync(()->{assertTrue(drawing().newDocument(64,32));assertTrue(drawing().addLayer());});
   int count=drawing().layerCount();long revision=drawing().revision();
@@ -68,7 +71,7 @@ public final class WorkspaceDeviceTests {
  @Test public void shapesRespectSelectionOpacityAndCanceledGesture(){
   instrumentation.runOnMainSync(()->{
    DrawingView view=drawing();Bitmap blank=Bitmap.createBitmap(64,64,Bitmap.Config.ARGB_8888);try{assertTrue(view.loadBitmap(blank));}finally{blank.recycle();}view.setZoomPercent(100);view.setTool(DrawingView.SELECT_RECTANGLE);gesture(view,8,8,24,24,false);assertTrue(view.hasSelection());
-   view.setColor(0xffff0000);view.configureBrush(.5f,1,false,false);view.setTool(DrawingView.FILLED_RECTANGLE);gesture(view,0,0,32,32,false);
+   view.setColor(0xffff0000);view.configureBrush(.5f,1,false,false);view.setTool(DrawingView.FILLED_RECTANGLE);gesture(view,1,1,32,32,false);
    assertTrue("Painting a shape must preserve selection",view.hasSelection());Bitmap image=view.snapshot();try{assertEquals(0x80ff0000,image.getPixel(10,10));assertEquals(0,image.getPixel(2,2));assertEquals(0,image.getPixel(30,30));}finally{image.recycle();}
    long revision=view.revision();view.setTool(DrawingView.RECTANGLE);gesture(view,9,9,20,20,true);assertEquals("Canceled shape must not create history",revision,view.revision());
    view.undo();image=view.snapshot();try{assertEquals(0,image.getPixel(10,10));}finally{image.recycle();}
@@ -89,8 +92,38 @@ public final class WorkspaceDeviceTests {
   try{SvgRaster.read(new java.io.ByteArrayInputStream("<!DOCTYPE svg><svg/>".getBytes(java.nio.charset.StandardCharsets.UTF_8)));fail("Entity declarations must be rejected");}catch(java.io.IOException expected){}
  }
  @Test public void quickCommandsHaveAccessibleTouchTargets(){
-  instrumentation.runOnMainSync(()->{float density=activity.getResources().getDisplayMetrics().density;for(String label:new String[]{"Archivo","Editar","Ver","Nuevo","Guardar","Deshacer","Rehacer"}){
+  instrumentation.runOnMainSync(()->{float density=activity.getResources().getDisplayMetrics().density;for(String label:new String[]{"Menú principal","Nuevo","Guardar","Deshacer","Rehacer","Herramientas","Capas"}){
    Button button=findButton(activity.getWindow().getDecorView(),label);assertNotNull(label,button);assertNotNull(label,button.getContentDescription());assertTrue(label,button.getMeasuredHeight()>=Math.round(48*density));
   }});
  }
+ @Test public void enlargedPixelsHaveNoInterpolatedColors(){
+  instrumentation.runOnMainSync(()->{
+   DrawingView view=drawing();Bitmap source=Bitmap.createBitmap(new int[]{0xffff0000,0xff0000ff},2,1,Bitmap.Config.ARGB_8888);
+   try{assertTrue(view.loadBitmap(source));}finally{source.recycle();}view.rotateView(-view.rotationDegrees());view.setZoomPercent(1600);
+   Bitmap capture=Bitmap.createBitmap(view.getWidth(),view.getHeight(),Bitmap.Config.ARGB_8888);
+   try{view.draw(new android.graphics.Canvas(capture));int x=view.getWidth()/2,y=view.getHeight()/2;
+    for(int offset=-14;offset<=-2;offset++)assertEquals("Enlarged red pixel must stay red",0xffff0000,capture.getPixel(x+offset,y));
+    for(int offset=2;offset<=14;offset++)assertEquals("Enlarged blue pixel must stay blue",0xff0000ff,capture.getPixel(x+offset,y));
+   }finally{capture.recycle();}
+  });
+ }
+ private android.widget.GridLayout toolGrid(View view){if(view instanceof android.widget.GridLayout&&((android.widget.GridLayout)view).getChildCount()==28)return (android.widget.GridLayout)view;if(view instanceof ViewGroup){ViewGroup group=(ViewGroup)view;for(int i=0;i<group.getChildCount();i++){android.widget.GridLayout found=toolGrid(group.getChildAt(i));if(found!=null)return found;}}return null;}
+ @Test public void workspaceUsesTwoColumnsAndIconCommands(){
+  instrumentation.runOnMainSync(()->{View root=activity.getWindow().getDecorView();assertNotNull(toolGrid(root));assertEquals(2,toolGrid(root).getColumnCount());
+   for(String label:new String[]{"Nuevo","Abrir","Guardar","Deshacer","Rehacer","Menú principal"}){Button button=findButton(root,label);assertNotNull(label,button);assertEquals("Command uses icon",0,button.getText().length());assertNotNull(button.getCompoundDrawables()[0]);}
+  });
+ }
+
+ @Test public void captureLandscapeWorkspace()throws Exception{
+  instrumentation.runOnMainSync(()->{activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);assertTrue(drawing().newDocument(800,600));drawing().setTool(DrawingView.LINE);});
+  long deadline=android.os.SystemClock.uptimeMillis()+5000;while(activity.getResources().getConfiguration().orientation!=2&&android.os.SystemClock.uptimeMillis()<deadline)android.os.SystemClock.sleep(50);
+  instrumentation.waitForIdleSync();instrumentation.runOnMainSync(()->{drawing().rotateView(-drawing().rotationDegrees());drawing().fitCanvas();});instrumentation.waitForIdleSync();
+  Bitmap screenshot=instrumentation.getUiAutomation().takeScreenshot();assertNotNull(screenshot);
+  screenshot.recycle();
+  String directory="/sdcard/Download/velyntora-core-workspace";
+  for(String command:new String[]{"mkdir -p "+directory,"screencap -p "+directory+"/workspace-"+activity.getResources().getConfiguration().fontScale+".png"}){
+   try(android.os.ParcelFileDescriptor result=instrumentation.getUiAutomation().executeShellCommand(command);java.io.FileInputStream input=new java.io.FileInputStream(result.getFileDescriptor())){byte[] buffer=new byte[1024];while(input.read(buffer)!=-1){}}
+  }
+ }
+
 }

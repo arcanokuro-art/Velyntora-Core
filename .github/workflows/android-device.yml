@@ -30,9 +30,14 @@ jobs:
           profile: pixel_2
           disable-animations: true
           script: |
+            adb shell wm size 768x1366
+            adb shell wm density 160
+            mkdir -p workspace-screenshots/font-1.0 workspace-screenshots/font-1.8
             gradle :app:connectedDebugAndroidTest --no-daemon
+            adb pull /sdcard/Download/velyntora-core-workspace/ workspace-screenshots/font-1.0/
             adb shell settings put system font_scale 1.8
             gradle :app:connectedDebugAndroidTest --no-daemon --rerun-tasks
+            adb pull /sdcard/Download/velyntora-core-workspace/ workspace-screenshots/font-1.8/
       - name: Print device test failures
         if: failure()
         run: |
@@ -42,5 +47,6 @@ jobs:
         with:
           name: android-device-test-results
           path: |
+            workspace-screenshots/
             app/build/reports/androidTests/
             app/build/outputs/androidTest-results/
