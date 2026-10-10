@@ -1382,9 +1382,10 @@ public final class MainActivity extends Activity {
           this::configureColor,
           () -> configureColor(true),
           () -> {
-            int first = activeColor;
-            setActiveColor(secondaryColor);
-            setSecondaryColor(first);
+            art.velyntora.core.components.color.ColorPair swapped =
+                new art.velyntora.core.components.color.ColorPair(activeColor, secondaryColor).swapped();
+            setActiveColor(swapped.primary());
+            setSecondaryColor(swapped.secondary());
           },
           this::configureGradient,
           drawing::confirmCurve,
@@ -1636,9 +1637,10 @@ public final class MainActivity extends Activity {
         "Intercambiar colores",
         "swap",
         () -> {
-          int first = activeColor;
-          setActiveColor(secondaryColor);
-          setSecondaryColor(first);
+          art.velyntora.core.components.color.ColorPair swapped =
+                new art.velyntora.core.components.color.ColorPair(activeColor, secondaryColor).swapped();
+            setActiveColor(swapped.primary());
+            setSecondaryColor(swapped.secondary());
         });
     int[] palette = {
       0xff000000,
