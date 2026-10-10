@@ -176,11 +176,19 @@ public final class DrawingView extends View {
   }finally{shape.recycle();}
  }
  private CurveDraft curve;
- private CurveDraft dragBackup;
+ private CurveDraft dragBackup,canceledCurve;
+ private final CurveHistory curveHistory=new CurveHistory();
  private int curveHandle=-1,nextCurveTag=1;
  private static native int nativeCurveTag();
  private static native void nativeMarkCurve(int tag);
- private static final class SavedCurve {final CurveDraft geometry;final int color;final float radius,opacity;SavedCurve(CurveDraft g,int c,float r,float o){geometry=g.copy();color=c;radius=r;opacity=o;}}
+ private final class SavedSelection {
+  final boolean selected=hasSelection();final int kind=selectionTool;
+  final float left=selectionLeft,top=selectionTop,right=selectionRight,bottom=selectionBottom;
+  final android.graphics.Region region=new android.graphics.Region(freeRegion);
+  final android.graphics.Path path=new android.graphics.Path(freePath);
+  void restore(){if(!selected)return;selectionTool=kind;hasSelection=true;selectionLeft=left;selectionTop=top;selectionRight=right;selectionBottom=bottom;freeRegion.set(region);freePath.set(path);freeSelectionReady=kind==SELECT_FREE;wandBoundary.set(region.getBoundaryPath());}
+ }
+ private static final class SavedCurve {final CurveDraft geometry;final int color;final float radius,opacity;final SavedSelection selection;SavedCurve(CurveDraft g,int c,float r,float o,SavedSelection sel){geometry=g.copy();color=c;radius=r;opacity=o;selection=sel;}}
  private final android.util.SparseArray<SavedCurve> savedCurves=new android.util.SparseArray<>();
  private android.graphics.Path curvePath(){android.graphics.Path p=new android.graphics.Path();p.moveTo(curve.x[0],curve.y[0]);p.cubicTo(curve.x[1],curve.y[1],curve.x[2],curve.y[2],curve.x[3],curve.y[3]);return p;}
  public boolean confirmCurve(){
@@ -190,15 +198,15 @@ public final class DrawingView extends View {
    Paint style=new Paint(Paint.ANTI_ALIAS_FLAG);style.setColor(color);style.setAlpha(Math.round((color>>>24)*brushOpacity));style.setStyle(Paint.Style.STROKE);style.setStrokeWidth(brushRadius*2);style.setStrokeCap(Paint.Cap.ROUND);
    new Canvas(image).drawPath(curvePath(),style);int[] data=new int[2+canvasWidth*canvasHeight];data[0]=canvasWidth;data[1]=canvasHeight;image.getPixels(data,2,canvasWidth,0,0,canvasWidth,canvasHeight);
    if(hasSelection())for(int row=0;row<canvasHeight;row++)for(int col=0;col<canvasWidth;col++)if(!selectionContains(col,row))data[2+row*canvasWidth+col]=0;
-   if(nativePasteSelection(data,0,0)){int tag=nextCurveTag++;savedCurves.put(tag,new SavedCurve(curve,color,brushRadius,brushOpacity));while(savedCurves.size()>15)savedCurves.removeAt(0);nativeMarkCurve(tag);}
-   curve=null;curveHandle=-1;refresh();return true;
+   if(nativePasteSelection(data,0,0)){int tag=nextCurveTag++;savedCurves.put(tag,new SavedCurve(curve,color,brushRadius,brushOpacity,new SavedSelection()));while(savedCurves.size()>15)savedCurves.removeAt(0);nativeMarkCurve(tag);}
+   curve=null;canceledCurve=null;curveHistory.clear();curveHandle=-1;refresh();return true;
   }finally{image.recycle();}
  }
- public void cancelCurve(){curve=null;curveHandle=-1;invalidate();}
+ public void cancelCurve(){curve=null;canceledCurve=null;curveHistory.clear();curveHandle=-1;invalidate();}
  @Override public boolean onKeyDown(int code,android.view.KeyEvent event){
   if(code==android.view.KeyEvent.KEYCODE_ENTER&&confirmCurve())return true;
   if(code==android.view.KeyEvent.KEYCODE_ESCAPE&&curve!=null){cancelCurve();return true;}
-  if(event.isCtrlPressed()&&code==android.view.KeyEvent.KEYCODE_Z){undo();return true;}
+  if(event.isCtrlPressed()&&code==android.view.KeyEvent.KEYCODE_Z){if(event.isShiftPressed())redo();else undo();return true;}
   return super.onKeyDown(code,event);
  }
  private final android.graphics.Path shapePath=new android.graphics.Path();
@@ -550,8 +558,8 @@ public final class DrawingView extends View {
   if(ok){selectionLeft+=dx;selectionRight+=dx;selectionTop+=dy;selectionBottom+=dy;refresh();}
   return ok;
  }
- public void undo(){if(curve!=null){cancelCurve();return;}int tag=nativeCurveTag();if(nativeUndo()){SavedCurve saved=savedCurves.get(tag);deselect();if(saved!=null){curve=saved.geometry.copy();color=saved.color;brushRadius=saved.radius;brushOpacity=saved.opacity;tool=LINE;}refresh();}}
- public void redo(){cancelCurve();if(nativeRedo()){deselect();refresh();}}
+ public void undo(){if(curve!=null){CurveDraft previous=curveHistory.undo(curve);if(previous!=null)curve=previous;else{canceledCurve=curve.copy();curve=null;}invalidate();return;}int tag=nativeCurveTag();if(nativeUndo()){SavedCurve saved=savedCurves.get(tag);deselect();if(saved!=null){curve=saved.geometry.copy();color=saved.color;brushRadius=saved.radius;brushOpacity=saved.opacity;tool=LINE;curveHistory.clear();canceledCurve=null;saved.selection.restore();if(pickedColorListener!=null)pickedColorListener.accept(color);}refresh();}}
+ public void redo(){if(canceledCurve!=null){curve=canceledCurve;canceledCurve=null;invalidate();return;}if(curve!=null){CurveDraft next=curveHistory.redo(curve);if(next!=null){curve=next;invalidate();return;}}cancelCurve();if(nativeRedo()){deselect();refresh();}}
  public boolean loadBitmap(Bitmap source){
   if(source==null||source.isRecycled())return false;
   int w=source.getWidth(),h=source.getHeight();
@@ -711,7 +719,7 @@ public final class DrawingView extends View {
   if(x<0||y<0||x>=canvasWidth||y>=canvasHeight)return true;
   getParent().requestDisallowInterceptTouchEvent(true);
   drawing=true;strokeEditing=false;startX=previousX=x;startY=previousY=y;
-  if(tool==LINE){setFocusableInTouchMode(true);requestFocus();curveHandle=curve==null?-1:curve.hit(x,y,24*getResources().getDisplayMetrics().density/(float)viewport.scale);dragBackup=curve==null?null:curve.copy();if(curveHandle<0){confirmCurve();curve=new CurveDraft(x,y,x,y);curveHandle=3;dragBackup=null;}invalidate();return true;}
+  if(tool==LINE){setFocusableInTouchMode(true);requestFocus();curveHandle=curve==null?-1:curve.hit(x,y,24*getResources().getDisplayMetrics().density/(float)viewport.scale);dragBackup=curve==null?null:curve.copy();if(curveHandle<0){confirmCurve();curveHistory.clear();canceledCurve=null;curve=new CurveDraft(x,y,x,y);curveHandle=3;dragBackup=null;}invalidate();return true;}
   if(tool==CLONE&&!cloneOriginReady){cloneX=(int)x;cloneY=(int)y;cloneOriginReady=true;drawing=false;announceForAccessibility("Origen de clonación fijado");return true;}
   if(tool==FREEFORM){shapePath.reset();shapePath.moveTo(x,y);invalidate();return true;}
   if(tool==TEXT){drawing=false;if(textPositionListener!=null)textPositionListener.accept((int)x,(int)y);return true;}
@@ -763,7 +771,7 @@ public final class DrawingView extends View {
   previousX=x;previousY=y;return true;
  case MotionEvent.ACTION_UP:
   if(drawing){
-   if(tool==LINE&&curve!=null){if(dragBackup==null)curve=new CurveDraft(startX,startY,x,y);else curve.move(curveHandle,x,y);drawing=false;dragBackup=null;curveHandle=-1;invalidate();return true;}
+   if(tool==LINE&&curve!=null){if(dragBackup==null)curve=new CurveDraft(startX,startY,x,y);else curve.move(curveHandle,x,y);curveHistory.record(dragBackup,curve);drawing=false;dragBackup=null;curveHandle=-1;invalidate();return true;}
    if(tool==MOVE_SELECTION||tool==MOVE_PIXELS){
     if(movingSelection){
      if(movingPixels){

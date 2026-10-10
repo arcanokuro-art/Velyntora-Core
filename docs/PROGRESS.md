@@ -182,3 +182,8 @@ Tampón de clonar sobre la capa activa: primer toque fija origen; seleccionar ot
 ## Línea/Curva editable (integración pendiente de CI)
 
 Una herramienta conserva un borrador cúbico con dos extremos y dos tiradores interiores. Arrastrar un tirador modifica la curva sin escribir píxeles. Enter o mantener pulsada la herramienta confirma; Escape cancela. Cambiar herramienta, capa o iniciar una operación que bloquea la vista confirma el borrador. Al deshacer una confirmación se recupera el borrador si su geometría sigue en la caché de 15 curvas; Rehacer elimina el borrador y recupera los píxeles. Marcas de historial JNI evitan confundir una curva con otras ediciones. La rasterización respeta la selección, radio, opacidad y alfa. No se afirma paridad completa con todos los modos y transiciones de Pinta; edición del borrador no tiene historial por tirador y la selección se descarta al deshacer. Pruebas Java de geometría y JNI de identidad de historial. Avance 17/20 = 85.00 %.
+
+
+## Historial de tiradores y selección de curvas (validación pendiente)
+
+Cada arrastre completado de un tirador tiene Deshacer/Rehacer del borrador, separado del historial de píxeles y limitado a 100 movimientos. Arrastres sin cambios no añaden historial; una nueva edición elimina la rama de Rehacer. Deshacer al inicio del borrador lo retira y Rehacer lo recupera; Escape descarta su historial. Ctrl+Shift+Z ejecuta Rehacer. Al recuperar una curva confirmada se restauran la selección original (tipo, contorno y región), color, opacidad y radio. La caché mantiene 15 geometrías confirmadas; su reapertura inicia un historial de tiradores vacío. No se contabiliza otro hito: avance 17/20 = 85.00 %.
