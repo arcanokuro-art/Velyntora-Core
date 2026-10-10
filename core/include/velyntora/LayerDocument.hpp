@@ -33,6 +33,8 @@ class LayerDocument {
   bool setOpacity(std::size_t index, float opacity);
   void replaceActivePixels(const std::vector<std::uint32_t>& pixels);
   std::vector<std::uint32_t> flatten() const;
+  void replaceActiveRegion(const std::vector<std::uint32_t>& pixels, int x, int y, int w, int h);
+  std::vector<std::uint32_t> flattenRegion(int x, int y, int w, int h) const;
 
  private:
   int width_, height_;

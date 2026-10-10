@@ -88,6 +88,19 @@ void storeActive() {
   curveTag = 0;
   if (layers && canvas) layers->replaceActivePixels(canvas->pixels());
 }
+// Brush edits touch only their swept bounds, not every pixel in the active layer.
+void storeStrokeRegion(float x0,float y0,float x1,float y1,float radius) {
+  if (!layers || !canvas || !std::isfinite(x0) || !std::isfinite(y0)
+      || !std::isfinite(x1) || !std::isfinite(y1) || !std::isfinite(radius) || radius<=0) return;
+  radius=std::min(radius,2048.f)+2;
+  int left=int(std::clamp(std::floor(std::min(x0,x1)-radius),0.f,float(canvas->width())));
+  int top=int(std::clamp(std::floor(std::min(y0,y1)-radius),0.f,float(canvas->height())));
+  int right=int(std::clamp(std::ceil(std::max(x0,x1)+radius),0.f,float(canvas->width())));
+  int bottom=int(std::clamp(std::ceil(std::max(y0,y1)+radius),0.f,float(canvas->height())));
+  curveTag=0;
+  if(right>left && bottom>top)
+    layers->replaceActiveRegion(canvas->pixels(),left,top,right-left,bottom-top);
+}
 void loadActive() {
   if (layers && canvas) canvas->setPixels(layers->layer(layers->activeIndex()).pixels);
 }
@@ -203,6 +216,19 @@ extern "C" JNIEXPORT jintArray JNICALL Java_art_velyntora_core_DrawingView_nativ
     env->SetIntArrayRegion(result, 0, static_cast<jsize>(pixels.size()),
                            reinterpret_cast<const jint*>(pixels.data()));
   return result;
+}
+extern "C" JNIEXPORT jintArray JNICALL Java_art_velyntora_core_DrawingView_nativeRegionPixels(
+    JNIEnv* env,jclass,jint x,jint y,jint w,jint h) {
+  std::lock_guard<std::mutex> lock(guard);
+  if (!layers || x<0 || y<0 || w<=0 || h<=0 || x>layers->width()-w || y>layers->height()-h)
+    return nullptr;
+  try {
+    auto pixels=layers->flattenRegion(x,y,w,h);
+    auto result=env->NewIntArray(jsize(pixels.size()));
+    if(result) env->SetIntArrayRegion(result,0,jsize(pixels.size()),
+        reinterpret_cast<const jint*>(pixels.data()));
+    return result;
+  } catch (...) { return nullptr; }
 }
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeMovePixels(
     JNIEnv*, jclass, jint kind, jint x0, jint y0, jint x1, jint y1, jint dx, jint dy) {
@@ -1556,7 +1582,7 @@ extern "C" JNIEXPORT void JNICALL Java_art_velyntora_core_DrawingView_nativeStyl
     canvas->strokeStyled(x0, y0, x1, y1, radius, static_cast<std::uint32_t>(color), opacity,
                          hardness, square, eraser,
                          brushMask.size() == canvas->pixels().size() ? &brushMask : nullptr);
-    storeActive();
+    storeStrokeRegion(x0,y0,x1,y1,radius);
   }
 }
 
@@ -1811,7 +1837,7 @@ extern "C" JNIEXPORT void JNICALL Java_art_velyntora_core_DrawingView_nativeSamp
   canvas->sampledStroke(sampledSource, clone, ox, oy, sampledTarget, replacement, tolerance, x0, y0,
                         x1, y1, radius, opacity, hardness,
                         brushMask.size() == canvas->pixels().size() ? &brushMask : nullptr);
-  storeActive();
+  storeStrokeRegion(x0,y0,x1,y1,radius);
 }
 
 extern "C" JNIEXPORT jint JNICALL Java_art_velyntora_core_DrawingView_nativeCurveTag(JNIEnv*,

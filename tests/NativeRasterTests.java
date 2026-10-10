@@ -17,6 +17,7 @@ class DrawingView {
  static native boolean nativeAddLayer();
  static native boolean nativePasteSelection(int[] data,int x,int y);
  static native int[] nativePixels();
+ static native int[] nativeRegionPixels(int x,int y,int w,int h);
  static native boolean nativeUndo();
  static native boolean nativeRedo();
  static native boolean nativeTransformSelection(int left,int top,int width,int height,byte[] mask,float degrees,float sx,float sy);
@@ -35,6 +36,14 @@ class DrawingView {
 public final class NativeRasterTests {
  static void check(boolean ok){if(!ok)throw new AssertionError();}
  public static void main(String[] args){
+  check(DrawingView.nativeCreate(128,128));DrawingView.nativeBeginEdit();
+  DrawingView.nativeStyledStroke(20,20,30,28,3,0xffff0000,1,1,false,false);
+  int[] region=DrawingView.nativeRegionPixels(15,15,20,20), full=DrawingView.nativePixels();
+  check(region.length==400);
+  for(int row=0;row<20;row++)for(int col=0;col<20;col++)check(region[row*20+col]==full[(row+15)*128+col+15]);
+  check(DrawingView.nativeRegionPixels(-1,0,2,2)==null);
+  check(DrawingView.nativeUndo());check(DrawingView.nativePixels()[20*128+20]==0xffffffff);
+
   check(DrawingView.nativeCreate(1,1));long named=DrawingView.nativeRevision();String originalName=DrawingView.nativeLayerName(0);String unicodeName="Línea 🖌️ 水";
   check(DrawingView.nativeRenameLayer(0,unicodeName));check(unicodeName.equals(DrawingView.nativeLayerName(0)));long renamed=DrawingView.nativeRevision();check(renamed!=named);
   check(DrawingView.nativeRenameLayer(0,unicodeName));check(DrawingView.nativeRevision()==renamed);check(DrawingView.nativeUndo());check(originalName.equals(DrawingView.nativeLayerName(0)));check(DrawingView.nativeRevision()==named);check(DrawingView.nativeRedo());check(unicodeName.equals(DrawingView.nativeLayerName(0)));

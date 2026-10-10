@@ -162,4 +162,44 @@ std::vector<std::uint32_t> LayerDocument::flatten() const {
   }
   return result;
 }
+void LayerDocument::replaceActiveRegion(const std::vector<std::uint32_t>& pixels,
+                                         int x, int y, int w, int h) {
+  if (pixels.size()!=std::size_t(width_)*height_ || x<0 || y<0 || w<=0 || h<=0
+      || x>width_-w || y>height_-h) throw std::invalid_argument("Invalid region");
+  auto& target=layers_[active_].pixels;
+  for (int row=y;row<y+h;row++) {
+    const auto offset=std::size_t(row)*width_+x;
+    std::copy_n(pixels.begin()+offset,w,target.begin()+offset);
+  }
+}
+std::vector<std::uint32_t> LayerDocument::flattenRegion(int x, int y, int w, int h) const {
+  if (x<0 || y<0 || w<=0 || h<=0 || x>width_-w || y>height_-h)
+    throw std::invalid_argument("Invalid region");
+  std::vector<std::uint32_t> result(static_cast<std::size_t>(w) * h, 0u);
+  for (const Layer& layer : layers_) {
+    if (!layer.visible || layer.opacity <= 0.f) continue;
+    for (std::size_t i = 0; i < result.size(); ++i) {
+      const std::uint32_t src = layer.pixels[std::size_t(y + i / w) * width_ + x + i % w], dst = result[i];
+      const float sa = ((src >> 24) & 255) / 255.f * layer.opacity;
+      const float da = ((dst >> 24) & 255) / 255.f;
+      const float oa = sa + da * (1.f - sa);
+      if (oa <= 0.f) {
+        result[i] = 0;
+        continue;
+      }
+      std::uint32_t channels = 0;
+      for (int shift : {0, 8, 16}) {
+        float s = static_cast<float>((src >> shift) & 255),
+              d = static_cast<float>((dst >> shift) & 255);
+        int v = static_cast<int>(std::lround((s * sa + d * da * (1.f - sa)) / oa));
+        channels |= static_cast<std::uint32_t>(std::clamp(v, 0, 255)) << shift;
+      }
+      result[i] =
+          (static_cast<std::uint32_t>(std::clamp(static_cast<int>(std::lround(oa * 255)), 0, 255))
+           << 24) |
+          channels;
+    }
+  }
+  return result;
+}
 }  // namespace velyntora

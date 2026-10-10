@@ -1081,9 +1081,30 @@ public final class DrawingView extends View {
   }
 
   private boolean strokeRefreshPending;
+  private int dirtyLeft=Integer.MAX_VALUE, dirtyTop=Integer.MAX_VALUE, dirtyRight, dirtyBottom;
+  static native int[] nativeRegionPixels(int x,int y,int width,int height);
+
+  void noteStrokeBounds(float x0,float y0,float x1,float y1,float radius) {
+    float margin=Math.min(radius,2048)+2;
+    dirtyLeft=Math.min(dirtyLeft,Math.max(0,(int)Math.floor(Math.min(x0,x1)-margin)));
+    dirtyTop=Math.min(dirtyTop,Math.max(0,(int)Math.floor(Math.min(y0,y1)-margin)));
+    dirtyRight=Math.max(dirtyRight,Math.min(canvasWidth,(int)Math.ceil(Math.max(x0,x1)+margin)));
+    dirtyBottom=Math.max(dirtyBottom,Math.min(canvasHeight,(int)Math.ceil(Math.max(y0,y1)+margin)));
+  }
+
+  private void refreshStrokePixels() {
+    int w=dirtyRight-dirtyLeft,h=dirtyBottom-dirtyTop;
+    if(w>0 && h>0) {
+      int[] pixels=nativeRegionPixels(dirtyLeft,dirtyTop,w,h);
+      if(pixels!=null && pixels.length==w*h)
+        bitmap.setPixels(pixels,0,w,dirtyLeft,dirtyTop,w,h);
+    }
+    dirtyLeft=dirtyTop=Integer.MAX_VALUE;dirtyRight=dirtyBottom=0;
+    invalidate();
+  }
   private final Runnable strokeRefresh = () -> {
     strokeRefreshPending = false;
-    refreshPixels();
+    refreshStrokePixels();
   };
 
   // Coalesce pointer events into one pixel transfer per display frame.
@@ -1097,6 +1118,7 @@ public final class DrawingView extends View {
   void refresh() {
     removeCallbacks(strokeRefresh);
     strokeRefreshPending = false;
+    dirtyLeft=dirtyTop=Integer.MAX_VALUE;dirtyRight=dirtyBottom=0;
     refreshPixels();
     if (canvasChangedListener != null) canvasChangedListener.run();
     viewportChanged();
