@@ -23,7 +23,7 @@ import java.io.OutputStream;
 
 /** Android workspace modeled after Pinta's tool, canvas, palette and status regions. */
 public final class MainActivity extends Activity {
-    private static final int SAVE_PROJECT = 43, OPEN_PROJECT = 44, SAVE_JPEG = 45, SAVE_WEBP = 46, SAVE_BMP = 47, SAVE_TGA = 48, OPEN_TGA = 49, SAVE_ORA = 50, OPEN_ORA = 51, SAVE_TIFF = 52, OPEN_TIFF = 53, SAVE_GIF = 54, OPEN_ICO = 55, SAVE_ICO = 56, OPEN_PPM = 57, SAVE_PPM = 58;
+    private static final int SAVE_PROJECT = 43, OPEN_PROJECT = 44, SAVE_JPEG = 45, SAVE_WEBP = 46, SAVE_BMP = 47, SAVE_TGA = 48, OPEN_TGA = 49, SAVE_ORA = 50, OPEN_ORA = 51, SAVE_TIFF = 52, OPEN_TIFF = 53, SAVE_GIF = 54, OPEN_ICO = 55, SAVE_ICO = 56, OPEN_PPM = 57, SAVE_PPM = 58, OPEN_BMP = 59;
     private static final int SAVE_PNG = 41;
     private static final int OPEN_IMAGE = 42;
     private DrawingView drawing;
@@ -43,6 +43,46 @@ public final class MainActivity extends Activity {
     private int activeColor = Color.BLACK;
     private Bitmap selectionClipboard;
     private android.app.ProgressDialog projectProgress;
+    private static long savedRevision=-1;
+    private static String documentName="Sin título";
+    private static final java.util.concurrent.ExecutorService recoveryExecutor=java.util.concurrent.Executors.newSingleThreadExecutor();
+    private boolean dirty(){return drawing.hasPendingCurve()||drawing.revision()!=savedRevision;}
+    private void markDocumentClean(String name){savedRevision=drawing.revision();documentName=name==null?"Sin título":name;updateStatus();}
+    private void updateStatus(){if(status==null)return;status.setText(String.format(java.util.Locale.US,
+        "%s%s  |  %d × %d px  |  Zoom: %.1f %%  |  Rotación: %.1f°",documentName,dirty()?" • Sin guardar":"",drawing.documentWidth(),drawing.documentHeight(),drawing.zoomPercent(),drawing.rotationDegrees()));}
+    private void protectDocument(Runnable action){
+        if(projectProgress!=null){message("Espera a que termine la operación actual");return;}
+        if(!dirty()){action.run();return;}
+        new AlertDialog.Builder(this).setTitle("Cambios sin guardar").setMessage("Guarda un proyecto VLYCORE u OpenRaster para conservar las capas antes de sustituir este dibujo.")
+            .setNegativeButton("Cancelar",null).setNeutralButton("Guardar proyecto",(d,w)->projectPicker(true)).setPositiveButton("Descartar cambios",(d,w)->action.run()).show();
+    }
+    @Override public void onBackPressed(){protectDocument(()->super.onBackPressed());}
+    @Override protected void onStop(){
+        super.onStop();if(drawing==null||projectProgress!=null)return;
+        drawing.confirmCurve();final long expectedRevision=drawing.revision();final String name=documentName;
+        final android.util.AtomicFile recovery=new android.util.AtomicFile(new java.io.File(getFilesDir(),"document-recovery.vlycore"));
+        recoveryExecutor.execute(()->{
+            java.io.FileOutputStream stream=null;
+            try{stream=recovery.startWrite();boolean ok;
+                try(android.os.ParcelFileDescriptor descriptor=android.os.ParcelFileDescriptor.dup(stream.getFD())){ok=drawing.writeRecovery(descriptor.getFd(),expectedRevision);}
+                if(!ok)throw new java.io.IOException("Recuperación incompleta");
+                recovery.finishWrite(stream);stream=null;
+                getSharedPreferences("recovery",MODE_PRIVATE).edit().putString("name",name).commit();
+            }catch(Exception ignored){if(stream!=null)recovery.failWrite(stream);}
+        });
+    }
+    private void recoverDocument(){
+        android.util.AtomicFile recovery=new android.util.AtomicFile(new java.io.File(getFilesDir(),"document-recovery.vlycore"));
+        if(!recovery.getBaseFile().exists()&&!new java.io.File(recovery.getBaseFile()+".bak").exists())return;
+        android.app.ProgressDialog progress=new android.app.ProgressDialog(this);progress.setMessage("Recuperando documento…");progress.setCancelable(false);projectProgress=progress;progress.show();drawing.setEnabled(false);
+        recoveryExecutor.execute(()->{boolean ok=false;
+            try(java.io.FileInputStream input=recovery.openRead();android.os.ParcelFileDescriptor descriptor=android.os.ParcelFileDescriptor.dup(input.getFD())){ok=drawing.readProject(descriptor.getFd());}catch(Exception ignored){}
+            final boolean restored=ok;runOnUiThread(()->{if(isDestroyed())return;progress.dismiss();projectProgress=null;drawing.setEnabled(true);
+                if(restored){drawing.projectOpened();documentName=getSharedPreferences("recovery",MODE_PRIVATE).getString("name","Recuperado");savedRevision=-1;updateStatus();message("Documento recuperado");}
+                else message("No se pudo recuperar el documento; el archivo se conserva");
+            });
+        });
+    }
 
     private void copySelection() {
         Bitmap copy = drawing.copySelection();
@@ -537,11 +577,13 @@ public final class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        boolean freshProcess=!DrawingView.hasDocument();
         drawing = new DrawingView(this);
+        if(savedRevision<0&&freshProcess)savedRevision=drawing.revision();
         drawing.setOnTextPositionListener(this::configureText);
         drawing.setOnColorPickedListener(color -> {setActiveColor(color);message("Color seleccionado");});
         drawing.setOnCanvasChangedListener(() -> {
-            syncToolState();
+            syncToolState();updateStatus();
             layerRefreshHandler.removeCallbacks(layerRefreshTask);
             layerRefreshHandler.postDelayed(layerRefreshTask, 120);
         });
@@ -550,8 +592,8 @@ public final class MainActivity extends Activity {
         root.setBackgroundColor(0xFFF1F1F1);
 
         LinearLayout menus = row();
-        menu(menus, "Archivo", new String[]{"Nuevo…", "Abrir imagen", "Abrir TGA", "Abrir TIFF", "Abrir ICO", "Abrir Netpbm (PBM/PGM/PPM)", "Abrir OpenRaster", "Guardar OpenRaster", "Guardar PNG", "Guardar JPEG", "Guardar WebP", "Guardar BMP", "Guardar TGA", "Guardar TIFF", "Guardar GIF (imagen fija)", "Guardar ICO (hasta 256 px)", "Guardar PPM", "Abrir proyecto", "Guardar proyecto"},
-            new Runnable[]{() -> configureDimensions(0), this::openImage, this::openTga, this::openTiff, this::openIco, this::openPpm, () -> openRasterPicker(false), () -> openRasterPicker(true), this::savePng, () -> saveImage("image/jpeg", "dibujo.jpg", SAVE_JPEG), () -> saveImage("image/webp", "dibujo.webp", SAVE_WEBP), () -> saveImage("image/bmp", "dibujo.bmp", SAVE_BMP), () -> saveImage("image/x-tga", "dibujo.tga", SAVE_TGA), () -> saveImage("image/tiff", "dibujo.tiff", SAVE_TIFF), () -> {message("GIF: colores reducidos y transparencia sin semitransparencias");saveImage("image/gif", "dibujo.gif", SAVE_GIF);}, () -> saveImage("image/vnd.microsoft.icon", "dibujo.ico", SAVE_ICO), () -> saveImage("image/x-portable-pixmap", "dibujo.ppm", SAVE_PPM), () -> projectPicker(false), () -> projectPicker(true)});
+        menu(menus, "Archivo", new String[]{"Nuevo…", "Abrir archivo (detección automática)", "Abrir TGA", "Abrir TIFF", "Abrir ICO", "Abrir Netpbm (PBM/PGM/PPM)", "Abrir OpenRaster", "Guardar OpenRaster", "Guardar PNG", "Guardar JPEG", "Guardar WebP", "Guardar BMP", "Guardar TGA", "Guardar TIFF", "Guardar GIF (imagen fija)", "Guardar ICO (hasta 256 px)", "Guardar PPM", "Abrir proyecto", "Guardar proyecto"},
+            new Runnable[]{() -> protectDocument(() -> configureDimensions(0)), this::openImage, this::openTga, this::openTiff, this::openIco, this::openPpm, () -> openRasterPicker(false), () -> openRasterPicker(true), this::savePng, () -> saveImage("image/jpeg", "dibujo.jpg", SAVE_JPEG), () -> saveImage("image/webp", "dibujo.webp", SAVE_WEBP), () -> saveImage("image/bmp", "dibujo.bmp", SAVE_BMP), () -> saveImage("image/x-tga", "dibujo.tga", SAVE_TGA), () -> saveImage("image/tiff", "dibujo.tiff", SAVE_TIFF), () -> {message("GIF: colores reducidos y transparencia sin semitransparencias");saveImage("image/gif", "dibujo.gif", SAVE_GIF);}, () -> saveImage("image/vnd.microsoft.icon", "dibujo.ico", SAVE_ICO), () -> saveImage("image/x-portable-pixmap", "dibujo.ppm", SAVE_PPM), () -> projectPicker(false), () -> projectPicker(true)});
         menu(menus, "Editar", new String[]{"Deshacer", "Rehacer", "Copiar selección", "Cortar selección", "Pegar selección", "Duplicar selección", "Mover contenido…", "Transformar selección…", "Seleccionar todo", "Invertir selección", "Expandir selección 1 px", "Contraer selección 1 px", "Borrar selección", "Deseleccionar"},
             new Runnable[]{this::undo, this::redo, this::copySelection, this::cutSelection, this::pasteSelection, this::duplicateSelection, this::moveSelectedContent, this::configureSelectionTransform, drawing::selectAll, () -> {if(!drawing.invertSelection())message("No se pudo invertir la selección");}, () -> {if(!drawing.expandSelectionOnePixel())message("No se pudo expandir la selección");}, () -> {if(!drawing.shrinkSelectionOnePixel())message("No se pudo contraer la selección");}, () -> {if(!drawing.eraseSelection())message("No hay selección válida");}, drawing::deselect});
         menu(menus, "Ver", new String[]{"Ajustar al lienzo", "Acercar", "Alejar", "Zoom 100 %", "Zoom 7000 %", "Rotar vista 15° derecha", "Rotar vista 15° izquierda", "Restablecer rotación", "Mostrar / ocultar herramientas", "Mostrar / ocultar capas"},
@@ -562,7 +604,7 @@ public final class MainActivity extends Activity {
         new AdjustmentDialogs(this,drawing).addMenu(menus);
         menu(menus, "Extras de color", new String[]{"Invertir colores de capa", "Escala de grises (capa)", "Sepia (capa)", "Aumentar brillo (+20)", "Reducir brillo (-20)", "Brillo personalizado…", "Aumentar contraste (+20)", "Reducir contraste (-20)", "Contraste personalizado…", "Blanco y negro (umbral 128)", "Umbral personalizado…", "Posterizar (4 niveles)", "Posterizar personalizado…", "Solarizar (umbral 128)", "Solarizar personalizado…", "Aumentar saturación (+20)", "Reducir saturación (-20)", "Saturación personalizada…", "Gamma clara (120 %)", "Gamma oscura (80 %)", "Gamma personalizada…", "Tono cálido (+15 rojo)", "Tono frío (+15 azul)", "Canales RGB personalizados…", "Intercambiar rojo y verde", "Intercambiar rojo y azul", "Intercambiar verde y azul", "Aumentar rojo (120 %)", "Aumentar verde (120 %)", "Aumentar azul (120 %)", "Balance RGB personalizado…", "Rotar tono (+30°)", "Rotar tono (-30°)", "Rotación de tono personalizada…", "Ajustar niveles (16–239)", "Niveles personalizados…", "Exposición +20 %", "Exposición -20 %", "Exposición personalizada…", "Escala de grises desde rojo", "Escala de grises desde verde", "Escala de grises desde azul", "Reducir alfa de píxeles (80 %)", "Aumentar alfa de píxeles (120 %)", "Eliminar canal rojo", "Eliminar canal verde", "Eliminar canal azul", "Normalizar colores de capa", "Cuantizar colores (paso 16)", "Cuantizar colores (paso 32)", "Cuantización personalizada…", "Limitar canales RGB a 224", "Límite de luces personalizado…", "Elevar canales RGB a 32", "Añadir rojo (+20)", "Añadir verde (+20)", "Añadir azul (+20)"}, new Runnable[]{() -> {if(!drawing.invertActiveColors())message("No hay colores visibles para invertir");}, () -> {if(!drawing.grayscaleActive())message("La capa ya está en escala de grises o está vacía");}, () -> {if(!drawing.sepiaActive())message("La capa no tiene cambios para aplicar sepia");}, () -> {if(!drawing.brightnessActive(20))message("No hay cambios de brillo");}, () -> {if(!drawing.brightnessActive(-20))message("No hay cambios de brillo");}, this::configureBrightness, () -> {if(!drawing.contrastActive(20))message("No hay cambios de contraste");}, () -> {if(!drawing.contrastActive(-20))message("No hay cambios de contraste");}, this::configureContrast, () -> {if(!drawing.thresholdActive(128))message("La capa ya es blanco y negro o está vacía");}, this::configureThreshold, () -> {if(!drawing.posterizeActive(4))message("La capa no tiene cambios para posterizar");}, this::configurePosterization, () -> {if(!drawing.solarizeActive(128))message("La capa no tiene cambios para solarizar");}, this::configureSolarization, () -> {if(!drawing.saturationActive(20))message("No hay cambios de saturación");}, () -> {if(!drawing.saturationActive(-20))message("No hay cambios de saturación");}, this::configureSaturation, () -> {if(!drawing.gammaActive(120))message("No hay cambios de gamma");}, () -> {if(!drawing.gammaActive(80))message("No hay cambios de gamma");}, this::configureGamma, () -> {if(!drawing.tintActive(15,0,0))message("No hay cambios de tono");}, () -> {if(!drawing.tintActive(0,0,15))message("No hay cambios de tono");}, this::configureRgbOffsets, () -> {if(!drawing.swapChannelsActive(0))message("No hay cambios de canales");}, () -> {if(!drawing.swapChannelsActive(1))message("No hay cambios de canales");}, () -> {if(!drawing.swapChannelsActive(2))message("No hay cambios de canales");}, () -> {if(!drawing.colorBalanceActive(120,100,100))message("No hay cambios de balance");}, () -> {if(!drawing.colorBalanceActive(100,120,100))message("No hay cambios de balance");}, () -> {if(!drawing.colorBalanceActive(100,100,120))message("No hay cambios de balance");}, this::configureRgbBalance, () -> {if(!drawing.hueRotateActive(30))message("No hay cambios de tono");}, () -> {if(!drawing.hueRotateActive(-30))message("No hay cambios de tono");}, this::configureHue, () -> {if(!drawing.levelsActive(16,239))message("No hay cambios de niveles");}, this::configureLevels, () -> {if(!drawing.exposureActive(120))message("No hay cambios de exposición");}, () -> {if(!drawing.exposureActive(80))message("No hay cambios de exposición");}, this::configureExposure, () -> {if(!drawing.grayscaleFromChannelActive(0))message("No hay cambios de escala de grises");}, () -> {if(!drawing.grayscaleFromChannelActive(1))message("No hay cambios de escala de grises");}, () -> {if(!drawing.grayscaleFromChannelActive(2))message("No hay cambios de escala de grises");}, () -> {if(!drawing.adjustAlphaActive(80))message("No hay cambios de alfa");}, () -> {if(!drawing.adjustAlphaActive(120))message("No hay cambios de alfa");}, () -> {if(!drawing.removeChannelActive(0))message("El canal rojo ya está vacío");}, () -> {if(!drawing.removeChannelActive(1))message("El canal verde ya está vacío");}, () -> {if(!drawing.removeChannelActive(2))message("El canal azul ya está vacío");}, () -> {if(!drawing.normalizeActive())message("No hay cambios para normalizar");}, () -> {if(!drawing.quantizeActive(16))message("No hay cambios al cuantizar");}, () -> {if(!drawing.quantizeActive(32))message("No hay cambios al cuantizar");}, this::configureQuantization, () -> {if(!drawing.clampHighlightsActive(224))message("No hay cambios al limitar colores");}, this::configureHighlightCeiling, () -> {if(!drawing.liftShadowsActive(32))message("No hay cambios al elevar sombras");}, () -> {if(!drawing.adjustChannelActive(0,20))message("No hay cambios en rojo");}, () -> {if(!drawing.adjustChannelActive(1,20))message("No hay cambios en verde");}, () -> {if(!drawing.adjustChannelActive(2,20))message("No hay cambios en azul");}});
         menu(menus, "Imagen", new String[]{"Nuevo lienzo…", "Cambiar tamaño de imagen…", "Cambiar tamaño de lienzo…", "Recortar documento a selección", "Voltear capa horizontalmente", "Voltear capa verticalmente", "Rotar capa 180°", "Rotar capa 90° derecha", "Rotar capa 90° izquierda", "Conservar solo selección rectangular (capa)", "Conservar solo selección elíptica (capa)", "Conservar selección libre o varita (capa)"},
-            new Runnable[]{() -> configureDimensions(0), () -> configureDimensions(1), () -> configureDimensions(2), () -> {if(!drawing.cropDocument())message("Selecciona el área del documento que quieres conservar");}, () -> {if(!drawing.flipActiveHorizontal())message("La capa no tiene cambios para voltear");},
+            new Runnable[]{() -> protectDocument(() -> configureDimensions(0)), () -> configureDimensions(1), () -> configureDimensions(2), () -> {if(!drawing.cropDocument())message("Selecciona el área del documento que quieres conservar");}, () -> {if(!drawing.flipActiveHorizontal())message("La capa no tiene cambios para voltear");},
                 () -> {if(!drawing.flipActiveVertical())message("La capa no tiene cambios para voltear");},
                 () -> {if(!drawing.rotateActive180())message("La capa no tiene cambios para rotar");},
                 () -> {if(!drawing.rotateActive90(true))message("La capa no tiene cambios para rotar");},
@@ -582,7 +624,7 @@ public final class MainActivity extends Activity {
         addScrollable(root, menus);
 
         LinearLayout commands = row();
-        button(commands, "Nuevo", () -> configureDimensions(0));
+        button(commands, "Nuevo", () -> protectDocument(() -> configureDimensions(0)));
         button(commands, "Abrir", this::openImage);
         button(commands, "Guardar", this::savePng);
         button(commands, "Deshacer", this::undo);
@@ -696,7 +738,7 @@ public final class MainActivity extends Activity {
         root.addView(workspaceFrame, new LinearLayout.LayoutParams(-1, 0, 1));
 
         LinearLayout colors = row();
-        currentColorButton=new Button(this);currentColorButton.setText("");currentColorButton.setPadding(0,0,0,0);currentColorButton.setBackgroundTintList(null);currentColorButton.setOnClickListener(v->configureColor());
+        currentColorButton=new Button(this);currentColorButton.setText("");currentColorButton.setPadding(0,0,0,0);currentColorButton.setBackgroundTintList(null);currentColorButton.setOnClickListener(v->{if(projectProgress==null)configureColor();});
         colors.addView(currentColorButton,new LinearLayout.LayoutParams(dp(48),dp(48)));setActiveColor(activeColor);
         TextView paletteLabel = text("COLORES  ");
         colors.addView(paletteLabel);
@@ -719,9 +761,8 @@ public final class MainActivity extends Activity {
         status = text("800 × 800 px  |  Zoom: ajustar  |  No guardado");
         status.setPadding(dp(10), dp(4), dp(10), dp(4));
         root.addView(status);
-        drawing.setOnViewportChangedListener(() -> status.setText(String.format(java.util.Locale.US,
-            "%d × %d px  |  Zoom: %.1f %%  |  Rotación: %.1f°", drawing.documentWidth(), drawing.documentHeight(), drawing.zoomPercent(), drawing.rotationDegrees())));
-        setContentView(root);
+        drawing.setOnViewportChangedListener(this::updateStatus);
+        setContentView(root);updateStatus();if(freshProcess)recoverDocument();
     }
 
     private void configureColor(){
@@ -790,7 +831,7 @@ public final class MainActivity extends Activity {
         button.setMinimumWidth(0);button.setMinHeight(dp(48));button.setMinimumHeight(dp(48));
         String description=label.equals("+")?"Añadir capa":label.equals("−")?"Eliminar capa":label.equals("↑")?"Subir capa":label.equals("↓")?"Bajar capa":label;
         button.setContentDescription(description);
-        button.setOnClickListener(v -> action.run());
+        button.setOnClickListener(v -> {if(projectProgress==null)action.run();else message("Espera a que termine la operación actual");});
         parent.addView(button);
         return button;
     }
@@ -843,12 +884,14 @@ public final class MainActivity extends Activity {
             if (android.os.Build.VERSION.SDK_INT >= 26) iconButton.setTooltipText(label);
         }
         if(tool==DrawingView.GRADIENT)iconButton.setOnLongClickListener(v -> {
+            if(projectProgress!=null)return true;
             new AlertDialog.Builder(this).setTitle("Tipo de degradado")
                 .setItems(new String[]{"Lineal","Radial"},(dialog,index)->drawing.setRadialGradient(index==1)).show();
             return true;
         });
-        if(tool==DrawingView.LINE)iconButton.setOnLongClickListener(v->{drawing.confirmCurve();return true;});
+        if(tool==DrawingView.LINE)iconButton.setOnLongClickListener(v->{if(projectProgress==null)drawing.confirmCurve();return true;});
         iconButton.setOnClickListener(v -> {
+            if(projectProgress!=null)return;
             drawing.setTool(tool);
             drawing.setColor(activeColor);
             syncToolState();
@@ -866,7 +909,7 @@ public final class MainActivity extends Activity {
     private void menu(LinearLayout parent, String title, String[] labels, Runnable[] actions) {
         button(parent, title, () -> new AlertDialog.Builder(this)
             .setTitle(title)
-            .setItems(labels, (dialog, index) -> actions[index].run())
+            .setItems(labels, (dialog, index) -> {if(projectProgress==null)actions[index].run();})
             .show());
     }
 
@@ -910,6 +953,7 @@ public final class MainActivity extends Activity {
             layerButton.setContentDescription("Capa "+(index+1)+(index==drawing.activeLayer()?", activa":"")+(drawing.layerVisible(index)?", visible":", oculta"));
             if(android.os.Build.VERSION.SDK_INT>=30)layerButton.setStateDescription(index==drawing.activeLayer()?"Activa":"");
             item.setOnClickListener(view -> {
+                if(projectProgress!=null)return;
                 drawing.selectLayer(index);
                 refreshLayerPanel();
             });
@@ -972,7 +1016,15 @@ public final class MainActivity extends Activity {
             Bitmap decoded = BitmapFactory.decodeStream(input, null, options);
             if (decoded == null) throw new java.io.IOException("Imagen no compatible");
             if(decoded.getWidth()>8192||decoded.getHeight()>8192||(long)decoded.getWidth()*decoded.getHeight()>4000000){decoded.recycle();throw new java.io.IOException("Imagen demasiado grande");}
-            return decoded;
+            int orientation=1;
+            try(InputStream metadata=getContentResolver().openInputStream(uri)){if(metadata!=null)orientation=ExifOrientation.read(metadata);}catch(java.io.IOException ignored){}
+            if(orientation==1)return decoded;
+            int width=decoded.getWidth(),height=decoded.getHeight(),outWidth=orientation>=5?height:width,outHeight=orientation>=5?width:height;
+            int[] source=new int[width*height],target=new int[width*height];
+            try{decoded.getPixels(source,0,width,0,0,width,height);
+                for(int y=0;y<outHeight;y++)for(int x=0;x<outWidth;x++)target[y*outWidth+x]=source[ExifOrientation.sourceIndex(x,y,width,height,orientation)];
+                return Bitmap.createBitmap(target,outWidth,outHeight,Bitmap.Config.ARGB_8888);
+            }finally{decoded.recycle();}
         }
     }
 
@@ -1134,7 +1186,7 @@ public final class MainActivity extends Activity {
                 else dimensions=new DocumentDimensions(Integer.parseInt(width.getText().toString()),Integer.parseInt(height.getText().toString()));
                 int w=dimensions.width,h=dimensions.height;
                 if(projectProgress!=null){message("Espera a que termine la operación actual");return;}
-                if(mode==0){if(!drawing.newDocument(w,h)){message("No se pudo crear el documento");return;}dialog.dismiss();}
+                if(mode==0){if(!drawing.newDocument(w,h)){message("No se pudo crear el documento");return;}markDocumentClean("Sin título");dialog.dismiss();}
                 else{dialog.dismiss();resizeDocumentAsync(w,h,mode==1,method.getSelectedItemPosition()==1,anchor.getSelectedItemPosition());}
             } catch (IllegalArgumentException e) { message(e instanceof NumberFormatException?"Introduce dimensiones y porcentaje válidos":e.getMessage()); }
         }));dialog.show();
@@ -1157,7 +1209,7 @@ public final class MainActivity extends Activity {
     private void transferOpenRaster(Uri uri,boolean save){
         if(projectProgress!=null){message("Espera a que termine la operación actual");return;}
         android.app.ProgressDialog progress=new android.app.ProgressDialog(this);progress.setMessage(save?"Guardando OpenRaster…":"Abriendo OpenRaster…");progress.setCancelable(false);projectProgress=progress;progress.show();drawing.setEnabled(false);
-        new Thread(()->{boolean success=false;try{OpenRasterProjects.transfer(this,drawing,uri,save);success=true;}catch(Exception e){success=false;}final boolean ok=success;runOnUiThread(()->{if(!isDestroyed()){progress.dismiss();projectProgress=null;drawing.setEnabled(true);if(ok&&!save)drawing.projectOpened();message(ok?"Proyecto OpenRaster listo": "OpenRaster incompatible, incompleto o demasiado grande; se admiten capas normales sin grupos");}});},"velyntora-openraster").start();
+        new Thread(()->{boolean success=false;try{OpenRasterProjects.transfer(this,drawing,uri,save);success=true;}catch(Exception e){success=false;}final boolean ok=success;runOnUiThread(()->{if(!isDestroyed()){progress.dismiss();projectProgress=null;drawing.setEnabled(true);if(ok){if(!save)drawing.projectOpened();markDocumentClean(fileName(uri));}message(ok?"Proyecto OpenRaster listo": "OpenRaster incompatible, incompleto o demasiado grande; se admiten capas normales sin grupos");}});},"velyntora-openraster").start();
     }
 
     private void transferProject(Uri uri, boolean save) {
@@ -1177,7 +1229,7 @@ public final class MainActivity extends Activity {
             runOnUiThread(() -> {
                 if (!isDestroyed()) {
                     progress.dismiss();projectProgress = null;drawing.setEnabled(true);
-                    if (ok && !save) drawing.projectOpened();
+                    if(ok){if(!save)drawing.projectOpened();markDocumentClean(fileName(uri));}
                     message(ok ? (save ? "Proyecto guardado con capas" : "Proyecto abierto con capas")
                         : (save ? "No se pudo guardar el proyecto" : "Proyecto incompatible, incompleto o demasiado grande"));
                 }
@@ -1226,11 +1278,12 @@ public final class MainActivity extends Activity {
     private void importTga(Uri uri){importRaster(uri,OPEN_TGA);}
     private void importRaster(Uri uri,int request){
         if(projectProgress!=null){message("Espera a que termine la operación actual");return;}
-        final String format=request==OPEN_TIFF?"TIFF":request==OPEN_ICO?"ICO":request==OPEN_PPM?"Netpbm":"TGA";
+        final String format=request==OPEN_TIFF?"TIFF":request==OPEN_ICO?"ICO":request==OPEN_PPM?"Netpbm":request==OPEN_BMP?"BMP":"TGA";
         android.app.ProgressDialog progress=new android.app.ProgressDialog(this);progress.setMessage("Abriendo "+format+"…");progress.setCancelable(false);projectProgress=progress;progress.show();drawing.setEnabled(false);
         new Thread(()->{int[] pixels=null;int width=0,height=0;try(InputStream input=getContentResolver().openInputStream(uri)){
                 if(input==null)throw new java.io.IOException("Sin archivo");
-                if(request==OPEN_TIFF){TiffReader.Image image=TiffReader.read(new java.io.BufferedInputStream(input));pixels=image.pixels;width=image.width;height=image.height;}
+                if(request==OPEN_BMP){BmpReader.Image image=BmpReader.read(new java.io.BufferedInputStream(input));pixels=image.pixels;width=image.width;height=image.height;}
+                else if(request==OPEN_TIFF){TiffReader.Image image=TiffReader.read(new java.io.BufferedInputStream(input));pixels=image.pixels;width=image.width;height=image.height;}
                 else if(request==OPEN_PPM){PpmCodec.Image image=PpmCodec.read(new java.io.BufferedInputStream(input));pixels=image.pixels;width=image.width;height=image.height;}
                 else if(request==OPEN_ICO){IcoCodec.Image image=IcoCodec.read(new java.io.BufferedInputStream(input),png->{
                     Bitmap bitmap=BitmapFactory.decodeByteArray(png,0,png.length);
@@ -1240,7 +1293,7 @@ public final class MainActivity extends Activity {
                 else{TgaReader.Image image=TgaReader.read(new java.io.BufferedInputStream(input));pixels=image.pixels;width=image.width;height=image.height;}
             }catch(Exception e){pixels=null;}
             final int[] decoded=pixels;final int w=width,h=height;
-            runOnUiThread(()->{if(!isDestroyed()){progress.dismiss();projectProgress=null;drawing.setEnabled(true);if(decoded==null){message(format+" incompatible, incompleto o demasiado grande");return;}Bitmap bitmap=Bitmap.createBitmap(decoded,w,h,Bitmap.Config.ARGB_8888);try{if(!drawing.loadBitmap(bitmap))message("No se pudo abrir el "+format);}finally{bitmap.recycle();}}});
+            runOnUiThread(()->{if(!isDestroyed()){progress.dismiss();projectProgress=null;drawing.setEnabled(true);if(decoded==null){message(format+" incompatible, incompleto o demasiado grande");return;}Bitmap bitmap=Bitmap.createBitmap(decoded,w,h,Bitmap.Config.ARGB_8888);try{if(!drawing.loadBitmap(bitmap))message("No se pudo abrir el "+format);else markDocumentClean(fileName(uri));}finally{bitmap.recycle();}}});
         },"velyntora-raster-import").start();
     }
 
@@ -1250,14 +1303,37 @@ public final class MainActivity extends Activity {
         if(projectProgress!=null){message("Espera a que termine la operación actual");return;}
         android.app.ProgressDialog progress=new android.app.ProgressDialog(this);progress.setMessage("Abriendo imagen…");progress.setCancelable(false);projectProgress=progress;progress.show();drawing.setEnabled(false);
         new Thread(()->{Bitmap decoded=null;try{decoded=decodeImage(uri);}catch(Exception e){decoded=null;}final Bitmap image=decoded;
-            runOnUiThread(()->{try{if(!isDestroyed()){progress.dismiss();projectProgress=null;drawing.setEnabled(true);if(image==null||!drawing.loadBitmap(image))message("No se pudo abrir la imagen");}}finally{if(image!=null)image.recycle();}});
+            runOnUiThread(()->{try{if(!isDestroyed()){progress.dismiss();projectProgress=null;drawing.setEnabled(true);if(image==null||!drawing.loadBitmap(image))message("No se pudo abrir la imagen");else markDocumentClean(fileName(uri));}}finally{if(image!=null)image.recycle();}});
         },"velyntora-image-import").start();
+    }
+
+    private String fileName(Uri uri){
+        try(android.database.Cursor cursor=getContentResolver().query(uri,new String[]{android.provider.OpenableColumns.DISPLAY_NAME},null,null,null)){
+            if(cursor!=null&&cursor.moveToFirst())return cursor.getString(0);
+        }catch(Exception ignored){}return uri.getLastPathSegment();
+    }
+    private void openDetected(Uri uri){
+        // Providers may perform network IO: never inspect their stream on the UI thread.
+        if(projectProgress!=null)return;
+        android.app.ProgressDialog progress=new android.app.ProgressDialog(this);progress.setMessage("Identificando archivo…");progress.setCancelable(false);projectProgress=progress;progress.show();drawing.setEnabled(false);
+        new Thread(()->{int kind=RasterFormat.ANDROID;boolean ok=false;
+            try(InputStream input=getContentResolver().openInputStream(uri)){
+                if(input==null)throw new java.io.IOException("Sin archivo");
+                byte[] prefix=new byte[16];int count=0;while(count<prefix.length){int value=input.read();if(value<0)break;prefix[count++]=(byte)value;}
+                kind=RasterFormat.detect(java.util.Arrays.copyOf(prefix,count),fileName(uri));ok=true;
+            }catch(Exception ignored){}
+            final int format=kind;final boolean readable=ok;
+            runOnUiThread(()->{if(isDestroyed())return;progress.dismiss();projectProgress=null;drawing.setEnabled(true);
+                if(!readable){message("No se pudo leer el archivo");return;}
+                switch(format){case RasterFormat.BMP:importRaster(uri,OPEN_BMP);break;case RasterFormat.TIFF:importRaster(uri,OPEN_TIFF);break;case RasterFormat.ICO:importRaster(uri,OPEN_ICO);break;case RasterFormat.NETPBM:importRaster(uri,OPEN_PPM);break;case RasterFormat.TGA:importRaster(uri,OPEN_TGA);break;case RasterFormat.PROJECT:transferProject(uri,false);break;case RasterFormat.ORA:transferOpenRaster(uri,false);break;default:importImage(uri);}
+            });
+        },"velyntora-format-detection").start();
     }
 
     private void openImage() {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("image/*");
+        intent.setType("*/*");
         startActivityForResult(intent, OPEN_IMAGE);
     }
 
@@ -1265,6 +1341,10 @@ public final class MainActivity extends Activity {
         super.onActivityResult(request, result, data);
         if (result != RESULT_OK || data == null || data.getData() == null) return;
         Uri uri = data.getData();
+        if(request==OPEN_ORA||request==OPEN_PROJECT||request==OPEN_TIFF||request==OPEN_PPM||request==OPEN_ICO||request==OPEN_TGA||request==OPEN_IMAGE){protectDocument(()->acceptFileResult(request,uri));return;}
+        acceptFileResult(request,uri);
+    }
+    private void acceptFileResult(int request,Uri uri){
         if (request == SAVE_ORA || request == OPEN_ORA) {
             transferOpenRaster(uri,request==SAVE_ORA);
         } else if (request == SAVE_PROJECT || request == OPEN_PROJECT) {
@@ -1278,7 +1358,7 @@ public final class MainActivity extends Activity {
         } else if (request == OPEN_TGA) {
             importTga(uri);
         } else if (request == OPEN_IMAGE) {
-            importImage(uri);
+            openDetected(uri);
         } else if (request == SAVE_BMP || request == SAVE_TGA || request == SAVE_TIFF || request == SAVE_GIF || request == SAVE_ICO || request == SAVE_PPM || request == SAVE_PNG || request == SAVE_JPEG || request == SAVE_WEBP) {
             exportRaster(uri,request);
         }

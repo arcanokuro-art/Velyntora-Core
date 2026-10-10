@@ -2,6 +2,7 @@ package art.velyntora.core;
 import java.util.Arrays;
 class DrawingView {
  static {System.loadLibrary("velyntora_host");}
+ static native long nativeRevision();
  static native int nativeCurveTag();
  static native void nativeMarkCurve(int tag);
  static native void nativeBeginSampled(int x,int y);
@@ -31,6 +32,12 @@ class DrawingView {
 public final class NativeRasterTests {
  static void check(boolean ok){if(!ok)throw new AssertionError();}
  public static void main(String[] args){
+  check(DrawingView.nativeCreate(1,1));long clean=DrawingView.nativeRevision();
+  check(!DrawingView.nativeResizeDocumentOptions(0,1,true,false,0));check(DrawingView.nativeRevision()==clean);
+  check(DrawingView.nativePasteSelection(new int[]{1,1,0xff123456},0,0));long edited=DrawingView.nativeRevision();check(edited!=clean);
+  check(DrawingView.nativeUndo());check(DrawingView.nativeRevision()==clean);check(DrawingView.nativeRedo());check(DrawingView.nativeRevision()==edited);
+  check(DrawingView.nativeUndo());check(DrawingView.nativePasteSelection(new int[]{1,1,0xffabcdef},0,0));check(DrawingView.nativeRevision()!=edited);check(!DrawingView.nativeRedo());
+  check(DrawingView.nativeCreate(1,1));check(DrawingView.nativeRevision()!=clean);
   check(DrawingView.nativeLoadBitmap(1,1,new int[]{0}));check(DrawingView.nativePasteSelection(new int[]{1,1,0xffff0000},0,0));DrawingView.nativeMarkCurve(7);check(DrawingView.nativeCurveTag()==7);
   check(DrawingView.nativeUndo());check(DrawingView.nativeCurveTag()==0);check(DrawingView.nativeRedo());check(DrawingView.nativeCurveTag()==7);
   DrawingView.nativeBeginEdit();DrawingView.nativeStyledStroke(.5f,.5f,.5f,.5f,.5f,0xff0000ff,1,1,true,false);check(DrawingView.nativeCurveTag()==0);check(DrawingView.nativeUndo());check(DrawingView.nativeCurveTag()==7);

@@ -30,6 +30,8 @@ public final class DrawingView extends View {
  public void effectApplied(){refresh();}
  private static native boolean nativeSaveProject(int fd);
  private static native boolean nativeOpenProject(int fd);
+ private static native boolean nativeSaveRecovery(int fd,long expectedRevision);
+ public boolean writeRecovery(int fd,long expectedRevision){return nativeSaveRecovery(fd,expectedRevision);}
  public boolean writeProject(int fd){return nativeSaveProject(fd);}
  public boolean readProject(int fd){return nativeOpenProject(fd);}
  public void projectOpened(){resetDocumentTools();deselect();refresh();fitCanvas();}
@@ -101,6 +103,10 @@ public final class DrawingView extends View {
  private static native boolean nativeResizeDocument(int w,int h,boolean scalePixels);
  private static native boolean nativeResizeDocumentOptions(int w,int h,boolean scalePixels,boolean bilinear,int anchor);
  private static native boolean nativeCropDocument(int left,int top,int w,int h);
+ private static native long nativeRevision();
+ public long revision(){return nativeRevision();}
+ public boolean hasPendingCurve(){return curve!=null;}
+ public static boolean hasDocument(){return nativeWidth()>0;}
  public int documentWidth(){return canvasWidth;}
  public int documentHeight(){return canvasHeight;}
  public boolean resizeDocument(int w,int h,boolean scalePixels){return resizeDocument(w,h,scalePixels,false,0);}
