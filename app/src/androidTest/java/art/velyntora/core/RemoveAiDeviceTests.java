@@ -15,6 +15,7 @@ public final class RemoveAiDeviceTests {
    int changed=0;for(int i=0;i<count;i++){assertEquals(original[i]>>>24,result[i]>>>24);if(mask[i]==0)assertEquals(original[i],result[i]);else if(result[i]!=original[i])changed++;}
    assertTrue("Real model must reconstruct masked pixels",changed>100);
    int[] repeated=backend.run(context,original,mask,width,height);assertArrayEquals("Reused session must be deterministic",result,repeated);
+   assertArrayEquals(result,backend.run(context,original,mask,width,height));
    try{backend.run(context,original,new byte[count],width,height);fail("Empty mask");}catch(IllegalArgumentException expected){}
    byte[] full=new byte[count];Arrays.fill(full,(byte)1);try{backend.run(context,original,full,width,height);fail("No background");}catch(IllegalArgumentException expected){}
   }

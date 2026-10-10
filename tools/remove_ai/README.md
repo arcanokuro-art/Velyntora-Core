@@ -4,7 +4,7 @@ Herramienta independiente ID 28. El icono `assets/remove_ai/remove_ai.webp` es e
 
 - `RemoveAiTool`: gestos y vista previa, sin rasterizar en el documento.
 - `RemoveAiModule`: máscara por lienzo, botones Eliminar/Limpiar, cancelación, revisión y ciclo de vida.
-- `RemoveAiBackend`: sesión ONNX reutilizada y cerrada al destruir la vista; CPU en un hilo de trabajo. No envía imágenes ni descarga modelos desde la app.
+- `RemoveAiBackend`: sesión ONNX reutilizada y cerrada al destruir la vista; CPU en un hilo de trabajo. No envía imágenes ni descarga modelos desde la app. Desactiva arena de CPU y patrones preasignados para evitar que la RAM crezca entre ejecuciones; serializa la inferencia entre vistas.
 - `RemoveAiIcon`: carga del recurso original.
 - Puente transaccional `app/src/main/cpp/remove_ai/RemoveAiBridge.inc`: lectura de capa activa y composición limitada a máscara, alfa original, revisión/capa/dimensiones verificadas, un único paso Deshacer/Rehacer.
 
