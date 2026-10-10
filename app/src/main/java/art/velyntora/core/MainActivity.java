@@ -27,7 +27,8 @@ public final class MainActivity extends Activity {
     private static final int SAVE_PNG = 41;
     private static final int OPEN_IMAGE = 42;
     private DrawingView drawing;
-    private TextView status;
+    private TextView status, documentTitle;
+    private LinearLayout menuRegistry;
     private TextView selectedTool;
     private LinearLayout layerItems;
     private ScrollView layerScroll,toolScroll;
@@ -48,7 +49,7 @@ public final class MainActivity extends Activity {
     private static final java.util.concurrent.ExecutorService recoveryExecutor=java.util.concurrent.Executors.newSingleThreadExecutor();
     private boolean dirty(){return drawing.hasPendingCurve()||drawing.revision()!=savedRevision;}
     private void markDocumentClean(String name){savedRevision=drawing.revision();documentName=name==null?"Sin título":name;updateStatus();}
-    private void updateStatus(){if(status==null)return;status.setText(String.format(java.util.Locale.US,
+    private void updateStatus(){if(documentTitle!=null)documentTitle.setText(documentName+(dirty()?" • Sin guardar":"")+" — Velyntora Core");if(status==null)return;status.setText(String.format(java.util.Locale.US,
         "%s%s  |  %d × %d px  |  Zoom: %.1f %%  |  Rotación: %.1f°",documentName,dirty()?" • Sin guardar":"",drawing.documentWidth(),drawing.documentHeight(),drawing.zoomPercent(),drawing.rotationDegrees())+drawing.cursorStatus());}
     private void protectDocument(Runnable action){
         if(projectProgress!=null){message("Espera a que termine la operación actual");return;}
@@ -607,7 +608,8 @@ public final class MainActivity extends Activity {
         });
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(0xFFF1F1F1);
+        root.setBackgroundColor(0xFF2B2B2B);
+        getWindow().setStatusBarColor(0xFF202020);getWindow().setNavigationBarColor(0xFF202020);
 
         LinearLayout menus = row();
         menu(menus, "Archivo", new String[]{"Nuevo…", "Abrir archivo (detección automática)", "Abrir TGA", "Abrir TIFF", "Abrir ICO", "Abrir Netpbm (PBM/PGM/PPM)", "Abrir OpenRaster", "Guardar OpenRaster", "Guardar PNG", "Guardar JPEG", "Guardar WebP", "Guardar BMP", "Guardar TGA", "Guardar TIFF", "Guardar GIF (imagen fija)", "Guardar ICO (hasta 256 px)", "Guardar PPM", "Abrir proyecto", "Guardar proyecto"},
@@ -639,55 +641,62 @@ public final class MainActivity extends Activity {
         menu(menus, "Efectos",new String[]{"Básicos","Desenfoques","Distorsiones","Arte y fotografía","Generadores","Más filtros","Objetos"},new Runnable[]{()->new AlertDialog.Builder(this).setTitle("Efectos básicos").setItems(new String[]{"Desenfoque de caja…","Enfocar…","Detectar bordes…","Repujado…","Pixelar…","Ruido…","Viñeta…"},(d,k)->configureEffect(k)).show(),filters::openBlurMenu,filters::openDistortionMenu,filters::openArtisticMenu,filters::openRenderMenu,filters::openUtilityMenu,filters::openObjectMenu});
         menu(menus, "Ayuda", new String[]{"Acerca de"},
             new Runnable[]{() -> message("Velyntora Core 0.1 — versión de desarrollo Android")});
-        addScrollable(root, menus);
+        menuRegistry=menus;
 
+        LinearLayout header=row();
         LinearLayout commands = row();
-        button(commands, "Nuevo", () -> protectDocument(() -> configureDimensions(0)));
-        button(commands, "Abrir", this::openImage);
-        button(commands, "Guardar", () -> projectPicker(true));
-        button(commands, "Deshacer", this::undo);
-        button(commands, "Rehacer", this::redo);
-        button(commands, "Herramientas", () -> togglePanel(toolScroll));
-        button(commands, "Capas", () -> togglePanel(layerScroll));
-        commandScroll=addScrollable(root, commands);
+        iconButton(commands, "Nuevo", "new", () -> protectDocument(() -> configureDimensions(0)));
+        iconButton(commands, "Abrir", "open", this::openImage);
+        iconButton(commands, "Guardar", "save", () -> projectPicker(true));
+        iconButton(commands, "Deshacer", "undo", this::undo);
+        iconButton(commands, "Rehacer", "redo", this::redo);
+        HorizontalScrollView shortcuts=new HorizontalScrollView(this);shortcuts.setHorizontalScrollBarEnabled(false);shortcuts.addView(commands);
+        header.addView(shortcuts,new LinearLayout.LayoutParams(0,dp(48),1));
+        documentTitle=text("Imagen no guardada — Velyntora Core");documentTitle.setSingleLine(true);documentTitle.setEllipsize(android.text.TextUtils.TruncateAt.END);documentTitle.setGravity(Gravity.CENTER);
+        header.addView(documentTitle,new LinearLayout.LayoutParams(0,dp(48),1));
+        iconButton(header,"Herramientas","tools",()->togglePanel(toolScroll));
+        iconButton(header,"Capas","layers",()->togglePanel(layerScroll));
+        iconButton(header,"Menú principal","menu",this::openMainMenu);
+        root.addView(header);
+        LinearLayout options=row();
+        selectedTool=text("Pincel");selectedTool.setSingleLine(true);selectedTool.setMaxWidth(dp(160));options.addView(selectedTool);
 
         LinearLayout sidebar = new LinearLayout(this);
         sidebar.setOrientation(LinearLayout.VERTICAL);
-        sidebar.setBackgroundColor(0xFFE4E4E4);
+        sidebar.setBackgroundColor(0xFF2B2B2B);
         sidebar.setPadding(dp(3), dp(4), dp(3), dp(4));
-        TextView toolsTitle = text("HERRAMIENTAS");
-        sidebar.addView(toolsTitle);
-        android.widget.GridLayout toolGrid = new android.widget.GridLayout(this);toolGrid.setColumnCount(3);sidebar.addView(toolGrid);
-        tool(toolGrid, "Pincel", DrawingView.BRUSH);
-        tool(toolGrid, "Lápiz (1 píxel)", DrawingView.PENCIL);
-        tool(toolGrid, "Desplazamiento", DrawingView.PAN);
+
+        android.widget.GridLayout toolGrid = new android.widget.GridLayout(this);toolGrid.setColumnCount(2);sidebar.addView(toolGrid);
+        tool(toolGrid, "Mover píxeles", DrawingView.MOVE_PIXELS);
+        tool(toolGrid, "Cubeta", DrawingView.BUCKET);
+        tool(toolGrid, "Mover contorno", DrawingView.MOVE_SELECTION);
+        tool(toolGrid, "Degradado: mantener pulsado para configurar", DrawingView.GRADIENT);
         tool(toolGrid, "Zoom: toque acerca; toque largo aleja; arrastre vertical", DrawingView.ZOOM);
+        tool(toolGrid, "Cuentagotas", DrawingView.PICKER);
+        tool(toolGrid, "Desplazamiento", DrawingView.PAN);
+        tool(toolGrid, "Texto", DrawingView.TEXT);
+        tool(toolGrid, "Selección rectangular", DrawingView.SELECT_RECTANGLE);
         tool(toolGrid, "Línea/Curva: arrastrar tiradores; mantener pulsado para confirmar", DrawingView.LINE);
+        tool(toolGrid, "Selección elíptica", DrawingView.SELECT_ELLIPSE);
         tool(toolGrid, "Rectángulo", DrawingView.RECTANGLE);
-        tool(toolGrid, "Círculo", DrawingView.CIRCLE);
-        tool(toolGrid, "Forma libre (contorno cerrado)", DrawingView.FREEFORM);
+        tool(toolGrid, "Selección libre (contorno)", DrawingView.SELECT_FREE);
+        tool(toolGrid, "Rectángulo redondeado", DrawingView.ROUNDED_RECTANGLE);
+        tool(toolGrid, "Varita mágica", DrawingView.MAGIC_WAND);
         tool(toolGrid, "Elipse", DrawingView.ELLIPSE);
+        tool(toolGrid, "Pincel", DrawingView.BRUSH);
+        tool(toolGrid, "Forma libre (contorno cerrado)", DrawingView.FREEFORM);
+        tool(toolGrid, "Lápiz (1 píxel)", DrawingView.PENCIL);
+        tool(toolGrid, "Tampón de clonar: primer toque fija origen; seleccionar de nuevo para cambiarlo", DrawingView.CLONE);
+        tool(toolGrid, "Borrador", DrawingView.ERASER);
+        tool(toolGrid, "Recoloración: sustituye el color inicial; tolerancia de varita", DrawingView.RECOLOR);
+        tool(toolGrid, "Círculo", DrawingView.CIRCLE);
+        tool(toolGrid, "Triángulo", DrawingView.TRIANGLE);
         tool(toolGrid, "Rectángulo relleno", DrawingView.FILLED_RECTANGLE);
         tool(toolGrid, "Elipse rellena", DrawingView.FILLED_ELLIPSE);
-        tool(toolGrid, "Rectángulo redondeado", DrawingView.ROUNDED_RECTANGLE);
         tool(toolGrid, "Redondeado relleno", DrawingView.FILLED_ROUNDED_RECTANGLE);
-        tool(toolGrid, "Triángulo", DrawingView.TRIANGLE);
         tool(toolGrid, "Triángulo relleno", DrawingView.FILLED_TRIANGLE);
-        tool(toolGrid, "Texto", DrawingView.TEXT);
-        tool(toolGrid, "Degradado: mantener pulsado para configurar", DrawingView.GRADIENT);
-        tool(toolGrid, "Tampón de clonar: primer toque fija origen; seleccionar de nuevo para cambiarlo", DrawingView.CLONE);
-        tool(toolGrid, "Recoloración: sustituye el color inicial; tolerancia de varita", DrawingView.RECOLOR);
-        tool(toolGrid, "Cubeta", DrawingView.BUCKET);
-        tool(toolGrid, "Cuentagotas", DrawingView.PICKER);
-        tool(toolGrid, "Borrador", DrawingView.ERASER);
-        tool(toolGrid, "Selección rectangular", DrawingView.SELECT_RECTANGLE);
-        tool(toolGrid, "Selección elíptica", DrawingView.SELECT_ELLIPSE);
-        tool(toolGrid, "Selección libre (contorno)", DrawingView.SELECT_FREE);
-        tool(toolGrid, "Varita mágica", DrawingView.MAGIC_WAND);
-        tool(toolGrid, "Mover contorno", DrawingView.MOVE_SELECTION);
-        tool(toolGrid, "Mover píxeles", DrawingView.MOVE_PIXELS);
         TextView brushSizeLabel = text("Radio: 4 px");
-        sidebar.addView(brushSizeLabel);
+        options.addView(brushSizeLabel);
         SeekBar brushSize = new SeekBar(this);
         brushSize.setContentDescription("Radio del pincel en píxeles");
         brushSize.setMax(127);
@@ -701,27 +710,29 @@ public final class MainActivity extends Activity {
             @Override public void onStartTrackingTouch(SeekBar bar) {}
             @Override public void onStopTrackingTouch(SeekBar bar) {}
         });
-        sidebar.addView(brushSize);
-        button(sidebar, "Configurar pincel", this::configureBrush);
-        selectedTool = text("Pincel");
-        sidebar.addView(selectedTool);
+        options.addView(brushSize,new LinearLayout.LayoutParams(dp(120),dp(48)));
+        iconButton(options,"Configurar pincel","settings",this::configureBrush);
+        iconButton(options,"Configurar degradado","gradient",this::configureGradient);
+        iconButton(options,"Confirmar Línea/Curva","confirm",drawing::confirmCurve);
+        iconButton(options,"Cancelar Línea/Curva","cancel",drawing::cancelCurve);
+        addScrollable(root,options);
         ScrollView toolScroll = new ScrollView(this);toolScroll.addView(sidebar);
         this.toolScroll=toolScroll;
         LinearLayout layerPanel = new LinearLayout(this);
         layerPanel.setOrientation(LinearLayout.VERTICAL);
-        layerPanel.setBackgroundColor(0xFFE6E6E6);
+        layerPanel.setBackgroundColor(0xFF202020);
         TextView layerTitle = text("CAPAS");
         layerTitle.setPadding(dp(6), dp(8), dp(6), dp(8));
         layerPanel.addView(layerTitle);
         LinearLayout layerCommands = row();
-        button(layerCommands, "+", this::addLayer);
-        button(layerCommands, "−", this::deleteLayer);
-        layerPanel.addView(layerCommands);
+        iconButton(layerCommands, "Añadir capa", "new", this::addLayer);
+        iconButton(layerCommands, "Eliminar capa", "delete", this::deleteLayer);
+
         LinearLayout layerOrder = row();
-        button(layerOrder, "↑", () -> moveLayer(1));
-        button(layerOrder, "↓", () -> moveLayer(-1));
-        layerPanel.addView(layerOrder);
-        button(layerPanel, "Mostrar / ocultar", this::toggleLayer);
+        iconButton(layerOrder, "Subir capa", "up", () -> moveLayer(1));
+        iconButton(layerOrder, "Bajar capa", "down", () -> moveLayer(-1));
+
+        iconButton(layerCommands, "Mostrar / ocultar", "eye", this::toggleLayer);
         TextView opacityLabel = text("Opacidad: 100%");
         opacityLabel.setPadding(dp(6), dp(8), dp(6), dp(2));
         layerPanel.addView(opacityLabel);
@@ -744,6 +755,7 @@ public final class MainActivity extends Activity {
         LinearLayout layerItems = new LinearLayout(this);
         layerItems.setOrientation(LinearLayout.VERTICAL);
         layerPanel.addView(layerItems);
+        layerPanel.addView(layerCommands);layerPanel.addView(layerOrder);
         ScrollView layerScroll = new ScrollView(this);
         layerScroll.addView(layerPanel);
 
@@ -759,23 +771,15 @@ public final class MainActivity extends Activity {
         currentColorButton=new Button(this);currentColorButton.setText("");currentColorButton.setPadding(0,0,0,0);currentColorButton.setBackgroundTintList(null);currentColorButton.setOnClickListener(v->{if(projectProgress==null)configureColor();});
         colors.addView(currentColorButton,new LinearLayout.LayoutParams(dp(48),dp(48)));setActiveColor(activeColor);
         secondaryColorButton=new Button(this);secondaryColorButton.setText("");secondaryColorButton.setPadding(0,0,0,0);secondaryColorButton.setBackgroundTintList(null);secondaryColorButton.setOnClickListener(v->{if(projectProgress==null)configureColor(true);});colors.addView(secondaryColorButton,new LinearLayout.LayoutParams(dp(48),dp(48)));setSecondaryColor(secondaryColor);
-        TextView paletteLabel = text("COLORES  ");
-        colors.addView(paletteLabel);
-        button(colors,"Elegir color…",this::configureColor);
-        int[] palette = {Color.BLACK, Color.WHITE, Color.GRAY, Color.RED, 0xFFFF9800,
-            Color.YELLOW, Color.GREEN, Color.CYAN, Color.BLUE, Color.MAGENTA,
-            0xFF795548, 0xFF9C27B0};
-        for (int color : palette) {
-            View swatch = new View(this);
-            swatch.setBackgroundColor(color);swatch.setFocusable(true);swatch.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
-            swatch.setContentDescription(String.format(java.util.Locale.US,"Color #%06X",color & 0xffffff));
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(48), dp(48));
-            params.setMargins(dp(3), dp(4), dp(3), dp(4));
-            colors.addView(swatch, params);
-            swatch.setOnClickListener(v -> {
-                setActiveColor(color);
-            });
+        iconButton(colors,"Intercambiar colores","swap",()->{int first=activeColor;setActiveColor(secondaryColor);setSecondaryColor(first);});
+        int[] palette = {0xff000000,0xffffffff,0xff808080,0xffc0c0c0,0xffff0000,0xffff8080,0xffff9800,0xffffcc80,0xffffff00,0xffffff80,0xff00c000,0xff80ff80,0xff00ffff,0xff80ffff,0xff0000ff,0xff8080ff,0xffff00ff,0xffff80ff,0xff795548,0xffbcaaa4,0xff9c27b0,0xffce93d8};
+        android.widget.GridLayout paletteGrid=new android.widget.GridLayout(this);paletteGrid.setRowCount(2);paletteGrid.setColumnCount(palette.length/2);
+        for(int i=0;i<palette.length;i++){
+            final int color=palette[i];View swatch=new View(this);swatch.setBackgroundColor(color);swatch.setFocusable(true);swatch.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
+            swatch.setContentDescription(String.format(java.util.Locale.US,"Color #%06X",color&0xffffff));
+            android.widget.GridLayout.LayoutParams cell=new android.widget.GridLayout.LayoutParams(android.widget.GridLayout.spec(i%2),android.widget.GridLayout.spec(i/2));cell.width=dp(24);cell.height=dp(24);paletteGrid.addView(swatch,cell);swatch.setOnClickListener(v->setActiveColor(color));swatch.setOnLongClickListener(v->{setSecondaryColor(color);return true;});
         }
+        colors.addView(paletteGrid);
         paletteScroll=addScrollable(root, colors);updateWorkspaceChrome();
         status = text("800 × 800 px  |  Zoom: ajustar  |  No guardado");
         status.setPadding(dp(10), dp(4), dp(10), dp(4));
@@ -807,7 +811,7 @@ public final class MainActivity extends Activity {
     }
     private void updateWorkspaceChrome(){
         android.content.res.Configuration config=getResources().getConfiguration();WorkspaceLayout layout=new WorkspaceLayout(Math.max(1,config.screenWidthDp),Math.max(1,config.screenHeightDp),config.fontScale);
-        if(commandScroll!=null)commandScroll.setVisibility(layout.compact?View.GONE:View.VISIBLE);if(paletteScroll!=null)paletteScroll.setVisibility(layout.compact?View.GONE:View.VISIBLE);
+        if(paletteScroll!=null)paletteScroll.setVisibility(View.VISIBLE);
     }
     private void togglePanel(ScrollView panel){if(panel==null)return;boolean show=panel.getVisibility()!=View.VISIBLE;if(show&&!panelsInline){toolScroll.setVisibility(View.GONE);layerScroll.setVisibility(View.GONE);}panel.setVisibility(show?View.VISIBLE:View.GONE);}
     private void detach(View view){if(view.getParent() instanceof android.view.ViewGroup)((android.view.ViewGroup)view.getParent()).removeView(view);}
@@ -816,7 +820,7 @@ public final class MainActivity extends Activity {
         detach(drawing);detach(toolScroll);detach(layerScroll);workspaceFrame.removeAllViews();
         if(panelsInline){LinearLayout row=row();row.addView(toolScroll,new LinearLayout.LayoutParams(dp(layout.toolsWidth),-1));row.addView(drawing,new LinearLayout.LayoutParams(0,-1,1));row.addView(layerScroll,new LinearLayout.LayoutParams(dp(layout.layersWidth),-1));workspaceFrame.addView(row,new android.widget.FrameLayout.LayoutParams(-1,-1));toolScroll.setVisibility(View.VISIBLE);layerScroll.setVisibility(View.VISIBLE);}
         else{workspaceFrame.addView(drawing,new android.widget.FrameLayout.LayoutParams(-1,-1));workspaceFrame.addView(toolScroll,new android.widget.FrameLayout.LayoutParams(dp(layout.toolsWidth),-1,Gravity.START));workspaceFrame.addView(layerScroll,new android.widget.FrameLayout.LayoutParams(dp(layout.layersWidth),-1,Gravity.END));toolScroll.setVisibility(View.GONE);layerScroll.setVisibility(View.GONE);}
-        toolScroll.setBackgroundColor(0xFFE4E4E4);layerScroll.setBackgroundColor(0xFFE6E6E6);
+        toolScroll.setBackgroundColor(0xFF2B2B2B);layerScroll.setBackgroundColor(0xFF202020);
         toolScroll.setElevation(dp(6));layerScroll.setElevation(dp(6));
     }
     @Override public void onConfigurationChanged(android.content.res.Configuration config){super.onConfigurationChanged(config);if(workspaceFrame!=null)layoutWorkspace();}
@@ -837,7 +841,7 @@ public final class MainActivity extends Activity {
     private TextView text(String label) {
         TextView view = new TextView(this);
         view.setText(label);
-        view.setTextColor(Color.DKGRAY);
+        view.setTextColor(0xFFF0F0F0);
         view.setTextSize(12);
         return view;
     }
@@ -853,6 +857,7 @@ public final class MainActivity extends Activity {
     private Button button(LinearLayout parent, String label, Runnable action) {
         Button button = new Button(this);
         button.setText(label);
+        button.setTextColor(0xFFF0F0F0);button.setBackgroundResource(R.drawable.tool_button_background);button.setBackgroundTintList(null);
         button.setTextSize(12);
         button.setAllCaps(false);
         button.setMinWidth(0);
@@ -903,9 +908,9 @@ public final class MainActivity extends Activity {
             case DrawingView.MOVE_PIXELS: icon = R.drawable.pinta_move_pixels; break;
         }
         if (icon != 0) {
-            android.graphics.drawable.Drawable graphic = getDrawable(icon);
+            android.graphics.drawable.Drawable graphic = getDrawable(icon).mutate();graphic.setTint(0xFFF0F0F0);
             boolean filled = tool == DrawingView.FILLED_RECTANGLE || tool == DrawingView.FILLED_ELLIPSE || tool == DrawingView.FILLED_ROUNDED_RECTANGLE || tool == DrawingView.FILLED_TRIANGLE;
-            if(filled){android.graphics.drawable.GradientDrawable marker=new android.graphics.drawable.GradientDrawable();marker.setShape(android.graphics.drawable.GradientDrawable.OVAL);marker.setColor(0xff333333);android.graphics.drawable.LayerDrawable layers=new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{graphic,marker});layers.setLayerSize(1,dp(6),dp(6));layers.setLayerGravity(1,Gravity.BOTTOM|Gravity.RIGHT);graphic=layers;}
+            if(filled){android.graphics.drawable.GradientDrawable marker=new android.graphics.drawable.GradientDrawable();marker.setShape(android.graphics.drawable.GradientDrawable.OVAL);marker.setColor(0xfff0f0f0);android.graphics.drawable.LayerDrawable layers=new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{graphic,marker});layers.setLayerSize(1,dp(6),dp(6));layers.setLayerGravity(1,Gravity.BOTTOM|Gravity.RIGHT);graphic=layers;}
             graphic.setBounds(0,0,dp(24),dp(24));iconButton.setCompoundDrawables(null,graphic,null,null);iconButton.setText("");iconButton.setPadding(0,dp(12),0,dp(12));
             iconButton.setContentDescription(label);
             if(android.os.Build.VERSION.SDK_INT>=30)iconButton.setStateDescription(tool==drawing.currentTool()?"Activa":"");
@@ -930,7 +935,17 @@ public final class MainActivity extends Activity {
     private void syncToolState(){
         if(drawing==null)return;int active=drawing.currentTool();
         for(int i=0;i<toolButtons.size();i++){boolean selected=toolButtons.keyAt(i)==active;Button button=toolButtons.valueAt(i);button.setSelected(selected);if(android.os.Build.VERSION.SDK_INT>=30)button.setStateDescription(selected?"Activa":"");}
-        if(selectedTool!=null&&toolLabels.get(active)!=null)selectedTool.setText(toolLabels.get(active));
+        if(selectedTool!=null&&toolLabels.get(active)!=null)selectedTool.setText(toolLabels.get(active).split(":",2)[0]);
+    }
+
+    private Button iconButton(LinearLayout parent,String label,String glyph,Runnable action){
+        Button button=button(parent,label,action);button.setText("");button.setPadding(dp(12),dp(12),dp(12),dp(12));
+        WorkspaceIconDrawable icon=new WorkspaceIconDrawable(glyph);icon.setBounds(0,0,dp(24),dp(24));button.setCompoundDrawables(icon,null,null,null);
+        button.setLayoutParams(new LinearLayout.LayoutParams(dp(48),dp(48)));button.setTooltipText(label);return button;
+    }
+    private void openMainMenu(){
+        String[] labels=new String[menuRegistry.getChildCount()];for(int i=0;i<labels.length;i++)labels[i]=((Button)menuRegistry.getChildAt(i)).getText().toString();
+        new AlertDialog.Builder(this).setTitle("Velyntora Core").setItems(labels,(dialog,index)->menuRegistry.getChildAt(index).performClick()).show();
     }
 
     private void menu(LinearLayout parent, String title, String[] labels, Runnable[] actions) {

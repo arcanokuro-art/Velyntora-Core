@@ -609,7 +609,7 @@ public final class DrawingView extends View {
   super.onDraw(canvas);
   if(getWidth()<=0||getHeight()<=0)return;
   float scale=(float)viewport.scale;
-  canvas.drawColor(0xFFE3E3E3);
+  canvas.drawColor(0xFF2B2B2B);
   canvas.save();
   canvas.translate((float)viewport.centerX,(float)viewport.centerY);
   canvas.rotate((float)viewport.angle);
@@ -621,6 +621,8 @@ public final class DrawingView extends View {
   checkerPaint.setColor(0xFFD1D1D1);
   for(int row=0;row<(canvasHeight+15)/16;++row)for(int col=(row&1);col<(canvasWidth+15)/16;col+=2)
    canvas.drawRect(col*16,row*16,(col+1)*16,(row+1)*16,checkerPaint);
+  // Interpolate only when reducing the image. Enlarged source pixels stay sharp.
+  paint.setFilterBitmap(scale < 1f);
   canvas.drawBitmap(bitmap,0,0,paint);
   if(curve!=null){Paint preview=new Paint(Paint.ANTI_ALIAS_FLAG);preview.setColor(color);preview.setAlpha(Math.round((color>>>24)*brushOpacity));preview.setStyle(Paint.Style.STROKE);preview.setStrokeWidth(brushRadius*2);preview.setStrokeCap(Paint.Cap.ROUND);canvas.drawPath(curvePath(),preview);preview.setStyle(Paint.Style.FILL);preview.setColor(0xff7040b0);preview.setAlpha(255);for(int i=0;i<4;i++)canvas.drawCircle(curve.x[i],curve.y[i],6/scale,preview);}
 

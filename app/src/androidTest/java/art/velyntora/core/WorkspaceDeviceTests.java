@@ -22,7 +22,7 @@ public final class WorkspaceDeviceTests {
  @After public void close(){instrumentation.runOnMainSync(()->activity.finish());instrumentation.waitForIdleSync();}
  private DrawingView drawing(){return findDrawing(activity.getWindow().getDecorView());}
  private DrawingView findDrawing(View view){if(view instanceof DrawingView)return (DrawingView)view;if(view instanceof ViewGroup){ViewGroup group=(ViewGroup)view;for(int i=0;i<group.getChildCount();i++){DrawingView found=findDrawing(group.getChildAt(i));if(found!=null)return found;}}return null;}
- private Button findButton(View view,String label){if(view instanceof Button&&label.contentEquals(((Button)view).getText()))return (Button)view;if(view instanceof ViewGroup){ViewGroup group=(ViewGroup)view;for(int i=0;i<group.getChildCount();i++){Button found=findButton(group.getChildAt(i),label);if(found!=null)return found;}}return null;}
+ private Button findButton(View view,String label){if(view instanceof Button&&(label.contentEquals(((Button)view).getText())||label.contentEquals(view.getContentDescription())))return (Button)view;if(view instanceof ViewGroup){ViewGroup group=(ViewGroup)view;for(int i=0;i<group.getChildCount();i++){Button found=findButton(group.getChildAt(i),label);if(found!=null)return found;}}return null;}
  @Test public void rotationRetainsLayersAndGivesCanvasSpace(){
   instrumentation.runOnMainSync(()->{assertTrue(drawing().newDocument(64,32));assertTrue(drawing().addLayer());});
   int count=drawing().layerCount();long revision=drawing().revision();
@@ -89,8 +89,26 @@ public final class WorkspaceDeviceTests {
   try{SvgRaster.read(new java.io.ByteArrayInputStream("<!DOCTYPE svg><svg/>".getBytes(java.nio.charset.StandardCharsets.UTF_8)));fail("Entity declarations must be rejected");}catch(java.io.IOException expected){}
  }
  @Test public void quickCommandsHaveAccessibleTouchTargets(){
-  instrumentation.runOnMainSync(()->{float density=activity.getResources().getDisplayMetrics().density;for(String label:new String[]{"Archivo","Editar","Ver","Nuevo","Guardar","Deshacer","Rehacer"}){
+  instrumentation.runOnMainSync(()->{float density=activity.getResources().getDisplayMetrics().density;for(String label:new String[]{"Menú principal","Nuevo","Guardar","Deshacer","Rehacer","Herramientas","Capas"}){
    Button button=findButton(activity.getWindow().getDecorView(),label);assertNotNull(label,button);assertNotNull(label,button.getContentDescription());assertTrue(label,button.getMeasuredHeight()>=Math.round(48*density));
   }});
  }
+ @Test public void enlargedPixelsHaveNoInterpolatedColors(){
+  instrumentation.runOnMainSync(()->{
+   DrawingView view=drawing();Bitmap source=Bitmap.createBitmap(new int[]{0xffff0000,0xff0000ff},2,1,Bitmap.Config.ARGB_8888);
+   try{assertTrue(view.loadBitmap(source));}finally{source.recycle();}view.rotateView(-view.rotationDegrees());view.setZoomPercent(1600);
+   Bitmap capture=Bitmap.createBitmap(view.getWidth(),view.getHeight(),Bitmap.Config.ARGB_8888);
+   try{view.draw(new android.graphics.Canvas(capture));int x=view.getWidth()/2,y=view.getHeight()/2;
+    for(int offset=-14;offset<=-2;offset++)assertEquals("Enlarged red pixel must stay red",0xffff0000,capture.getPixel(x+offset,y));
+    for(int offset=2;offset<=14;offset++)assertEquals("Enlarged blue pixel must stay blue",0xff0000ff,capture.getPixel(x+offset,y));
+   }finally{capture.recycle();}
+  });
+ }
+ private android.widget.GridLayout toolGrid(View view){if(view instanceof android.widget.GridLayout&&((android.widget.GridLayout)view).getChildCount()==28)return (android.widget.GridLayout)view;if(view instanceof ViewGroup){ViewGroup group=(ViewGroup)view;for(int i=0;i<group.getChildCount();i++){android.widget.GridLayout found=toolGrid(group.getChildAt(i));if(found!=null)return found;}}return null;}
+ @Test public void workspaceUsesTwoColumnsAndIconCommands(){
+  instrumentation.runOnMainSync(()->{View root=activity.getWindow().getDecorView();assertNotNull(toolGrid(root));assertEquals(2,toolGrid(root).getColumnCount());
+   for(String label:new String[]{"Nuevo","Abrir","Guardar","Deshacer","Rehacer","Menú principal"}){Button button=findButton(root,label);assertNotNull(label,button);assertEquals("Command uses icon",0,button.getText().length());assertNotNull(button.getCompoundDrawables()[0]);}
+  });
+ }
+
 }
