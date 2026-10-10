@@ -58,6 +58,6 @@ jobs:
           Descargar Velyntora-Core-Respuesta.apk. Suma SHA-256 adjunta.
           NOTES
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$VERIFIED_SHA" --title "Velyntora Core — respuesta de herramientas" --notes-file notes.md --prerelease
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "${{ github.sha }}" --title "Velyntora Core — respuesta de herramientas" --notes-file notes.md --prerelease
           fi
           gh release upload "$RELEASE_TAG" Velyntora-Core-Respuesta.apk Velyntora-Core-Respuesta.apk.sha256 --repo "$GH_REPO" --clobber
