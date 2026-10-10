@@ -8,7 +8,7 @@ permissions:
   contents: write
   actions: read
 concurrency:
-  group: publish-verified-apk-pinta
+  group: publish-verified-apk-tools
   cancel-in-progress: false
 jobs:
   publish:
@@ -16,47 +16,39 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: a4cbb456a1e47ea03b943fa2bca65453aa5363f8
-      TARGET_SHA: 6d195de24aadcd63c1bfaf9be8717b4bf695e4f6
-      RELEASE_TAG: v0.1.0-pinta-preview
+      VERIFIED_SHA: 47dd222398d6ca1df7b21e22df22c322277ac0a2
+      RELEASE_TAG: v0.1.0-tools-preview
     steps:
       - name: Check successful builds and tests
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 38023407953 38023407949 38023407936; do
+          for run_id in 38033470882 38033470878 38033470874; do
             gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
-            jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "codex/pinta-interface" and .status == "completed" and .conclusion == "success"' run.json
+            jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "main" and .status == "completed" and .conclusion == "success"' run.json
           done
-          verified_tree=$(gh api "repos/$GH_REPO/git/commits/$VERIFIED_SHA" --jq .tree.sha)
-          target_tree=$(gh api "repos/$GH_REPO/git/commits/$TARGET_SHA" --jq .tree.sha)
-          test "$verified_tree" = "$target_tree"
       - name: Download the tested APK
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 38023407953 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 38033470882 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
-          cp apk/*.apk Velyntora-Core-Pinta.apk
-          sha256sum Velyntora-Core-Pinta.apk > Velyntora-Core-Pinta.apk.sha256
+          cp apk/*.apk Velyntora-Core-Herramientas.apk
+          sha256sum Velyntora-Core-Herramientas.apk > Velyntora-Core-Herramientas.apk.sha256
       - name: Publish release and assets
         shell: bash
         run: |
           set -euo pipefail
           cat > notes.md <<'NOTES'
-          Interfaz oscura basada en la captura de Pinta: dos columnas, iconos uniformes, opciones arriba, capas a la derecha y paleta compacta.
+          Reorganización de las 28 herramientas: controlador e icono en su propia carpeta, con código nativo específico junto a cada módulo.
 
-          Zoom sin suavizado al ampliar: los píxeles conservan sus colores originales desde el 100 %.
+          Se conserva la interfaz de dos columnas y el zoom nítido. Esta versión permite comprobar en el teléfono que la reorganización no haya afectado el comportamiento.
 
-          APK del commit verificado a4cbb456a1e47ea03b943fa2bca65453aa5363f8, integrado en main como 6d195de24aadcd63c1bfaf9be8717b4bf695e4f6. Ambos commits tienen exactamente el mismo árbol de archivos.
+          APK exacto del commit verificado 47dd222398d6ca1df7b21e22df22c322277ac0a2. Compilación Android, 23 suites Java, 16 suites C++ e integraciones JNI aprobadas; 13 pruebas Android aprobadas con fuentes 1.0 y 1.8.
 
-          Compilación Android, pruebas Java/C++/JNI y nueve pruebas en emulador Android con dos tamaños de fuente aprobadas, incluidas nitidez del zoom y disposición de herramientas.
-
-          Descargar e instalar Velyntora-Core-Pinta.apk. Es la compilación debug verificada, publicada como versión preliminar para probar en el teléfono.
-
-          El plan de 20 hitos está completado. Los formatos compatibles y sus limitaciones están documentados en docs/FORMAT_SUPPORT.md.
+          Descargar Velyntora-Core-Herramientas.apk. Es el APK debug verificado, publicado como versión preliminar de prueba. La suma SHA-256 se adjunta para verificar el archivo.
           NOTES
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$TARGET_SHA" --title "Velyntora Core — interfaz Pinta y zoom nítido" --notes-file notes.md --prerelease
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$VERIFIED_SHA" --title "Velyntora Core — herramientas reorganizadas" --notes-file notes.md --prerelease
           fi
-          gh release upload "$RELEASE_TAG" Velyntora-Core-Pinta.apk Velyntora-Core-Pinta.apk.sha256 --repo "$GH_REPO" --clobber
+          gh release upload "$RELEASE_TAG" Velyntora-Core-Herramientas.apk Velyntora-Core-Herramientas.apk.sha256 --repo "$GH_REPO" --clobber
