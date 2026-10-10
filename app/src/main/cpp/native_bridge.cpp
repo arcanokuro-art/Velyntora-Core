@@ -26,7 +26,8 @@ std::mutex guard;
 std::unique_ptr<velyntora::Canvas> canvas;
 std::unique_ptr<velyntora::LayerDocument> layers;
 int curveTag=0;
-struct Snapshot { velyntora::LayerDocument layers; int curveTag=0; };
+std::uint64_t revision=0,nextRevision=0;
+struct Snapshot { velyntora::LayerDocument layers; int curveTag=0; std::uint64_t revision=0; };
 std::vector<Snapshot> undoStack, redoStack;
 std::vector<std::uint8_t> brushMask,effectMask;
 std::vector<std::uint32_t> sampledSource;
@@ -60,8 +61,9 @@ void trimHistory(){
 
 void checkpoint(){
  if(!canvas)return;
- undoStack.push_back({*layers,curveTag});
+ undoStack.push_back({*layers,curveTag,revision});
  redoStack.clear();
+ revision=++nextRevision;
  curveTag=0;
  trimHistory();
 }
@@ -72,12 +74,12 @@ void storeActive(){
 void loadActive(){
  if(layers&&canvas)canvas->setPixels(layers->layer(layers->activeIndex()).pixels);
 }
-void resetHistory(){sampledSource.clear();curveTag=0;undoStack.clear();redoStack.clear();brushMask.clear();}
+void resetHistory(){revision=++nextRevision;sampledSource.clear();curveTag=0;undoStack.clear();redoStack.clear();brushMask.clear();}
 void restore(const Snapshot& snapshot){
  auto restored=std::make_unique<velyntora::LayerDocument>(snapshot.layers);
  auto restoredCanvas=std::make_unique<velyntora::Canvas>(restored->width(),restored->height());
  restoredCanvas->setPixels(restored->layer(restored->activeIndex()).pixels);
- layers=std::move(restored);canvas=std::move(restoredCanvas);curveTag=snapshot.curveTag;
+ layers=std::move(restored);canvas=std::move(restoredCanvas);curveTag=snapshot.curveTag;revision=snapshot.revision;
 }
 }
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeCreate(JNIEnv*,jclass,jint w,jint h){
@@ -124,12 +126,12 @@ extern "C" JNIEXPORT void JNICALL Java_art_velyntora_core_DrawingView_nativeFill
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeUndo(JNIEnv*,jclass){
  std::lock_guard<std::mutex> lock(guard);if(!canvas||undoStack.empty())return JNI_FALSE;
  if(redoStack.size()==limit)redoStack.erase(redoStack.begin());
- redoStack.push_back({*layers,curveTag});restore(undoStack.back());undoStack.pop_back();trimHistory();return JNI_TRUE;
+ redoStack.push_back({*layers,curveTag,revision});restore(undoStack.back());undoStack.pop_back();trimHistory();return JNI_TRUE;
 }
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeRedo(JNIEnv*,jclass){
  std::lock_guard<std::mutex> lock(guard);if(!canvas||redoStack.empty())return JNI_FALSE;
  if(undoStack.size()==limit)undoStack.erase(undoStack.begin());
- undoStack.push_back({*layers,curveTag});restore(redoStack.back());redoStack.pop_back();trimHistory();return JNI_TRUE;
+ undoStack.push_back({*layers,curveTag,revision});restore(redoStack.back());redoStack.pop_back();trimHistory();return JNI_TRUE;
 }
 extern "C" JNIEXPORT jintArray JNICALL Java_art_velyntora_core_DrawingView_nativePixels(JNIEnv* env,jclass){
  std::lock_guard<std::mutex> lock(guard);if(!layers)return nullptr;
@@ -944,6 +946,17 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
   });return JNI_TRUE;
  }catch(...){return JNI_FALSE;}
 }
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeSaveRecovery(JNIEnv*,jclass,jint fd,jlong expectedRevision){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!layers||fd<0||revision!=static_cast<std::uint64_t>(expectedRevision))return JNI_FALSE;
+ try{
+  velyntora::writeProject(*layers,[fd](const void* data,std::size_t size){
+   const char* cursor=static_cast<const char*>(data);
+   while(size){ssize_t n=::write(fd,cursor,size);if(n<0&&errno==EINTR)continue;
+    if(n<=0)throw std::runtime_error("Project write failed");cursor+=n;size-=n;}
+  });return JNI_TRUE;
+ }catch(...){return JNI_FALSE;}
+}
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeOpenProject(JNIEnv*,jclass,jint fd){
  std::lock_guard<std::mutex> lock(guard);
  if(fd<0)return JNI_FALSE;
@@ -1093,3 +1106,38 @@ extern "C" JNIEXPORT void JNICALL Java_art_velyntora_core_DrawingView_nativeSamp
 
 extern "C" JNIEXPORT jint JNICALL Java_art_velyntora_core_DrawingView_nativeCurveTag(JNIEnv*,jclass){std::lock_guard<std::mutex> lock(guard);return curveTag;}
 extern "C" JNIEXPORT void JNICALL Java_art_velyntora_core_DrawingView_nativeMarkCurve(JNIEnv*,jclass,jint tag){std::lock_guard<std::mutex> lock(guard);curveTag=tag;}
+
+extern "C" JNIEXPORT jlong JNICALL Java_art_velyntora_core_DrawingView_nativeRevision(JNIEnv*,jclass){std::lock_guard<std::mutex> lock(guard);return static_cast<jlong>(revision);}
+
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeFillSelection(JNIEnv* env,jclass,jint x,jint y,jint color,jfloat opacity,jbyteArray selection){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!canvas||x<0||y<0||x>=canvas->width()||y>=canvas->height()||!std::isfinite(opacity)||opacity<=0||opacity>1)return JNI_FALSE;
+ try{
+  std::vector<std::uint8_t> mask;
+  if(selection){if(env->GetArrayLength(selection)!=static_cast<jsize>(canvas->pixels().size()))return JNI_FALSE;mask.resize(canvas->pixels().size());env->GetByteArrayRegion(selection,0,static_cast<jsize>(mask.size()),reinterpret_cast<jbyte*>(mask.data()));if(env->ExceptionCheck()||!mask[static_cast<std::size_t>(y)*canvas->width()+x])return JNI_FALSE;}
+  velyntora::Canvas mixed(1,1);mixed.setPixels({canvas->pixels()[static_cast<std::size_t>(y)*canvas->width()+x]});mixed.strokeStyled(.5f,.5f,.5f,.5f,.5f,static_cast<std::uint32_t>(color),opacity,1,true,false);
+  auto filled=*canvas;filled.fill(x,y,mixed.pixels()[0],mask.empty()?nullptr:&mask);if(filled.pixels()==canvas->pixels())return JNI_FALSE;
+  checkpoint();canvas->setPixels(filled.pixels());storeActive();return JNI_TRUE;
+ }catch(const std::exception&){return JNI_FALSE;}
+}
+
+extern "C" JNIEXPORT jstring JNICALL Java_art_velyntora_core_DrawingView_nativeLayerName(JNIEnv* env,jclass,jint index){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!layers||index<0||static_cast<std::size_t>(index)>=layers->layerCount())return nullptr;
+ const auto& name=layers->layer(static_cast<std::size_t>(index)).name;
+ jbyteArray bytes=env->NewByteArray(static_cast<jsize>(name.size()));if(!bytes)return nullptr;
+ env->SetByteArrayRegion(bytes,0,static_cast<jsize>(name.size()),reinterpret_cast<const jbyte*>(name.data()));
+ jclass strings=env->FindClass("java/lang/String");jmethodID constructor=env->GetMethodID(strings,"<init>","([BLjava/lang/String;)V");jstring charset=env->NewStringUTF("UTF-8");
+ return static_cast<jstring>(env->NewObject(strings,constructor,bytes,charset));
+}
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeRenameLayer(JNIEnv* env,jclass,jint index,jstring name){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!layers||!name||index<0||static_cast<std::size_t>(index)>=layers->layerCount()||env->GetStringLength(name)<1||env->GetStringLength(name)>4096)return JNI_FALSE;
+ try{
+  jclass strings=env->FindClass("java/lang/String");jmethodID getBytes=env->GetMethodID(strings,"getBytes","(Ljava/lang/String;)[B");jstring charset=env->NewStringUTF("UTF-8");
+  auto bytes=static_cast<jbyteArray>(env->CallObjectMethod(name,getBytes,charset));if(env->ExceptionCheck()||!bytes)return JNI_FALSE;
+  jsize length=env->GetArrayLength(bytes);if(length<1||length>4096)return JNI_FALSE;std::string utf8(static_cast<std::size_t>(length),'\0');env->GetByteArrayRegion(bytes,0,length,reinterpret_cast<jbyte*>(utf8.data()));if(env->ExceptionCheck()||utf8.find('\0')!=std::string::npos)return JNI_FALSE;
+  if(layers->layer(static_cast<std::size_t>(index)).name==utf8)return JNI_TRUE;
+  checkpoint();return layers->renameLayer(static_cast<std::size_t>(index),utf8)?JNI_TRUE:JNI_FALSE;
+ }catch(const std::exception&){return JNI_FALSE;}
+}

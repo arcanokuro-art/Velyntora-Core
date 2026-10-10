@@ -26,10 +26,13 @@ public final class DrawingView extends View {
  public boolean colorAdjustment(int kind,int[] values){return nativeColorAdjustment(kind,values);}
  public boolean applyEffect(int kind,int amount){return nativeEffect(kind,amount);}
  private static native boolean nativeSetEffectSelection(byte[] mask);
- public boolean prepareEffectSelection(){byte[] mask=null;if(hasSelection()){mask=new byte[canvasWidth*canvasHeight];int left=Math.max(0,(int)Math.floor(selectionLeft)),right=Math.min(canvasWidth,(int)Math.ceil(selectionRight)),top=Math.max(0,(int)Math.floor(selectionTop)),bottom=Math.min(canvasHeight,(int)Math.ceil(selectionBottom));for(int y=top;y<bottom;y++)for(int x=left;x<right;x++)if(selectionContains(x,y))mask[y*canvasWidth+x]=1;}return nativeSetEffectSelection(mask);}
+ private byte[] selectionMask(){if(!hasSelection())return null;byte[] mask=new byte[canvasWidth*canvasHeight];int left=Math.max(0,(int)Math.floor(selectionLeft)),right=Math.min(canvasWidth,(int)Math.ceil(selectionRight)),top=Math.max(0,(int)Math.floor(selectionTop)),bottom=Math.min(canvasHeight,(int)Math.ceil(selectionBottom));for(int y=top;y<bottom;y++)for(int x=left;x<right;x++)if(selectionContains(x,y))mask[y*canvasWidth+x]=1;return mask;}
+ public boolean prepareEffectSelection(){return nativeSetEffectSelection(selectionMask());}
  public void effectApplied(){refresh();}
  private static native boolean nativeSaveProject(int fd);
  private static native boolean nativeOpenProject(int fd);
+ private static native boolean nativeSaveRecovery(int fd,long expectedRevision);
+ public boolean writeRecovery(int fd,long expectedRevision){return nativeSaveRecovery(fd,expectedRevision);}
  public boolean writeProject(int fd){return nativeSaveProject(fd);}
  public boolean readProject(int fd){return nativeOpenProject(fd);}
  public void projectOpened(){resetDocumentTools();deselect();refresh();fitCanvas();}
@@ -71,7 +74,7 @@ public final class DrawingView extends View {
  private static native void nativeStyledStroke(float x0,float y0,float x1,float y1,float radius,int color,float opacity,float hardness,boolean square,boolean eraser);
  private static native void nativeStroke(float x0,float y0,float x1,float y1,float radius,int color);
  private static native void nativeShape(int kind,int x0,int y0,int x1,int y1,int color);
- private static native void nativeFill(int x,int y,int color);
+ private static native boolean nativeFillSelection(int x,int y,int color,float opacity,byte[] selection);
  private static native boolean nativeUndo();
  private static native boolean nativeRedo();
  private static native int[] nativePixels();
@@ -101,18 +104,26 @@ public final class DrawingView extends View {
  private static native boolean nativeResizeDocument(int w,int h,boolean scalePixels);
  private static native boolean nativeResizeDocumentOptions(int w,int h,boolean scalePixels,boolean bilinear,int anchor);
  private static native boolean nativeCropDocument(int left,int top,int w,int h);
+ private static native long nativeRevision();
+ public long revision(){return nativeRevision();}
+ public boolean hasPendingCurve(){return curve!=null;}
+ public static boolean hasDocument(){return nativeWidth()>0;}
  public int documentWidth(){return canvasWidth;}
  public int documentHeight(){return canvasHeight;}
  public boolean resizeDocument(int w,int h,boolean scalePixels){return resizeDocument(w,h,scalePixels,false,0);}
  public boolean resizeDocument(int w,int h,boolean scalePixels,boolean bilinear,int anchor){if(!resizeDocumentPixels(w,h,scalePixels,bilinear,anchor))return false;documentResized();return true;}
  public boolean resizeDocumentPixels(int w,int h,boolean scalePixels,boolean bilinear,int anchor){return nativeResizeDocumentOptions(w,h,scalePixels,bilinear,anchor);}
  public void documentResized(){deselect();refresh();fitCanvas();}
- private void resetDocumentTools(){cancelCurve();savedCurves.clear();cloneOriginReady=false;drawing=false;strokeEditing=false;movingSelection=false;movingPixels=false;navigating=false;shapePath.reset();dragBackup=null;}
+ private void resetDocumentTools(){cursorX=cursorY=-1;cancelCurve();savedCurves.clear();cloneOriginReady=false;drawing=false;strokeEditing=false;movingSelection=false;movingPixels=false;navigating=false;shapePath.reset();dragBackup=null;}
  public boolean newDocument(int w,int h){if(w<=0||h<=0||w>8192||h>8192||(long)w*h>4000000||!nativeCreate(w,h))return false;resetDocumentTools();deselect();refresh();fitCanvas();return true;}
  public boolean cropDocument(){if(!hasSelection())return false;int left=(int)Math.floor(selectionLeft),top=(int)Math.floor(selectionTop);if(!nativeCropDocument(left,top,(int)Math.ceil(selectionRight)-left,(int)Math.ceil(selectionBottom)-top))return false;deselect();refresh();fitCanvas();return true;}
  private final Viewport viewport=new Viewport(canvasWidth,canvasHeight);
  private boolean navigating;
  private float gestureX,gestureY,gestureDistance,gestureAngle;
+ private int cursorX=-1,cursorY=-1;
+ public String cursorStatus(){return cursorX<0?"":"  |  X: "+cursorX+" Y: "+cursorY;}
+ private void updateCursor(float x,float y){int cx=(int)Math.floor(x),cy=(int)Math.floor(y);if(cx<0||cy<0||cx>=canvasWidth||cy>=canvasHeight){cx=-1;cy=-1;}if(cx!=cursorX||cy!=cursorY){cursorX=cx;cursorY=cy;if(viewportChangedListener!=null)viewportChangedListener.run();}}
+ @Override public boolean onHoverEvent(MotionEvent event){if(event.getActionMasked()==MotionEvent.ACTION_HOVER_EXIT)updateCursor(-1,-1);else updateCursor((float)viewport.documentX(event.getX(),event.getY()),(float)viewport.documentY(event.getX(),event.getY()));return true;}
  private Runnable viewportChangedListener;
  public void setOnViewportChangedListener(Runnable listener){viewportChangedListener=listener;}
  public float zoomPercent(){return (float)(viewport.scale*100);}
@@ -170,10 +181,14 @@ public final class DrawingView extends View {
   try{
    Canvas target=new Canvas(shape);target.translate(-x,-y);
    Paint style=new Paint(Paint.ANTI_ALIAS_FLAG);style.setColor(color);style.setAlpha(Math.round((color>>>24)*brushOpacity));style.setStrokeWidth(brushRadius*2);
-   style.setStrokeJoin(Paint.Join.ROUND);style.setStyle(kind==FILLED_ROUNDED_RECTANGLE||kind==FILLED_TRIANGLE?Paint.Style.FILL:Paint.Style.STROKE);
-   if(kind==ROUNDED_RECTANGLE||kind==FILLED_ROUNDED_RECTANGLE){float corner=Math.min(right-left,bottom-top)/5f;target.drawRoundRect(left,top,right,bottom,corner,corner,style);}
+   style.setStrokeJoin(Paint.Join.ROUND);style.setStyle(kind==FILLED_RECTANGLE||kind==FILLED_ELLIPSE||kind==FILLED_ROUNDED_RECTANGLE||kind==FILLED_TRIANGLE?Paint.Style.FILL:Paint.Style.STROKE);
+   if(kind==RECTANGLE||kind==FILLED_RECTANGLE)target.drawRect(left,top,right,bottom,style);
+   else if(kind==ELLIPSE||kind==FILLED_ELLIPSE)target.drawOval(left,top,right,bottom,style);
+   else if(kind==ROUNDED_RECTANGLE||kind==FILLED_ROUNDED_RECTANGLE){float corner=Math.min(right-left,bottom-top)/5f;target.drawRoundRect(left,top,right,bottom,corner,corner,style);}
    else{android.graphics.Path path=new android.graphics.Path();path.moveTo((left+right)/2,top);path.lineTo(right,bottom);path.lineTo(left,bottom);path.close();target.drawPath(path,style);}
-   pasteAt(shape,x,y);
+   int[] data=new int[2+w*h];data[0]=w;data[1]=h;shape.getPixels(data,2,w,0,0,w,h);
+   if(hasSelection())for(int row=0;row<h;row++)for(int col=0;col<w;col++)if(!selectionContains(x+col,y+row))data[2+row*w+col]=0;
+   if(nativePasteSelection(data,x,y))refresh();
   }finally{shape.recycle();}
  }
  private CurveDraft curve;
@@ -203,7 +218,7 @@ public final class DrawingView extends View {
    curve=null;canceledCurve=null;curveHistory.clear();curveHandle=-1;refresh();return true;
   }finally{image.recycle();}
  }
- public void cancelCurve(){curve=null;canceledCurve=null;curveHistory.clear();curveHandle=-1;invalidate();}
+ public void cancelCurve(){curve=null;canceledCurve=null;curveHistory.clear();curveHandle=-1;viewportChanged();}
  @Override public boolean onKeyDown(int code,android.view.KeyEvent event){
   if(code==android.view.KeyEvent.KEYCODE_ENTER&&confirmCurve())return true;
   if(code==android.view.KeyEvent.KEYCODE_ESCAPE&&curve!=null){cancelCurve();return true;}
@@ -223,8 +238,12 @@ public final class DrawingView extends View {
  }
  private final NavigationTool navigationTool=new NavigationTool(4);
  private int color=0xFF202020,tool=BRUSH;
- private boolean radialGradient;
- public void setRadialGradient(boolean radial){radialGradient=radial;}
+ private int gradientMode,secondaryColor=0xffffffff;
+ private boolean gradientTransparent=true;
+ public void setSecondaryColor(int value){secondaryColor=value;}
+ public int gradientMode(){return gradientMode;}
+ public boolean gradientTransparent(){return gradientTransparent;}
+ public void configureGradient(int mode,boolean transparent){if(mode<0||mode>4)return;gradientMode=mode;gradientTransparent=transparent;}
  private boolean cloneOriginReady;
  private int cloneX,cloneY;
  private static native void nativeBeginSampled(int x,int y);
@@ -272,7 +291,7 @@ public final class DrawingView extends View {
  private java.util.function.IntConsumer pickedColorListener;
  public void setOnColorPickedListener(java.util.function.IntConsumer listener){pickedColorListener=listener;}
  public void setOnCanvasChangedListener(Runnable listener){canvasChangedListener=listener;}
- public DrawingView(Context context){super(context);if(nativeWidth()==0&&!nativeCreate(canvasWidth,canvasHeight))throw new IllegalStateException("Canvas error");refresh();}
+ public DrawingView(Context context){super(context);setContentDescription("Lienzo de dibujo; arrastra para usar la herramienta activa y utiliza dos dedos para navegar");if(nativeWidth()==0&&!nativeCreate(canvasWidth,canvasHeight))throw new IllegalStateException("Canvas error");refresh();}
  public boolean setLayerOpacity(float opacity){boolean ok=nativeSetLayerOpacity(opacity);if(ok)refresh();return ok;}
  public float layerOpacity(){return nativeLayerOpacity();}
  public Bitmap layerThumbnail(int index){
@@ -280,6 +299,10 @@ public final class DrawingView extends View {
   if(pixels==null||pixels.length!=48*48)return null;
   return Bitmap.createBitmap(pixels,48,48,Bitmap.Config.ARGB_8888);
  }
+ private static native String nativeLayerName(int index);
+ private static native boolean nativeRenameLayer(int index,String name);
+ public String layerName(int index){String name=nativeLayerName(index);return name==null?"Capa "+(index+1):name;}
+ public boolean renameLayer(int index,String name){if(name==null||name.trim().isEmpty())return false;boolean ok=nativeRenameLayer(index,name.trim());if(ok)refresh();return ok;}
  public int layerCount(){return nativeLayerCount();}
  public int activeLayer(){return nativeActiveLayer();}
  public boolean layerVisible(int index){return nativeLayerVisible(index);}
@@ -559,8 +582,8 @@ public final class DrawingView extends View {
   if(ok){selectionLeft+=dx;selectionRight+=dx;selectionTop+=dy;selectionBottom+=dy;refresh();}
   return ok;
  }
- public void undo(){if(curve!=null){CurveDraft previous=curveHistory.undo(curve);if(previous!=null)curve=previous;else{canceledCurve=curve.copy();curve=null;}invalidate();return;}canceledCurve=null;curveHistory.clear();int tag=nativeCurveTag();if(nativeUndo()){SavedCurve saved=savedCurves.get(tag);deselect();if(saved!=null){curve=saved.geometry.copy();color=saved.color;brushRadius=saved.radius;brushOpacity=saved.opacity;tool=LINE;curveHistory.clear();canceledCurve=null;saved.selection.restore();if(pickedColorListener!=null)pickedColorListener.accept(color);}refresh();}}
- public void redo(){if(canceledCurve!=null){curve=canceledCurve;canceledCurve=null;invalidate();return;}if(curve!=null){CurveDraft next=curveHistory.redo(curve);if(next!=null){curve=next;invalidate();return;}}cancelCurve();if(nativeRedo()){deselect();refresh();}}
+ public void undo(){if(curve!=null){CurveDraft previous=curveHistory.undo(curve);if(previous!=null)curve=previous;else{canceledCurve=curve.copy();curve=null;}viewportChanged();return;}canceledCurve=null;curveHistory.clear();int tag=nativeCurveTag();if(nativeUndo()){SavedCurve saved=savedCurves.get(tag);deselect();if(saved!=null){curve=saved.geometry.copy();color=saved.color;brushRadius=saved.radius;brushOpacity=saved.opacity;tool=LINE;curveHistory.clear();canceledCurve=null;saved.selection.restore();if(pickedColorListener!=null)pickedColorListener.accept(color);}refresh();}}
+ public void redo(){if(canceledCurve!=null){curve=canceledCurve;canceledCurve=null;viewportChanged();return;}if(curve!=null){CurveDraft next=curveHistory.redo(curve);if(next!=null){curve=next;viewportChanged();return;}}cancelCurve();if(nativeRedo()){deselect();refresh();}}
  public boolean loadBitmap(Bitmap source){
   if(source==null||source.isRecycled())return false;
   int w=source.getWidth(),h=source.getHeight();
@@ -601,6 +624,7 @@ public final class DrawingView extends View {
   canvas.drawBitmap(bitmap,0,0,paint);
   if(curve!=null){Paint preview=new Paint(Paint.ANTI_ALIAS_FLAG);preview.setColor(color);preview.setAlpha(Math.round((color>>>24)*brushOpacity));preview.setStyle(Paint.Style.STROKE);preview.setStrokeWidth(brushRadius*2);preview.setStrokeCap(Paint.Cap.ROUND);canvas.drawPath(curvePath(),preview);preview.setStyle(Paint.Style.FILL);preview.setColor(0xff7040b0);preview.setAlpha(255);for(int i=0;i<4;i++)canvas.drawCircle(curve.x[i],curve.y[i],6/scale,preview);}
 
+  if(drawing&&tool==GRADIENT){Paint guide=new Paint(Paint.ANTI_ALIAS_FLAG);guide.setColor(0xff7040b0);guide.setStrokeWidth(2/scale);canvas.drawLine(startX,startY,previousX,previousY,guide);canvas.drawCircle(startX,startY,4/scale,guide);canvas.drawCircle(previousX,previousY,4/scale,guide);}
   if(drawing&&tool==FREEFORM){Paint preview=new Paint(Paint.ANTI_ALIAS_FLAG);preview.setColor(color);preview.setAlpha(Math.round((color>>>24)*brushOpacity));preview.setStyle(Paint.Style.STROKE);preview.setStrokeWidth(brushRadius*2);preview.setStrokeJoin(Paint.Join.ROUND);canvas.drawPath(shapePath,preview);}
   if(hasSelection()){
    selectionPaint.setColor(0xFF202020);
@@ -660,7 +684,6 @@ public final class DrawingView extends View {
   if(hasSelection)wandBoundary.set(freeRegion.getBoundaryPath());
   invalidate();
  }
- private void nativeBeginEditIfNeeded(){if(tool!=BRUSH&&tool!=ERASER&&tool!=PICKER&&tool<=FILLED_ELLIPSE)nativeBeginEdit();}
  private void translateSelectionMask(int dx,int dy){
   if(selectionTool!=SELECT_FREE&&selectionTool!=MAGIC_WAND)return;
   android.graphics.Matrix translation=new android.graphics.Matrix();translation.setTranslate(dx,dy);
@@ -715,12 +738,13 @@ public final class DrawingView extends View {
   }
   float x=(float)viewport.documentX(event.getX(),event.getY());
   float y=(float)viewport.documentY(event.getX(),event.getY());
+  updateCursor(x,y);
  switch(event.getActionMasked()){
  case MotionEvent.ACTION_DOWN:
   if(x<0||y<0||x>=canvasWidth||y>=canvasHeight)return true;
   getParent().requestDisallowInterceptTouchEvent(true);
   drawing=true;strokeEditing=false;startX=previousX=x;startY=previousY=y;
-  if(tool==LINE){setFocusableInTouchMode(true);requestFocus();curveHandle=curve==null?-1:curve.hit(x,y,24*getResources().getDisplayMetrics().density/(float)viewport.scale);dragBackup=curve==null?null:curve.copy();if(curveHandle<0){confirmCurve();curveHistory.clear();canceledCurve=null;curve=new CurveDraft(x,y,x,y);curveHandle=3;dragBackup=null;}invalidate();return true;}
+  if(tool==LINE){setFocusableInTouchMode(true);requestFocus();curveHandle=curve==null?-1:curve.hit(x,y,24*getResources().getDisplayMetrics().density/(float)viewport.scale);dragBackup=curve==null?null:curve.copy();if(curveHandle<0){confirmCurve();curveHistory.clear();canceledCurve=null;curve=new CurveDraft(x,y,x,y);curveHandle=3;dragBackup=null;}viewportChanged();return true;}
   if(tool==CLONE&&!cloneOriginReady){cloneX=(int)x;cloneY=(int)y;cloneOriginReady=true;drawing=false;announceForAccessibility("Origen de clonación fijado");return true;}
   if(tool==FREEFORM){shapePath.reset();shapePath.moveTo(x,y);invalidate();return true;}
   if(tool==TEXT){drawing=false;if(textPositionListener!=null)textPositionListener.accept((int)x,(int)y);return true;}
@@ -745,12 +769,11 @@ public final class DrawingView extends View {
    else drawing=false;
    return true;
   }
-  nativeBeginEditIfNeeded();
   if(tool==PICKER){
    color=nativePickColor((int)x,(int)y);
    drawing=false;
    if(pickedColorListener!=null)pickedColorListener.accept(color);
-  }else if(tool==BUCKET){nativeFill((int)x,(int)y,color);drawing=false;refresh();}
+  }else if(tool==BUCKET){nativeFillSelection((int)x,(int)y,color,brushOpacity,selectionMask());drawing=false;refresh();}
   else if(tool==BRUSH||tool==ERASER||tool==PENCIL||tool==CLONE||tool==RECOLOR){invalidate();}
   return true;
  case MotionEvent.ACTION_MOVE:
@@ -768,11 +791,12 @@ public final class DrawingView extends View {
   if(tool==SELECT_RECTANGLE||tool==SELECT_ELLIPSE){
    updateSelection(x,y);return true;
   }
+  if(tool==GRADIENT){previousX=x;previousY=y;invalidate();return true;}
   if((tool==BRUSH||tool==ERASER||tool==PENCIL||tool==CLONE||tool==RECOLOR)&&(x!=previousX||y!=previousY)){paintStroke(previousX,previousY,x,y,event);refresh();}
   previousX=x;previousY=y;return true;
  case MotionEvent.ACTION_UP:
   if(drawing){
-   if(tool==LINE&&curve!=null){if(dragBackup==null)curve=new CurveDraft(startX,startY,x,y);else curve.move(curveHandle,x,y);curveHistory.record(dragBackup,curve);drawing=false;dragBackup=null;curveHandle=-1;invalidate();return true;}
+   if(tool==LINE&&curve!=null){if(dragBackup==null)curve=new CurveDraft(startX,startY,x,y);else curve.move(curveHandle,x,y);curveHistory.record(dragBackup,curve);drawing=false;dragBackup=null;curveHandle=-1;viewportChanged();return true;}
    if(tool==MOVE_SELECTION||tool==MOVE_PIXELS){
     if(movingSelection){
      if(movingPixels){
@@ -804,16 +828,17 @@ public final class DrawingView extends View {
    if(tool==FREEFORM){shapePath.lineTo(Math.max(0,Math.min(canvasWidth,x)),Math.max(0,Math.min(canvasHeight,y)));commitFreeform();}
    else if(tool==CIRCLE){
     float size=Math.min(Math.abs(x-startX),Math.abs(y-startY));
-    nativeBeginEdit();nativeShape(ELLIPSE,(int)startX,(int)startY,(int)(startX+Math.copySign(size,x-startX)),(int)(startY+Math.copySign(size,y-startY)),color);
+    additionalShape(ELLIPSE,startX,startY,startX+Math.copySign(size,x-startX),startY+Math.copySign(size,y-startY));
    }
    else if(tool==GRADIENT){
-    int[] data=GradientRaster.create(canvasWidth,canvasHeight,startX,startY,x,y,color,radialGradient);
+    int first=(color&0xffffff)|(Math.round((color>>>24)*brushOpacity)<<24),second=gradientTransparent?0:(secondaryColor&0xffffff)|(Math.round((secondaryColor>>>24)*brushOpacity)<<24);
+    int[] data=GradientRaster.create(canvasWidth,canvasHeight,startX,startY,x,y,first,second,gradientMode);
     if(hasSelection())for(int row=0;row<canvasHeight;row++)for(int col=0;col<canvasWidth;col++)if(!selectionContains(col,row))data[2+row*canvasWidth+col]=0;
     nativePasteSelection(data,0,0);
    }
    else if(tool==BRUSH||tool==ERASER||tool==PENCIL||tool==CLONE||tool==RECOLOR){if(!strokeEditing||x!=previousX||y!=previousY)paintStroke(previousX,previousY,x,y,event);}
    else if(tool>=ROUNDED_RECTANGLE&&tool<=FILLED_TRIANGLE)additionalShape(tool,startX,startY,x,y);
-   else nativeShape(tool,(int)startX,(int)startY,(int)x,(int)y,color);
+   else additionalShape(tool,startX,startY,x,y);
    drawing=false;refresh();
   }return true;
  case MotionEvent.ACTION_CANCEL:

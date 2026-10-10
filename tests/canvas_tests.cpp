@@ -35,5 +35,8 @@ int main(){
  large.fill(0,0,0xFF00AAFFu);
  assert(large.pixels()[0]==0xFF00AAFFu);
  assert(large.pixels()[400*800+400]==0xFFAA5500u);
+ velyntora::Canvas masked(5,2);std::vector<std::uint8_t> mask={1,1,0,1,1,1,1,0,1,1};masked.fill(0,0,0xff123456,&mask);
+ assert(masked.pixels()[0]==0xff123456&&masked.pixels()[6]==0xff123456&&masked.pixels()[3]==0xffffffff&&masked.pixels()[2]==0xffffffff);
+ auto untouched=masked.pixels();masked.fill(2,0,0,&mask);assert(masked.pixels()==untouched);mask.pop_back();masked.fill(0,0,0,&mask);assert(masked.pixels()==untouched);
  bool failed=false;try{velyntora::Canvas bad(0,1);}catch(const std::invalid_argument&){failed=true;}assert(failed);
 }

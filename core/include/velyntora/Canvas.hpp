@@ -14,7 +14,7 @@ public:
  void sampledStroke(const std::vector<std::uint32_t>& source,bool clone,int offsetX,int offsetY,std::uint32_t target,std::uint32_t replacement,int tolerance,float x0,float y0,float x1,float y1,float radius,float opacity,float hardness,const std::vector<std::uint8_t>* mask=nullptr);
  void rectangle(int x0,int y0,int x1,int y1,std::uint32_t argb,bool filled);
  void ellipse(int x0,int y0,int x1,int y1,std::uint32_t argb,bool filled);
- void fill(int x,int y,std::uint32_t argb);
+ void fill(int x,int y,std::uint32_t argb,const std::vector<std::uint8_t>* mask=nullptr);
  void setPixels(const std::vector<std::uint32_t>& pixels);
 private:
  void dab(float x,float y,float radius,std::uint32_t argb);
