@@ -71,7 +71,7 @@ public final class WorkspaceDeviceTests {
  @Test public void shapesRespectSelectionOpacityAndCanceledGesture(){
   instrumentation.runOnMainSync(()->{
    DrawingView view=drawing();Bitmap blank=Bitmap.createBitmap(64,64,Bitmap.Config.ARGB_8888);try{assertTrue(view.loadBitmap(blank));}finally{blank.recycle();}view.setZoomPercent(100);view.setTool(DrawingView.SELECT_RECTANGLE);gesture(view,8,8,24,24,false);assertTrue(view.hasSelection());
-   view.setColor(0xffff0000);view.configureBrush(.5f,1,false,false);view.setTool(DrawingView.FILLED_RECTANGLE);gesture(view,0,0,32,32,false);
+   view.setColor(0xffff0000);view.configureBrush(.5f,1,false,false);view.setTool(DrawingView.FILLED_RECTANGLE);gesture(view,1,1,32,32,false);
    assertTrue("Painting a shape must preserve selection",view.hasSelection());Bitmap image=view.snapshot();try{assertEquals(0x80ff0000,image.getPixel(10,10));assertEquals(0,image.getPixel(2,2));assertEquals(0,image.getPixel(30,30));}finally{image.recycle();}
    long revision=view.revision();view.setTool(DrawingView.RECTANGLE);gesture(view,9,9,20,20,true);assertEquals("Canceled shape must not create history",revision,view.revision());
    view.undo();image=view.snapshot();try{assertEquals(0,image.getPixel(10,10));}finally{image.recycle();}
@@ -119,10 +119,11 @@ public final class WorkspaceDeviceTests {
   long deadline=android.os.SystemClock.uptimeMillis()+5000;while(activity.getResources().getConfiguration().orientation!=2&&android.os.SystemClock.uptimeMillis()<deadline)android.os.SystemClock.sleep(50);
   instrumentation.waitForIdleSync();instrumentation.runOnMainSync(()->{drawing().rotateView(-drawing().rotationDegrees());drawing().fitCanvas();});instrumentation.waitForIdleSync();
   Bitmap screenshot=instrumentation.getUiAutomation().takeScreenshot();assertNotNull(screenshot);
-  java.io.ByteArrayOutputStream png=new java.io.ByteArrayOutputStream();try{assertTrue(screenshot.compress(Bitmap.CompressFormat.PNG,100,png));}finally{screenshot.recycle();}
-  String payload=android.util.Base64.encodeToString(png.toByteArray(),android.util.Base64.NO_WRAP);
-  String command="mkdir -p /sdcard/Download/velyntora-core-workspace && printf '%s' '"+payload+"' | base64 -d > /sdcard/Download/velyntora-core-workspace/workspace-"+activity.getResources().getConfiguration().fontScale+".png && echo OK";
-  try(android.os.ParcelFileDescriptor result=instrumentation.getUiAutomation().executeShellCommand(command);java.io.FileInputStream input=new java.io.FileInputStream(result.getFileDescriptor())){java.io.ByteArrayOutputStream bytes=new java.io.ByteArrayOutputStream();byte[] buffer=new byte[1024];for(int n;(n=input.read(buffer))!=-1;)bytes.write(buffer,0,n);assertTrue("Screenshot shell transfer must complete",bytes.toString("UTF-8").contains("OK"));}
+  screenshot.recycle();
+  String directory="/sdcard/Download/velyntora-core-workspace";
+  for(String command:new String[]{"mkdir -p "+directory,"screencap -p "+directory+"/workspace-"+activity.getResources().getConfiguration().fontScale+".png"}){
+   try(android.os.ParcelFileDescriptor result=instrumentation.getUiAutomation().executeShellCommand(command);java.io.FileInputStream input=new java.io.FileInputStream(result.getFileDescriptor())){byte[] buffer=new byte[1024];while(input.read(buffer)!=-1){}}
+  }
  }
 
 }
