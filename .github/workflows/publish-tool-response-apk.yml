@@ -1,0 +1,63 @@
+name: Publish tool response APK
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/publish-tool-response-apk.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: publish-tool-response-apk
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      VERIFIED_SHA: 3e9cfda31e01001b57f584b41dfc074f1d0e4a52
+      RELEASE_TAG: v0.1.0-tool-response-preview
+    steps:
+      - name: Wait for the exact source build and tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          for run_id in 38066223929 38066223881 38066223869; do
+            for attempt in $(seq 1 85); do
+              gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
+              jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "main"' run.json
+              if jq -e '.status == "completed"' run.json >/dev/null; then
+                jq -e '.conclusion == "success"' run.json
+                break
+              fi
+              test "$attempt" -lt 85
+              sleep 20
+            done
+          done
+      - name: Download the APK from the successful source build
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh run download 38066223929 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
+          cp apk/*.apk Velyntora-Core-Respuesta.apk
+          sha256sum Velyntora-Core-Respuesta.apk > Velyntora-Core-Respuesta.apk.sha256
+      - name: Publish the updated APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > notes.md <<'NOTES'
+          Respuesta de lápiz, pincel, borrador, clonado y recolorear: inicio al tocar y actualización de pantalla agrupada por fotograma.
+          Previsualización de rectángulos, elipses, círculo, triángulos y formas redondeadas durante el arrastre.
+          Línea/Curva y Forma libre conservan su código.
+          
+          APK debug para prueba en teléfono, procedente del commit 3e9cfda31e01001b57f584b41dfc074f1d0e4a52.
+          Compilación Android y pruebas del núcleo y del emulador aprobadas antes de publicar.
+          Descargar Velyntora-Core-Respuesta.apk. Suma SHA-256 adjunta.
+          NOTES
+          if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$VERIFIED_SHA" --title "Velyntora Core — respuesta de herramientas" --notes-file notes.md --prerelease
+          fi
+          gh release upload "$RELEASE_TAG" Velyntora-Core-Respuesta.apk Velyntora-Core-Respuesta.apk.sha256 --repo "$GH_REPO" --clobber
