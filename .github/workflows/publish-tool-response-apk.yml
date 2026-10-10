@@ -17,14 +17,14 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: 86308bc1c45314aef291adec897769dfca10c2e8
+      VERIFIED_SHA: 394e675969e7e3c225a578e4b6a9c63ae728bddf
       RELEASE_TAG: v0.1.0-remove-ai-preview
     steps:
       - name: Wait for the exact source build and tests
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 38094388614 38094388641 38094388613; do
+          for run_id in 38094757023 38094756935 38094756940; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "main"' run.json
@@ -40,7 +40,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 38094388614 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 38094757023 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
           cp apk/*.apk Velyntora-Core-Remove-AI.apk
           sha256sum Velyntora-Core-Remove-AI.apk > Velyntora-Core-Remove-AI.apk.sha256
@@ -53,7 +53,7 @@ jobs:
           MI-GAN Places2 512 oficial y ONNX Runtime Android: modelo incluido y verificado en el APK, inferencia local sin conexión ni envío de imágenes.
           Pinta sobre el objeto o sticker, ajusta la anchura y pulsa Eliminar. Limpiar máscara borra la marca; Cancelar descarta el resultado. Conserva alfa y píxeles fuera de la máscara, respeta selección activa y comprueba capa/revisión antes de aplicar.
           Un solo paso de Deshacer/Rehacer. Pruebas Android ejecutan el modelo real, el comando Eliminar y la cancelación. Las 28 herramientas existentes mantienen sus implementaciones, incluida Línea/Curva.
-          APK debug del commit 86308bc1c45314aef291adec897769dfca10c2e8, publicado después de aprobar compilación, núcleo y Android con fuentes normal y ampliada. SHA256 adjunta.
+          APK debug del commit 394e675969e7e3c225a578e4b6a9c63ae728bddf, publicado después de aprobar compilación, núcleo y Android con fuentes normal y ampliada. SHA256 adjunta.
           NOTES
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
             gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "${{ github.sha }}" --title "Velyntora Core — Remove AI local" --notes-file notes.md --prerelease
