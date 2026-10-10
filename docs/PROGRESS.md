@@ -187,3 +187,8 @@ Una herramienta conserva un borrador cúbico con dos extremos y dos tiradores in
 ## Historial de tiradores y selección de curvas (validación pendiente)
 
 Cada arrastre completado de un tirador tiene Deshacer/Rehacer del borrador, separado del historial de píxeles y limitado a 100 movimientos. Arrastres sin cambios no añaden historial; una nueva edición elimina la rama de Rehacer. Deshacer al inicio del borrador lo retira y Rehacer lo recupera; Escape descarta su historial. Ctrl+Shift+Z ejecuta Rehacer. Al recuperar una curva confirmada se restauran la selección original (tipo, contorno y región), color, opacidad y radio. La caché mantiene 15 geometrías confirmadas; su reapertura inicia un historial de tiradores vacío. No se contabiliza otro hito: avance 17/20 = 85.00 %.
+
+
+## Netpbm ampliado (hito 16 parcial)
+
+Abrir PBM P1/P4 (blanco/negro) y PGM P2/P5 (escala de grises), además de PPM P3/P6. PBM binario conserva el relleno independiente de cada fila; PGM admite muestras de 8/16 bits con máximo hasta 65535. Rechaza muestras fuera de rango, datos truncados y adicionales. Exportación sigue siendo PPM RGB. No incluye PAM ni secuencias; avance permanece 17/20 = 85.00 %.

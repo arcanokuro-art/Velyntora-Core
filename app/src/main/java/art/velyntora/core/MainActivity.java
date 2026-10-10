@@ -548,7 +548,7 @@ public final class MainActivity extends Activity {
         root.setBackgroundColor(0xFFF1F1F1);
 
         LinearLayout menus = row();
-        menu(menus, "Archivo", new String[]{"Nuevo…", "Abrir imagen", "Abrir TGA", "Abrir TIFF", "Abrir ICO", "Abrir PPM", "Abrir OpenRaster", "Guardar OpenRaster", "Guardar PNG", "Guardar JPEG", "Guardar WebP", "Guardar BMP", "Guardar TGA", "Guardar TIFF", "Guardar GIF (imagen fija)", "Guardar ICO (hasta 256 px)", "Guardar PPM", "Abrir proyecto", "Guardar proyecto"},
+        menu(menus, "Archivo", new String[]{"Nuevo…", "Abrir imagen", "Abrir TGA", "Abrir TIFF", "Abrir ICO", "Abrir Netpbm (PBM/PGM/PPM)", "Abrir OpenRaster", "Guardar OpenRaster", "Guardar PNG", "Guardar JPEG", "Guardar WebP", "Guardar BMP", "Guardar TGA", "Guardar TIFF", "Guardar GIF (imagen fija)", "Guardar ICO (hasta 256 px)", "Guardar PPM", "Abrir proyecto", "Guardar proyecto"},
             new Runnable[]{() -> configureDimensions(0), this::openImage, this::openTga, this::openTiff, this::openIco, this::openPpm, () -> openRasterPicker(false), () -> openRasterPicker(true), this::savePng, () -> saveImage("image/jpeg", "dibujo.jpg", SAVE_JPEG), () -> saveImage("image/webp", "dibujo.webp", SAVE_WEBP), () -> saveImage("image/bmp", "dibujo.bmp", SAVE_BMP), () -> saveImage("image/x-tga", "dibujo.tga", SAVE_TGA), () -> saveImage("image/tiff", "dibujo.tiff", SAVE_TIFF), () -> {message("GIF: colores reducidos y transparencia sin semitransparencias");saveImage("image/gif", "dibujo.gif", SAVE_GIF);}, () -> saveImage("image/vnd.microsoft.icon", "dibujo.ico", SAVE_ICO), () -> saveImage("image/x-portable-pixmap", "dibujo.ppm", SAVE_PPM), () -> projectPicker(false), () -> projectPicker(true)});
         menu(menus, "Editar", new String[]{"Deshacer", "Rehacer", "Copiar selección", "Cortar selección", "Pegar selección", "Duplicar selección", "Mover contenido…", "Transformar selección…", "Seleccionar todo", "Invertir selección", "Expandir selección 1 px", "Contraer selección 1 px", "Borrar selección", "Deseleccionar"},
             new Runnable[]{this::undo, this::redo, this::copySelection, this::cutSelection, this::pasteSelection, this::duplicateSelection, this::moveSelectedContent, this::configureSelectionTransform, drawing::selectAll, () -> {if(!drawing.invertSelection())message("No se pudo invertir la selección");}, () -> {if(!drawing.expandSelectionOnePixel())message("No se pudo expandir la selección");}, () -> {if(!drawing.shrinkSelectionOnePixel())message("No se pudo contraer la selección");}, () -> {if(!drawing.eraseSelection())message("No hay selección válida");}, drawing::deselect});
@@ -1220,7 +1220,7 @@ public final class MainActivity extends Activity {
     private void importTga(Uri uri){importRaster(uri,OPEN_TGA);}
     private void importRaster(Uri uri,int request){
         if(projectProgress!=null){message("Espera a que termine la operación actual");return;}
-        final String format=request==OPEN_TIFF?"TIFF":request==OPEN_ICO?"ICO":request==OPEN_PPM?"PPM":"TGA";
+        final String format=request==OPEN_TIFF?"TIFF":request==OPEN_ICO?"ICO":request==OPEN_PPM?"Netpbm":"TGA";
         android.app.ProgressDialog progress=new android.app.ProgressDialog(this);progress.setMessage("Abriendo "+format+"…");progress.setCancelable(false);projectProgress=progress;progress.show();drawing.setEnabled(false);
         new Thread(()->{int[] pixels=null;int width=0,height=0;try(InputStream input=getContentResolver().openInputStream(uri)){
                 if(input==null)throw new java.io.IOException("Sin archivo");
