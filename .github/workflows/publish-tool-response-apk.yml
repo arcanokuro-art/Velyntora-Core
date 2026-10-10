@@ -8,7 +8,7 @@ permissions:
   contents: write
   actions: read
 concurrency:
-  group: publish-modular-layers-apk
+  group: publish-remove-ai-apk
   cancel-in-progress: false
 jobs:
   publish:
@@ -17,14 +17,14 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: 07d33fb52de42558c171e342af626630a14668de
-      RELEASE_TAG: v0.1.0-modular-layers-preview
+      VERIFIED_SHA: 86308bc1c45314aef291adec897769dfca10c2e8
+      RELEASE_TAG: v0.1.0-remove-ai-preview
     steps:
       - name: Wait for the exact source build and tests
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 38083537204 38083537293 38083537246; do
+          for run_id in 38094388614 38094388641 38094388613; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "main"' run.json
@@ -40,22 +40,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 38083537204 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 38094388614 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
-          cp apk/*.apk Velyntora-Core-Capas.apk
-          sha256sum Velyntora-Core-Capas.apk > Velyntora-Core-Capas.apk.sha256
+          cp apk/*.apk Velyntora-Core-Remove-AI.apk
+          sha256sum Velyntora-Core-Remove-AI.apk > Velyntora-Core-Remove-AI.apk.sha256
       - name: Publish the updated APK
         shell: bash
         run: |
           set -euo pipefail
           cat > notes.md <<'NOTES'
-          Panel de capas compacto con miniaturas, visibilidad por fila, selección verde y lista desplazable con acciones fijas. Añadir, eliminar, duplicar, combinar abajo y reordenar.
-          Propiedades de capa con nombre, visibilidad, opacidad y 16 modos de mezcla. Cada modo tiene su propia carpeta e implementación; panel, acciones y propiedades también están separados.
-          Aceptar aplica un único paso de historial; Cancelar conserva el documento. VLYCORE v2 conserva mezclas y sigue leyendo v1; versiones antiguas de la app no leen v2. OpenRaster conserva las mezclas (O exclusivo usa una extensión propia).
-          Herramientas sin modificaciones. Línea/Curva intacta.
-          APK debug del commit 07d33fb52de42558c171e342af626630a14668de, publicado después de aprobar compilación, pruebas del núcleo y Android con texto normal y ampliado. SHA-256 adjunta.
+          Remove AI en su carpeta independiente tools/remove_ai, con el icono original proporcionado por el usuario.
+          MI-GAN Places2 512 oficial y ONNX Runtime Android: modelo incluido y verificado en el APK, inferencia local sin conexión ni envío de imágenes.
+          Pinta sobre el objeto o sticker, ajusta la anchura y pulsa Eliminar. Limpiar máscara borra la marca; Cancelar descarta el resultado. Conserva alfa y píxeles fuera de la máscara, respeta selección activa y comprueba capa/revisión antes de aplicar.
+          Un solo paso de Deshacer/Rehacer. Pruebas Android ejecutan el modelo real, el comando Eliminar y la cancelación. Las 28 herramientas existentes mantienen sus implementaciones, incluida Línea/Curva.
+          APK debug del commit 86308bc1c45314aef291adec897769dfca10c2e8, publicado después de aprobar compilación, núcleo y Android con fuentes normal y ampliada. SHA256 adjunta.
           NOTES
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "${{ github.sha }}" --title "Velyntora Core — capas y mezclas modulares" --notes-file notes.md --prerelease
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "${{ github.sha }}" --title "Velyntora Core — Remove AI local" --notes-file notes.md --prerelease
           fi
-          gh release upload "$RELEASE_TAG" Velyntora-Core-Capas.apk Velyntora-Core-Capas.apk.sha256 --repo "$GH_REPO" --clobber
+          gh release upload "$RELEASE_TAG" Velyntora-Core-Remove-AI.apk Velyntora-Core-Remove-AI.apk.sha256 --repo "$GH_REPO" --clobber
