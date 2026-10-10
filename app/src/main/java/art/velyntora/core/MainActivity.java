@@ -600,7 +600,7 @@ public final class MainActivity extends Activity {
         tool(toolGrid, "Lápiz (1 píxel)", DrawingView.PENCIL);
         tool(toolGrid, "Desplazamiento", DrawingView.PAN);
         tool(toolGrid, "Zoom: toque acerca; toque largo aleja; arrastre vertical", DrawingView.ZOOM);
-        tool(toolGrid, "Línea", DrawingView.LINE);
+        tool(toolGrid, "Línea/Curva: arrastrar tiradores; mantener pulsado para confirmar", DrawingView.LINE);
         tool(toolGrid, "Rectángulo", DrawingView.RECTANGLE);
         tool(toolGrid, "Círculo", DrawingView.CIRCLE);
         tool(toolGrid, "Forma libre (contorno cerrado)", DrawingView.FREEFORM);
@@ -845,6 +845,7 @@ public final class MainActivity extends Activity {
                 .setItems(new String[]{"Lineal","Radial"},(dialog,index)->drawing.setRadialGradient(index==1)).show();
             return true;
         });
+        if(tool==DrawingView.LINE)iconButton.setOnLongClickListener(v->{drawing.confirmCurve();return true;});
         iconButton.setOnClickListener(v -> {
             drawing.setTool(tool);
             drawing.setColor(activeColor);

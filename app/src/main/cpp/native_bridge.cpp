@@ -25,7 +25,8 @@ namespace {
 std::mutex guard;
 std::unique_ptr<velyntora::Canvas> canvas;
 std::unique_ptr<velyntora::LayerDocument> layers;
-struct Snapshot { velyntora::LayerDocument layers; };
+int curveTag=0;
+struct Snapshot { velyntora::LayerDocument layers; int curveTag=0; };
 std::vector<Snapshot> undoStack, redoStack;
 std::vector<std::uint8_t> brushMask,effectMask;
 std::vector<std::uint32_t> sampledSource;
@@ -59,22 +60,24 @@ void trimHistory(){
 
 void checkpoint(){
  if(!canvas)return;
- undoStack.push_back({*layers});
+ undoStack.push_back({*layers,curveTag});
  redoStack.clear();
+ curveTag=0;
  trimHistory();
 }
 void storeActive(){
+ curveTag=0;
  if(layers&&canvas)layers->replaceActivePixels(canvas->pixels());
 }
 void loadActive(){
  if(layers&&canvas)canvas->setPixels(layers->layer(layers->activeIndex()).pixels);
 }
-void resetHistory(){undoStack.clear();redoStack.clear();brushMask.clear();}
+void resetHistory(){curveTag=0;undoStack.clear();redoStack.clear();brushMask.clear();}
 void restore(const Snapshot& snapshot){
  auto restored=std::make_unique<velyntora::LayerDocument>(snapshot.layers);
  auto restoredCanvas=std::make_unique<velyntora::Canvas>(restored->width(),restored->height());
  restoredCanvas->setPixels(restored->layer(restored->activeIndex()).pixels);
- layers=std::move(restored);canvas=std::move(restoredCanvas);
+ layers=std::move(restored);canvas=std::move(restoredCanvas);curveTag=snapshot.curveTag;
 }
 }
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeCreate(JNIEnv*,jclass,jint w,jint h){
@@ -121,12 +124,12 @@ extern "C" JNIEXPORT void JNICALL Java_art_velyntora_core_DrawingView_nativeFill
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeUndo(JNIEnv*,jclass){
  std::lock_guard<std::mutex> lock(guard);if(!canvas||undoStack.empty())return JNI_FALSE;
  if(redoStack.size()==limit)redoStack.erase(redoStack.begin());
- redoStack.push_back({*layers});restore(undoStack.back());undoStack.pop_back();trimHistory();return JNI_TRUE;
+ redoStack.push_back({*layers,curveTag});restore(undoStack.back());undoStack.pop_back();trimHistory();return JNI_TRUE;
 }
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeRedo(JNIEnv*,jclass){
  std::lock_guard<std::mutex> lock(guard);if(!canvas||redoStack.empty())return JNI_FALSE;
  if(undoStack.size()==limit)undoStack.erase(undoStack.begin());
- undoStack.push_back({*layers});restore(redoStack.back());redoStack.pop_back();trimHistory();return JNI_TRUE;
+ undoStack.push_back({*layers,curveTag});restore(redoStack.back());redoStack.pop_back();trimHistory();return JNI_TRUE;
 }
 extern "C" JNIEXPORT jintArray JNICALL Java_art_velyntora_core_DrawingView_nativePixels(JNIEnv* env,jclass){
  std::lock_guard<std::mutex> lock(guard);if(!layers)return nullptr;
@@ -956,7 +959,7 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
   auto restoredCanvas=std::make_unique<velyntora::Canvas>(restored->width(),restored->height());
   restoredCanvas->setPixels(restored->layer(restored->activeIndex()).pixels);
   // Publish only after the entire file has been validated and allocated.
-  layers=std::move(restored);canvas=std::move(restoredCanvas);resetHistory();return JNI_TRUE;
+  layers=std::move(restored);canvas=std::move(restoredCanvas);curveTag=snapshot.curveTag;resetHistory();return JNI_TRUE;
  }catch(...){return JNI_FALSE;}
 }
 
@@ -1087,3 +1090,6 @@ extern "C" JNIEXPORT void JNICALL Java_art_velyntora_core_DrawingView_nativeBegi
 extern "C" JNIEXPORT void JNICALL Java_art_velyntora_core_DrawingView_nativeSampledStroke(JNIEnv*,jclass,jboolean clone,jint ox,jint oy,jint replacement,jint tolerance,jfloat x0,jfloat y0,jfloat x1,jfloat y1,jfloat radius,jfloat opacity,jfloat hardness){
  std::lock_guard<std::mutex> lock(guard);if(!canvas)return;canvas->sampledStroke(sampledSource,clone,ox,oy,sampledTarget,replacement,tolerance,x0,y0,x1,y1,radius,opacity,hardness,brushMask.size()==canvas->pixels().size()?&brushMask:nullptr);storeActive();
 }
+
+extern "C" JNIEXPORT jint JNICALL Java_art_velyntora_core_DrawingView_nativeCurveTag(JNIEnv*,jclass){std::lock_guard<std::mutex> lock(guard);return curveTag;}
+extern "C" JNIEXPORT void JNICALL Java_art_velyntora_core_DrawingView_nativeMarkCurve(JNIEnv*,jclass,jint tag){std::lock_guard<std::mutex> lock(guard);curveTag=tag;}

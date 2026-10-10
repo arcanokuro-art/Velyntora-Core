@@ -14,6 +14,11 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Editable curve geometry tests
+        run: |
+          mkdir -p build/java-tests
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/CurveDraft.java tests/CurveDraftTests.java
+          java -cp build/java-tests art.velyntora.core.CurveDraftTests
       - name: Linear gradient tests
         run: |
           mkdir -p build/java-tests

@@ -2,6 +2,8 @@ package art.velyntora.core;
 import java.util.Arrays;
 class DrawingView {
  static {System.loadLibrary("velyntora_host");}
+ static native int nativeCurveTag();
+ static native void nativeMarkCurve(int tag);
  static native void nativeBeginSampled(int x,int y);
  static native void nativeSampledStroke(boolean clone,int ox,int oy,int replacement,int tolerance,float x0,float y0,float x1,float y1,float radius,float opacity,float hardness);
  static native boolean nativeCreate(int w,int h);
@@ -29,6 +31,10 @@ class DrawingView {
 public final class NativeRasterTests {
  static void check(boolean ok){if(!ok)throw new AssertionError();}
  public static void main(String[] args){
+  check(DrawingView.nativeLoadBitmap(1,1,new int[]{0}));check(DrawingView.nativePasteSelection(new int[]{1,1,0xffff0000},0,0));DrawingView.nativeMarkCurve(7);check(DrawingView.nativeCurveTag()==7);
+  check(DrawingView.nativeUndo());check(DrawingView.nativeCurveTag()==0);check(DrawingView.nativeRedo());check(DrawingView.nativeCurveTag()==7);
+  DrawingView.nativeBeginEdit();DrawingView.nativeStyledStroke(.5f,.5f,.5f,.5f,.5f,0xff0000ff,1,1,true,false);check(DrawingView.nativeCurveTag()==0);check(DrawingView.nativeUndo());check(DrawingView.nativeCurveTag()==7);
+
   int[] sampled={0xff112233,0xff445566,0,0};check(DrawingView.nativeLoadBitmap(4,1,sampled));DrawingView.nativeSetBrushSelection(null);
   DrawingView.nativeBeginEdit();DrawingView.nativeBeginSampled(2,0);DrawingView.nativeSampledStroke(true,-2,0,0,0,2.5f,.5f,3.5f,.5f,.5f,1,1);
   check(Arrays.equals(DrawingView.nativePixels(),new int[]{sampled[0],sampled[1],sampled[0],sampled[1]}));check(DrawingView.nativeUndo());check(Arrays.equals(DrawingView.nativePixels(),sampled));check(DrawingView.nativeRedo());
