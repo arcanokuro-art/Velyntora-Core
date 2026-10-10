@@ -604,6 +604,45 @@ public final class WorkspaceDeviceTests {
     });
   }
 
+  private android.widget.SeekBar findBrushWidth(View view) {
+    if(view instanceof android.widget.SeekBar &&
+        "Radio del pincel en píxeles".contentEquals(view.getContentDescription()==null ? "" : view.getContentDescription()))
+      return (android.widget.SeekBar)view;
+    if(view instanceof ViewGroup) {
+      ViewGroup group=(ViewGroup)view;
+      for(int i=0;i<group.getChildCount();i++) {
+        android.widget.SeekBar found=findBrushWidth(group.getChildAt(i));
+        if(found!=null)return found;
+      }
+    }
+    return null;
+  }
+
+  @Test
+  public void toolbarWidthDragChangesBrushInsteadOfScrollingToolbar() {
+    instrumentation.runOnMainSync(() -> {
+      android.widget.SeekBar slider=findBrushWidth(activity.getWindow().getDecorView());
+      assertNotNull(slider);
+      android.widget.HorizontalScrollView toolbar=(android.widget.HorizontalScrollView)slider.getParent().getParent();
+      toolbar.scrollTo(Math.max(0,slider.getLeft()-20),0);
+      slider.setProgress(31);
+      int before=slider.getProgress(), initialScroll=toolbar.getScrollX();
+      float track=slider.getWidth()-slider.getPaddingLeft()-slider.getPaddingRight();
+      float x=slider.getLeft()-initialScroll+slider.getPaddingLeft()+track*before/slider.getMax();
+      float y=slider.getTop()+slider.getHeight()/2f;
+      long now=android.os.SystemClock.uptimeMillis();
+      for(int step=0;step<5;step++) {
+        int action=step==0 ? android.view.MotionEvent.ACTION_DOWN :
+            step==4 ? android.view.MotionEvent.ACTION_UP : android.view.MotionEvent.ACTION_MOVE;
+        android.view.MotionEvent event=android.view.MotionEvent.obtain(now,now+step*20,action,x+step*10,y,0);
+        try { toolbar.dispatchTouchEvent(event); } finally { event.recycle(); }
+      }
+      assertTrue("Width slider must consume horizontal drag",slider.getProgress()>before);
+      assertEquals(initialScroll,toolbar.getScrollX());
+      assertEquals(slider.getProgress()+1,drawing().brushRadius(),.001f);
+    });
+  }
+
   @Test
   public void toolModulesKeepSelectionAndPixelMovementIndependent() {
     instrumentation.runOnMainSync(

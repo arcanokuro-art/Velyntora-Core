@@ -1510,7 +1510,17 @@ public final class MainActivity extends Activity {
     SeekBar brushSize = new SeekBar(this);
     brushSize.setContentDescription("Radio del pincel en píxeles");
     brushSize.setMax(127);
-    brushSize.setProgress(3);
+    brushSize.setProgress(Math.round(drawing.brushRadius()) - 1);
+    // The enclosing horizontal toolbar must not steal this slider's drag.
+    brushSize.setOnTouchListener((view, event) -> {
+      int action = event.getActionMasked();
+      if (action == android.view.MotionEvent.ACTION_DOWN)
+        view.getParent().requestDisallowInterceptTouchEvent(true);
+      else if (action == android.view.MotionEvent.ACTION_UP
+          || action == android.view.MotionEvent.ACTION_CANCEL)
+        view.getParent().requestDisallowInterceptTouchEvent(false);
+      return false;
+    });
     brushSize.setOnSeekBarChangeListener(
         new SeekBar.OnSeekBarChangeListener() {
           @Override
