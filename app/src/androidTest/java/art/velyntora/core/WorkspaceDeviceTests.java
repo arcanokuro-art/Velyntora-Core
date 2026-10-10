@@ -644,6 +644,26 @@ public final class WorkspaceDeviceTests {
   }
 
   @Test
+  public void brushWidthSliderStaysInPlaceAcrossDigitChanges() {
+    instrumentation.runOnMainSync(() -> {
+      android.widget.SeekBar slider=findBrushWidth(activity.getWindow().getDecorView());
+      assertNotNull(slider);
+      ViewGroup row=(ViewGroup)slider.getParent();
+      int width=row.getWidth(),height=row.getHeight();
+      int left=slider.getLeft(), sliderWidth=slider.getWidth();
+      for(int progress:new int[]{0,3,48,49,98,127,0}) {
+        slider.setProgress(progress);
+        row.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.EXACTLY));
+        row.layout(row.getLeft(),row.getTop(),row.getLeft()+width,row.getTop()+height);
+        assertEquals("Slider position must stay fixed",left,slider.getLeft());
+        assertEquals("Slider track width must stay fixed",sliderWidth,slider.getWidth());
+        assertEquals(progress+1,drawing().brushRadius(),.001f);
+      }
+    });
+  }
+
+  @Test
   public void toolModulesKeepSelectionAndPixelMovementIndependent() {
     instrumentation.runOnMainSync(
         () -> {
