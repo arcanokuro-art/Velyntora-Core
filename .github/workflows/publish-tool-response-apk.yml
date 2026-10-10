@@ -8,7 +8,7 @@ permissions:
   contents: write
   actions: read
 concurrency:
-  group: publish-color-layout-verified-apk
+  group: publish-modular-components-apk
   cancel-in-progress: false
 jobs:
   publish:
@@ -17,14 +17,14 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: 797182127be75d1cd4ca0bb2f6913ea2dc7f5413
-      RELEASE_TAG: v0.1.0-color-picker-layout-preview
+      VERIFIED_SHA: be1272a7b0a7a9b5094a2af286a496cf685d4288
+      RELEASE_TAG: v0.1.0-modular-components-preview
     steps:
       - name: Wait for the exact source build and tests
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 38073740966 38073740800 38073740796; do
+          for run_id in 38076709587 38076709592 38076709595; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "main"' run.json
@@ -40,21 +40,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 38073740966 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 38076709587 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
-          cp apk/*.apk Velyntora-Core-Colores-Ordenados.apk
-          sha256sum Velyntora-Core-Colores-Ordenados.apk > Velyntora-Core-Colores-Ordenados.apk.sha256
+          cp apk/*.apk Velyntora-Core-Modular.apk
+          sha256sum Velyntora-Core-Modular.apk > Velyntora-Core-Modular.apk.sha256
       - name: Publish the updated APK
         shell: bash
         run: |
           set -euo pipefail
           cat > notes.md <<'NOTES'
-          Panel de color reorganizado con separación entre columnas, etiquetas medidas según tamaño de letra, márgenes y botones separados. Selector de color inspirado en Pinta: círculo de tono/saturación, cuadrado de saturación/valor, HSV, RGBA, hexadecimal RRGGBBAA y muestras de ambos colores.
-          Edición local hasta Aceptar; Cancelar descarta; Restablecer recupera ambos colores iniciales.
-          APK debug del commit 797182127be75d1cd4ca0bb2f6913ea2dc7f5413. Compilación y pruebas Android verificadas antes de publicar.
-          Descargar Velyntora-Core-Colores-Ordenados.apk. SHA-256 adjunta.
+          Código existente organizado por componentes: colores, capas, selección, historial, menús, barras, texto, documento, codecs, entrada y renderizado.
+          Herramientas protegidas y firmas/cuerpos JNI conservados. Código nativo dividido por responsabilidad con una sesión compartida.
+          APK debug del commit be1272a7b0a7a9b5094a2af286a496cf685d4288. Se publica después de compilar y aprobar las pruebas del núcleo y Android.
+          Descargar Velyntora-Core-Modular.apk. SHA-256 adjunta.
           NOTES
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "${{ github.sha }}" --title "Velyntora Core — selector de colores" --notes-file notes.md --prerelease
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "${{ github.sha }}" --title "Velyntora Core — componentes modulares" --notes-file notes.md --prerelease
           fi
-          gh release upload "$RELEASE_TAG" Velyntora-Core-Colores-Ordenados.apk Velyntora-Core-Colores-Ordenados.apk.sha256 --repo "$GH_REPO" --clobber
+          gh release upload "$RELEASE_TAG" Velyntora-Core-Modular.apk Velyntora-Core-Modular.apk.sha256 --repo "$GH_REPO" --clobber
