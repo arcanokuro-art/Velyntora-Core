@@ -19,6 +19,9 @@
 namespace velyntora::blending {
 inline std::uint32_t composite(std::uint32_t src,std::uint32_t dst,float opacity,int mode){
  double sa=(src>>24)/255.*opacity,da=(dst>>24)/255.,oa=sa+da*(1-sa);if(oa<=0)return 0;
+ if(sa<=0)return da>0?dst:0;
+ if(mode==0&&sa>=1)return src;
+ if(da<=0)return (std::uint32_t(std::lround(sa*255))<<24)|(src&0xffffff);
  RGB s{},d{};for(int c=0;c<3;c++){s[c]=((src>>(16-8*c))&255)/255.;d[c]=((dst>>(16-8*c))&255)/255.;}
  RGB b{};switch(mode){
 case 0:b=normal(s,d);break;

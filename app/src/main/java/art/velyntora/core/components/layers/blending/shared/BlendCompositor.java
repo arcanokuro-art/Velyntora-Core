@@ -2,6 +2,9 @@ package art.velyntora.core;
 final class BlendCompositor {
  static int composite(int src,int dst,float opacity,int mode){
   double sa=(src>>>24)/255.*opacity,da=(dst>>>24)/255.,oa=sa+da*(1-sa);if(oa<=0)return 0;
+  if(sa<=0)return da>0?dst:0;
+  if(mode==0&&sa>=1)return src;
+  if(da<=0)return ((int)Math.round(sa*255)<<24)|(src&0xffffff);
   double[] a=new double[3],b=new double[3],mix=new double[3];for(int c=0;c<3;c++){a[c]=((src>>>(16-8*c))&255)/255.;b[c]=((dst>>>(16-8*c))&255)/255.;}
   switch(mode){
 case 0:mix=Blend0.apply(a,b);break;
