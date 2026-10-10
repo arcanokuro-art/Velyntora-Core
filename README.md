@@ -4,6 +4,10 @@ Aplicación Android de dibujo con interfaz Java y motor C++, inspirada en Pinta.
 
 El estado verificable del plan de 20 hitos está en [PROGRESS.md](docs/PROGRESS.md). Las diferencias de compatibilidad se detallan en [FORMAT_SUPPORT.md](docs/FORMAT_SUPPORT.md) y [EFFECTS_PARITY.md](docs/EFFECTS_PARITY.md).
 
+## Organización por herramienta
+
+Cada herramienta tiene su controlador Android y su icono vectorial en `tools/<herramienta>/`. El código C++ específico, cuando existe, está en `tools/<herramienta>/native/`. Los componentes reutilizados están en `tools/shared/`. El inventario completo y las reglas de mantenimiento están en [TOOLS_ARCHITECTURE.md](docs/TOOLS_ARCHITECTURE.md); la validación de esta reorganización se registra en [REORGANIZATION.md](docs/REORGANIZATION.md).
+
 ## Compilar y probar
 
 Java 17, Gradle 8.12, Android SDK 35 y CMake 3.22.1:

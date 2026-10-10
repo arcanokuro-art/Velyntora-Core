@@ -17,95 +17,95 @@ jobs:
       - name: Legacy raster and icon containers
         run: |
           mkdir -p build/java-tests
-          javac -d build/java-tests app/src/main/java/art/velyntora/core/{VlyProjectStream,OpenRasterArchive,PcxReader,XRasterReader,IconContainers}.java tests/{PcxReaderTests,XRasterReaderTests,IconContainersTests}.java
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/document/VlyProjectStream.java app/src/main/java/art/velyntora/core/document/OpenRasterArchive.java app/src/main/java/art/velyntora/core/formats/PcxReader.java app/src/main/java/art/velyntora/core/formats/XRasterReader.java app/src/main/java/art/velyntora/core/formats/IconContainers.java tests/{PcxReaderTests,XRasterReaderTests,IconContainersTests}.java
           java -cp build/java-tests art.velyntora.core.PcxReaderTests
           java -cp build/java-tests:app/src/main/resources art.velyntora.core.XRasterReaderTests
           java -cp build/java-tests art.velyntora.core.IconContainersTests
       - name: BMP decoding, format detection and EXIF orientation
         run: |
           mkdir -p build/java-tests
-          javac -d build/java-tests app/src/main/java/art/velyntora/core/{VlyProjectStream,OpenRasterArchive,RasterFileWriter,BmpReader,RasterFormat,ExifOrientation}.java tests/{BmpReaderTests,RasterFormatTests,ExifOrientationTests}.java
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/document/VlyProjectStream.java app/src/main/java/art/velyntora/core/document/OpenRasterArchive.java app/src/main/java/art/velyntora/core/formats/RasterFileWriter.java app/src/main/java/art/velyntora/core/formats/BmpReader.java app/src/main/java/art/velyntora/core/formats/RasterFormat.java app/src/main/java/art/velyntora/core/formats/ExifOrientation.java tests/{BmpReaderTests,RasterFormatTests,ExifOrientationTests}.java
           java -cp build/java-tests art.velyntora.core.BmpReaderTests
           java -cp build/java-tests art.velyntora.core.RasterFormatTests
           java -cp build/java-tests art.velyntora.core.ExifOrientationTests
       - name: Curve handle history tests
         run: |
           mkdir -p build/java-tests
-          javac -d build/java-tests app/src/main/java/art/velyntora/core/{CurveDraft,CurveHistory}.java tests/CurveHistoryTests.java
+          javac -d build/java-tests tools/line_curve/CurveDraft.java tools/line_curve/CurveHistory.java tests/CurveHistoryTests.java
           java -cp build/java-tests art.velyntora.core.CurveHistoryTests
       - name: Editable curve geometry tests
         run: |
           mkdir -p build/java-tests
-          javac -d build/java-tests app/src/main/java/art/velyntora/core/CurveDraft.java tests/CurveDraftTests.java
+          javac -d build/java-tests tools/line_curve/CurveDraft.java tests/CurveDraftTests.java
           java -cp build/java-tests art.velyntora.core.CurveDraftTests
       - name: Linear gradient tests
         run: |
           mkdir -p build/java-tests
-          javac -d build/java-tests app/src/main/java/art/velyntora/core/GradientRaster.java tests/GradientRasterTests.java
+          javac -d build/java-tests tools/gradient/GradientRaster.java tests/GradientRasterTests.java
           java -cp build/java-tests art.velyntora.core.GradientRasterTests
       - name: Viewport coordinate tests
         run: |
           mkdir -p build/java-tests
-          javac -d build/java-tests app/src/main/java/art/velyntora/core/Viewport.java tests/ViewportTests.java
+          javac -d build/java-tests tools/shared/Viewport.java tests/ViewportTests.java
           java -cp build/java-tests art.velyntora.core.ViewportTests
       - name: Dedicated navigation tool tests
         run: |
-          javac -d build/java-tests app/src/main/java/art/velyntora/core/Viewport.java app/src/main/java/art/velyntora/core/NavigationTool.java tests/NavigationToolTests.java
+          javac -d build/java-tests tools/shared/Viewport.java tools/shared/NavigationTool.java tests/NavigationToolTests.java
           java -cp build/java-tests art.velyntora.core.NavigationToolTests
       - name: Document dimension controls tests
         run: |
-          javac -d build/java-tests app/src/main/java/art/velyntora/core/DocumentDimensions.java tests/DocumentDimensionsTests.java
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/document/DocumentDimensions.java tests/DocumentDimensionsTests.java
           java -cp build/java-tests art.velyntora.core.DocumentDimensionsTests
       - name: Image decode sizing tests
         run: |
-          javac -d build/java-tests app/src/main/java/art/velyntora/core/ImageDecodePolicy.java tests/ImageDecodePolicyTests.java
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/formats/ImageDecodePolicy.java tests/ImageDecodePolicyTests.java
           java -cp build/java-tests art.velyntora.core.ImageDecodePolicyTests
       - name: Responsive workspace layout tests
         run: |
-          javac -d build/java-tests app/src/main/java/art/velyntora/core/WorkspaceLayout.java tests/WorkspaceLayoutTests.java
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/workspace/WorkspaceLayout.java tests/WorkspaceLayoutTests.java
           java -cp build/java-tests art.velyntora.core.WorkspaceLayoutTests
       - name: Tone curve interpolation tests
         run: |
-          javac -d build/java-tests app/src/main/java/art/velyntora/core/ToneCurve.java tests/ToneCurveTests.java
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/effects/ToneCurve.java tests/ToneCurveTests.java
           java -cp build/java-tests art.velyntora.core.ToneCurveTests
       - name: BMP and TGA export tests
         run: |
-          javac -d build/java-tests app/src/main/java/art/velyntora/core/RasterFileWriter.java tests/RasterFileWriterTests.java app/src/main/java/art/velyntora/core/TgaReader.java tests/TgaReaderTests.java
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/formats/RasterFileWriter.java tests/RasterFileWriterTests.java app/src/main/java/art/velyntora/core/formats/TgaReader.java tests/TgaReaderTests.java
           java -cp build/java-tests art.velyntora.core.RasterFileWriterTests
           java -cp build/java-tests art.velyntora.core.TgaReaderTests
       - name: PPM file interchange tests
         run: |
-          javac -d build/java-tests app/src/main/java/art/velyntora/core/{VlyProjectStream,OpenRasterArchive,RasterFileWriter,PpmCodec}.java tests/PpmCodecTests.java
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/document/VlyProjectStream.java app/src/main/java/art/velyntora/core/document/OpenRasterArchive.java app/src/main/java/art/velyntora/core/formats/RasterFileWriter.java app/src/main/java/art/velyntora/core/formats/PpmCodec.java tests/PpmCodecTests.java
           java -cp build/java-tests art.velyntora.core.PpmCodecTests
       - name: ICO file interchange tests
         run: |
-          javac -d build/java-tests app/src/main/java/art/velyntora/core/{VlyProjectStream,OpenRasterArchive,RasterFileWriter,IcoCodec}.java tests/IcoCodecTests.java
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/document/VlyProjectStream.java app/src/main/java/art/velyntora/core/document/OpenRasterArchive.java app/src/main/java/art/velyntora/core/formats/RasterFileWriter.java app/src/main/java/art/velyntora/core/formats/IcoCodec.java tests/IcoCodecTests.java
           java -cp build/java-tests art.velyntora.core.IcoCodecTests
       - name: GIF file export tests
         run: |
-          javac -d build/java-tests app/src/main/java/art/velyntora/core/{RasterFileWriter,GifWriter}.java tests/GifWriterTests.java
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/formats/RasterFileWriter.java app/src/main/java/art/velyntora/core/formats/GifWriter.java tests/GifWriterTests.java
           java -cp build/java-tests art.velyntora.core.GifWriterTests
       - name: TIFF file export tests
         run: |
-          javac -d build/java-tests app/src/main/java/art/velyntora/core/RasterFileWriter.java app/src/main/java/art/velyntora/core/TiffWriter.java tests/TiffWriterTests.java
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/formats/RasterFileWriter.java app/src/main/java/art/velyntora/core/formats/TiffWriter.java tests/TiffWriterTests.java
           java -cp build/java-tests art.velyntora.core.TiffWriterTests
       - name: TIFF file import tests
         run: |
-          javac -d build/java-tests app/src/main/java/art/velyntora/core/{VlyProjectStream,OpenRasterArchive,RasterFileWriter,TiffWriter,TiffReader}.java tests/TiffReaderTests.java
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/document/VlyProjectStream.java app/src/main/java/art/velyntora/core/document/OpenRasterArchive.java app/src/main/java/art/velyntora/core/formats/RasterFileWriter.java app/src/main/java/art/velyntora/core/formats/TiffWriter.java app/src/main/java/art/velyntora/core/formats/TiffReader.java tests/TiffReaderTests.java
           java -cp build/java-tests art.velyntora.core.TiffReaderTests
       - name: OpenRaster project interchange tests
         run: |
-          javac -d build/java-tests app/src/main/java/art/velyntora/core/VlyProjectStream.java app/src/main/java/art/velyntora/core/OpenRasterArchive.java tests/OpenRasterTests.java
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/document/VlyProjectStream.java app/src/main/java/art/velyntora/core/document/OpenRasterArchive.java tests/OpenRasterTests.java
           java -cp build/java-tests art.velyntora.core.OpenRasterTests
       - run: cmake -S tests -B build/tests -DCMAKE_BUILD_TYPE=Debug
       - run: cmake --build build/tests --parallel
       - run: ctest --test-dir build/tests --output-on-failure
       - name: Native bridge project integration tests
         run: |
-          g++ -std=c++20 -Icore/include -I"$JAVA_HOME/include" -I"$JAVA_HOME/include/linux" tests/native_project_tests.cpp core/src/Canvas.cpp core/src/LayerDocument.cpp core/src/ProjectIO.cpp core/src/PixelEffects.cpp core/src/SelectionTransform.cpp core/src/ColorAdjustments.cpp core/src/BlurEffects.cpp core/src/DistortionEffects.cpp core/src/ArtisticEffects.cpp core/src/RenderEffects.cpp core/src/UtilityEffects.cpp core/src/ObjectEffects.cpp -o build/native_project_tests
+          g++ -std=c++20 -Icore/include -I"$JAVA_HOME/include" -I"$JAVA_HOME/include/linux" tests/native_project_tests.cpp core/src/Canvas.cpp tools/shared/native/Raster.cpp tools/brush/native/Raster.cpp tools/rectangle/native/Raster.cpp tools/ellipse/native/Raster.cpp tools/bucket/native/Raster.cpp core/document/LayerDocument.cpp core/document/ProjectIO.cpp core/effects/PixelEffects.cpp tools/move_pixels/native/SelectionTransform.cpp core/effects/ColorAdjustments.cpp core/effects/BlurEffects.cpp core/effects/DistortionEffects.cpp core/effects/ArtisticEffects.cpp core/effects/RenderEffects.cpp core/effects/UtilityEffects.cpp core/effects/ObjectEffects.cpp -o build/native_project_tests
           build/native_project_tests
       - name: JVM to native raster integration tests
         run: |
-          g++ -shared -fPIC -std=c++20 -Icore/include -I"$JAVA_HOME/include" -I"$JAVA_HOME/include/linux" app/src/main/cpp/native_bridge.cpp core/src/Canvas.cpp core/src/LayerDocument.cpp core/src/ProjectIO.cpp core/src/PixelEffects.cpp core/src/SelectionTransform.cpp core/src/ColorAdjustments.cpp core/src/BlurEffects.cpp core/src/DistortionEffects.cpp core/src/ArtisticEffects.cpp core/src/RenderEffects.cpp core/src/UtilityEffects.cpp core/src/ObjectEffects.cpp -o build/libvelyntora_host.so
+          g++ -shared -fPIC -std=c++20 -Icore/include -I"$JAVA_HOME/include" -I"$JAVA_HOME/include/linux" app/src/main/cpp/native_bridge.cpp core/src/Canvas.cpp tools/shared/native/Raster.cpp tools/brush/native/Raster.cpp tools/rectangle/native/Raster.cpp tools/ellipse/native/Raster.cpp tools/bucket/native/Raster.cpp core/document/LayerDocument.cpp core/document/ProjectIO.cpp core/effects/PixelEffects.cpp tools/move_pixels/native/SelectionTransform.cpp core/effects/ColorAdjustments.cpp core/effects/BlurEffects.cpp core/effects/DistortionEffects.cpp core/effects/ArtisticEffects.cpp core/effects/RenderEffects.cpp core/effects/UtilityEffects.cpp core/effects/ObjectEffects.cpp -o build/libvelyntora_host.so
           javac -d build/java-tests tests/NativeRasterTests.java
           java -Djava.library.path=build -cp build/java-tests art.velyntora.core.NativeRasterTests

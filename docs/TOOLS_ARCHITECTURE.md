@@ -1,0 +1,64 @@
+# Herramientas de Velyntora Core
+
+La carpeta raíz `tools/` reúne código Android, iconos y código nativo por herramienta. Se conservan los 28 identificadores existentes y la firma JNI de `DrawingView`: los proyectos y los accesos de la interfaz no necesitan migración.
+
+## Inventario
+
+| Herramienta | Carpeta | Controlador | Icono |
+|---|---|---|---|
+| Pincel | `tools/brush/` | `BrushTool.java` | `BrushIcon.java` |
+| Cubeta de pintura | `tools/bucket/` | `BucketTool.java` | `BucketIcon.java` |
+| Círculo | `tools/circle/` | `CircleTool.java` | `CircleIcon.java` |
+| Tampón de clonar | `tools/clone/` | `CloneTool.java` | `CloneIcon.java` |
+| Elipse | `tools/ellipse/` | `EllipseTool.java` | `EllipseIcon.java` |
+| Selección elíptica | `tools/ellipse_selection/` | `EllipseSelectionTool.java` | `EllipseSelectionIcon.java` |
+| Borrador | `tools/eraser/` | `EraserTool.java` | `EraserIcon.java` |
+| Elipse rellena | `tools/filled_ellipse/` | `FilledEllipseTool.java` | `FilledEllipseIcon.java` |
+| Rectángulo relleno | `tools/filled_rectangle/` | `FilledRectangleTool.java` | `FilledRectangleIcon.java` |
+| Rectángulo redondeado relleno | `tools/filled_rounded_rectangle/` | `FilledRoundedRectangleTool.java` | `FilledRoundedRectangleIcon.java` |
+| Triángulo relleno | `tools/filled_triangle/` | `FilledTriangleTool.java` | `FilledTriangleIcon.java` |
+| Forma libre | `tools/freeform/` | `FreeformTool.java` | `FreeformIcon.java` |
+| Degradado | `tools/gradient/` | `GradientTool.java` | `GradientIcon.java` |
+| Selección libre | `tools/lasso_selection/` | `LassoSelectionTool.java` | `LassoSelectionIcon.java` |
+| Línea/Curva | `tools/line_curve/` | `LineCurveTool.java` | `LineCurveIcon.java` |
+| Varita mágica | `tools/magic_wand/` | `MagicWandTool.java` | `MagicWandIcon.java` |
+| Mover los píxeles seleccionados | `tools/move_pixels/` | `MovePixelsTool.java` | `MovePixelsIcon.java` |
+| Mover selección | `tools/move_selection/` | `MoveSelectionTool.java` | `MoveSelectionIcon.java` |
+| Desplazamiento | `tools/pan/` | `PanTool.java` | `PanIcon.java` |
+| Lápiz | `tools/pencil/` | `PencilTool.java` | `PencilIcon.java` |
+| Cuentagotas | `tools/picker/` | `PickerTool.java` | `PickerIcon.java` |
+| Recoloración | `tools/recolor/` | `RecolorTool.java` | `RecolorIcon.java` |
+| Rectángulo | `tools/rectangle/` | `RectangleTool.java` | `RectangleIcon.java` |
+| Selección rectangular | `tools/rectangle_selection/` | `RectangleSelectionTool.java` | `RectangleSelectionIcon.java` |
+| Rectángulo redondeado | `tools/rounded_rectangle/` | `RoundedRectangleTool.java` | `RoundedRectangleIcon.java` |
+| Texto | `tools/text/` | `TextTool.java` | `TextIcon.java` |
+| Triángulo | `tools/triangle/` | `TriangleTool.java` | `TriangleIcon.java` |
+| Zoom | `tools/zoom/` | `ZoomTool.java` | `ZoomIcon.java` |
+
+## Código compartido
+
+- `tools/shared/DrawingTool.java`: contrato de inicio, movimiento, final, cancelación, trazo y previsualización.
+- `tools/shared/Tools.java`: registro de controladores sin estado propio, reutilizados sin asignaciones en cada movimiento; crea los iconos de cada módulo.
+- `tools/shared/StrokeSupport.java`: inicio de historial, máscara seleccionada y presión. Pincel, borrador, lápiz, clonación y recoloración implementan su trazo en su propio controlador.
+- `tools/shared/ShapeRaster.java`: composición, alfa y selección reutilizados por las formas geométricas.
+- `tools/shared/SelectionSupport.java`: máscaras, portapapeles, recorte, selección completa/inversa y dibujo del contorno; `SelectionSnapshot.java` conserva copias independientes para el historial de curvas.
+- `tools/shared/NavigationSupport.java`, `NavigationTool.java` y `Viewport.java`: transformación de coordenadas, desplazamiento y zoom utilizados por navegación de uno o dos dedos.
+- `tools/shared/native/Raster.cpp`: mezcla de pinceles y muestreo C++ compartidos; evita duplicar algoritmos entre pincel, borrador, clonación y recoloración.
+
+Línea/Curva concentra borrador, geometría, tiradores, historial, previsualización y confirmación en `tools/line_curve/`. Enter confirma; Ctrl+Z reabre una curva confirmada mientras sus metadatos sigan en el caché existente. Escape cancela. Se mantiene el límite anterior de 15 curvas guardadas.
+
+## Aplicación y motor
+
+`MainActivity` construye la interfaz y conecta los comandos; `DrawingView` conserva el documento, el estado de interacción por instancia, el ciclo de eventos y la fachada JNI. Los controladores nunca guardan el estado de otro lienzo. Se conserva el paquete Java `art.velyntora.core` para permitir colaboración interna sin convertir el estado del lienzo en API pública ni cambiar símbolos JNI. Gradle agrega `tools/` como raíz de fuentes Java.
+
+En `app/src/main/java/art/velyntora/core/`, `document/` gestiona proyectos y tamaños, `formats/` codecs, `effects/` ajustes y `workspace/` disposición y renderizado del lienzo. `WorkspaceRenderer` conserva el filtro cercano al ampliar y delega las previsualizaciones al módulo activo.
+
+El motor compartido permanece en `core/include`, `core/src`, `core/document` y `core/effects`. CMake enumera explícitamente los archivos de `tools/*/native`: un archivo desaparecido falla durante la configuración. Las pruebas del puente JNI usan las mismas rutas reorganizadas. `reference/pinta-assets/` conserva material de referencia y licencias; los iconos activos se implementan en los módulos de herramientas.
+
+## Mantenimiento
+
+1. Corregir la herramienta en su carpeta. Si el defecto afecta alfa, máscaras, historial, documentos o coordenadas, revisar también el componente compartido responsable.
+2. Para una herramienta nueva, agregar controlador e icono y registrarlos en `Tools`; conservar los identificadores existentes. Añadir fuentes nativas explícitas a CMake cuando corresponda.
+3. Ejecutar Core tests, Android APK y Android device tests. Las pruebas Android comprueban píxeles ampliados, formas/undo, selección frente a movimiento de píxeles, Enter/Ctrl+Z y los 28 iconos, además de ciclo de vida y formatos.
+
+La interfaz de dos columnas aprobada continúa vigente. Remove permanece en pausa y Core no añade animación.
