@@ -1706,55 +1706,8 @@ public final class MainActivity extends Activity {
   }
 
   private void configureColor(boolean secondary) {
-    int initialColor = secondary ? secondaryColor : activeColor;
-    LinearLayout form = new LinearLayout(this);
-    form.setOrientation(LinearLayout.VERTICAL);
-    View preview = new View(this);
-    preview.setBackgroundColor(initialColor);
-    preview.setContentDescription("Vista previa del color");
-    form.addView(preview, new LinearLayout.LayoutParams(-1, dp(48)));
-    int[] values = {
-      initialColor >>> 24,
-      (initialColor >>> 16) & 255,
-      (initialColor >>> 8) & 255,
-      initialColor & 255
-    };
-    String[] labels = {"Alfa", "Rojo", "Verde", "Azul"};
-    for (int index = 0; index < 4; index++) {
-      final int channel = index;
-      TextView label = text(labels[index] + ": " + values[index]);
-      form.addView(label);
-      SeekBar slider = new SeekBar(this);
-      slider.setMax(255);
-      slider.setProgress(values[index]);
-      slider.setContentDescription(labels[index]);
-      form.addView(slider);
-      slider.setOnSeekBarChangeListener(
-          new SeekBar.OnSeekBarChangeListener() {
-            public void onProgressChanged(SeekBar s, int n, boolean user) {
-              values[channel] = n;
-              label.setText(labels[channel] + ": " + n);
-              preview.setBackgroundColor(
-                  values[0] << 24 | values[1] << 16 | values[2] << 8 | values[3]);
-            }
-
-            public void onStartTrackingTouch(SeekBar s) {}
-
-            public void onStopTrackingTouch(SeekBar s) {}
-          });
-    }
-    new AlertDialog.Builder(this)
-        .setTitle(secondary ? "Color secundario RGBA" : "Color primario RGBA")
-        .setView(scrollForm(form))
-        .setNegativeButton("Cancelar", null)
-        .setPositiveButton(
-            "Usar color",
-            (d, w) -> {
-              int value = values[0] << 24 | values[1] << 16 | values[2] << 8 | values[3];
-              if (secondary) setSecondaryColor(value);
-              else setActiveColor(value);
-            })
-        .show();
+    ColorPickerDialog.show(this, activeColor, secondaryColor, secondary,
+        (primary, second) -> { setActiveColor(primary); setSecondaryColor(second); });
   }
 
   private void configureGradient() {
