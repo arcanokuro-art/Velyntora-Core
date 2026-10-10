@@ -45,7 +45,7 @@ La carpeta raíz `tools/` reúne código Android, iconos y código nativo por he
 - `tools/shared/NavigationSupport.java`, `NavigationTool.java` y `Viewport.java`: transformación de coordenadas, desplazamiento y zoom utilizados por navegación de uno o dos dedos.
 - `tools/shared/native/Raster.cpp`: mezcla de pinceles y muestreo C++ compartidos; evita duplicar algoritmos entre pincel, borrador, clonación y recoloración.
 
-Línea/Curva concentra borrador, geometría, tiradores, historial, previsualización y confirmación en `tools/line_curve/`. Enter confirma; Ctrl+Z reabre una curva confirmada mientras sus metadatos sigan en el caché existente. Escape cancela. Se mantiene el límite anterior de 15 curvas guardadas.
+Línea/Curva concentra borrador, geometría, tiradores, historial, previsualización y confirmación en `tools/line_curve/`. Enter confirma; Ctrl+Z reabre una curva confirmada mientras sus metadatos sigan en el caché existente. Escape cancela. Se conservan metadatos de hasta 100 grupos confirmados para recuperar su edición. La geometría cardinal, inserción de nodos y grupos pendientes se describen en `tools/line_curve/README.md`.
 
 ## Aplicación y motor
 

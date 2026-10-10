@@ -533,6 +533,32 @@ public final class WorkspaceDeviceTests {
   }
 
   @Test
+  public void lineModuleInsertsInterpolatingNodesAndKeepsMultipleLinesEditable() {
+    instrumentation.runOnMainSync(() -> {
+      DrawingView v = drawing();
+      assertTrue(v.newDocument(128,128));
+      v.setZoomPercent(100);
+      v.setTool(DrawingView.LINE);
+      gesture(v,10,20,110,20,false);
+      assertEquals(2,v.curve.x.length);
+      gesture(v,60,20,60,60,false);
+      assertEquals(3,v.curve.x.length);
+      assertEquals(60f,v.curve.evaluate(.5f,false),.001f);
+      gesture(v,10,100,110,100,false);
+      assertEquals(1,v.curve.others.size());
+      assertTrue(v.hasPendingCurve());
+      assertTrue(v.confirmCurve());
+      assertFalse(v.hasPendingCurve());
+      v.undo();
+      assertTrue(v.hasPendingCurve());
+      assertEquals(1,v.curve.others.size());
+      assertEquals(3,v.curve.others.get(0).x.length);
+      v.redo();
+      assertFalse(v.hasPendingCurve());
+    });
+  }
+
+  @Test
   public void toolModulesKeepSelectionAndPixelMovementIndependent() {
     instrumentation.runOnMainSync(
         () -> {

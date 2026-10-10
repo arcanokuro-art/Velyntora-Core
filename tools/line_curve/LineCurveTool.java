@@ -5,49 +5,99 @@ import android.view.MotionEvent;
 
 /** Gesture controller for line_curve. Shared document state belongs to DrawingView. */
 final class LineCurveTool implements DrawingTool {
+  private boolean adjustingTension;
   public void down(DrawingView v, float x, float y, MotionEvent event) {
     v.setFocusableInTouchMode(true);
     v.requestFocus();
-    v.curveHandle =
-        v.curve == null
-            ? -1
-            : v.curve.hit(
-                x, y, 24 * v.getResources().getDisplayMetrics().density / (float) v.viewport.scale);
+    float nodeRadius = 12 * v.getResources().getDisplayMetrics().density / (float) v.viewport.scale;
+    float pathRadius = 8 * v.getResources().getDisplayMetrics().density / (float) v.viewport.scale;
     v.dragBackup = v.curve == null ? null : v.curve.copy();
-    if (v.curveHandle < 0) {
-      v.confirmCurve();
-      v.curveHistory.clear();
-      v.canceledCurve = null;
-      v.curve = new CurveDraft(x, y, x, y);
-      v.curveHandle = 3;
-      v.dragBackup = null;
+    v.curveHandle = v.curve == null ? -1 : v.curve.hit(x,y,nodeRadius);
+    if (v.curve != null && v.curveHandle < 0) {
+      // A previously drawn line stays editable until the whole group is confirmed.
+      for (int i=0; i<v.curve.others.size(); i++) {
+        CurveDraft other = v.curve.others.get(i);
+        int handle = other.hit(x,y,nodeRadius);
+        if (handle < 0) handle = other.insert(x,y,pathRadius);
+        if (handle >= 0) {
+          float[] oldX=v.curve.x, oldY=v.curve.y, oldT=v.curve.tension;
+          v.curve.x=other.x; v.curve.y=other.y; v.curve.tension=other.tension;
+          other.x=oldX; other.y=oldY; other.tension=oldT;
+          v.curveHandle=handle;
+          break;
+        }
+      }
+      if (v.curveHandle < 0) v.curveHandle = v.curve.insert(x,y,pathRadius);
     }
+    if (v.curveHandle < 0) {
+      v.canceledCurve = null;
+      if (v.curve == null) {
+        v.curveHistory.clear();
+        v.curve = new CurveDraft(x,y,x,y);
+      } else v.curve = v.curve.newLine(x,y);
+      v.curveHandle = -2; // new line: move its endpoint, retaining other pending lines
+    }
+    adjustingTension = v.curveHandle >= 0 && event.isButtonPressed(MotionEvent.BUTTON_SECONDARY);
     v.viewportChanged();
   }
 
   public void move(DrawingView v, float x, float y, MotionEvent event) {
-    if (v.dragBackup == null) v.curve = new CurveDraft(v.startX, v.startY, x, y);
-    else v.curve.move(v.curveHandle, x, y);
+    if (v.curveHandle == -2) v.curve.move(1,x,y);
+    else if (v.curveHandle >= 0 && !adjustingTension) v.curve.move(v.curveHandle, x, y);
     v.invalidate();
   }
 
   public void up(DrawingView v, float x, float y, MotionEvent event) {
     if (v.curve != null) {
-      if (v.dragBackup == null) v.curve = new CurveDraft(v.startX, v.startY, x, y);
-      else v.curve.move(v.curveHandle, x, y);
+      int tensionNode = v.curveHandle;
+      boolean adjustTension = tensionNode >= 0 &&
+          (event.getEventTime() - event.getDownTime() >= 500 ||
+           adjustingTension) &&
+          Math.hypot(x-v.startX,y-v.startY) * v.viewport.scale < 8;
+      if (v.curveHandle == -2) v.curve.move(1,x,y);
+      else if (v.curveHandle >= 0 && !adjustingTension) v.curve.move(v.curveHandle, x, y);
       v.curveHistory.record(v.dragBackup, v.curve);
       v.drawing = false;
       v.dragBackup = null;
       v.curveHandle = -1;
       v.viewportChanged();
+      if (adjustTension) showTension(v,tensionNode);
     }
+  }
+
+  private static void showTension(DrawingView v, int node) {
+    CurveDraft target = v.curve;
+    android.widget.SeekBar slider = new android.widget.SeekBar(v.getContext());
+    slider.setMax(100);
+    slider.setProgress(Math.round(target.tension[node]*100));
+    new android.app.AlertDialog.Builder(v.getContext())
+        .setTitle("Tensión del punto")
+        .setView(slider)
+        .setPositiveButton("Aplicar", (dialog, which) -> {
+          if (v.curve != target) return;
+          CurveDraft before = target.copy();
+          target.setTension(node,slider.getProgress()/100f);
+          v.curveHistory.record(before,target);
+          v.viewportChanged();
+        })
+        .setNegativeButton("Cancelar",null).show();
   }
 
   static android.graphics.Path curvePath(DrawingView v) {
     android.graphics.Path p = new android.graphics.Path();
-    p.moveTo(v.curve.x[0], v.curve.y[0]);
-    p.cubicTo(v.curve.x[1], v.curve.y[1], v.curve.x[2], v.curve.y[2], v.curve.x[3], v.curve.y[3]);
+    for (CurveDraft other : v.curve.others) appendPath(p,other);
+    appendPath(p,v.curve);
     return p;
+  }
+
+  private static void appendPath(android.graphics.Path p, CurveDraft curve) {
+    p.moveTo(curve.x[0], curve.y[0]);
+    for (int i = 0; i < curve.x.length - 1; i++)
+      p.cubicTo(curve.x[i] + curve.tangent(i, true),
+          curve.y[i] + curve.tangent(i, false),
+          curve.x[i+1] - curve.tangent(i+1, true),
+          curve.y[i+1] - curve.tangent(i+1, false),
+          curve.x[i+1], curve.y[i+1]);
   }
 
   static boolean confirmCurve(DrawingView v) {
@@ -59,7 +109,7 @@ final class LineCurveTool implements DrawingTool {
       style.setAlpha(Math.round((v.color >>> 24) * v.brushOpacity));
       style.setStyle(Paint.Style.STROKE);
       style.setStrokeWidth(v.brushRadius * 2);
-      style.setStrokeCap(Paint.Cap.ROUND);
+      style.setStrokeCap(Paint.Cap.SQUARE);
       new Canvas(image).drawPath(v.curvePath(), style);
       int[] data = new int[2 + v.canvasWidth * v.canvasHeight];
       data[0] = v.canvasWidth;
@@ -69,13 +119,14 @@ final class LineCurveTool implements DrawingTool {
         for (int row = 0; row < v.canvasHeight; row++)
           for (int col = 0; col < v.canvasWidth; col++)
             if (!v.selectionContains(col, row)) data[2 + row * v.canvasWidth + col] = 0;
-      if (DrawingView.nativePasteSelection(data, 0, 0)) {
+      if (!DrawingView.nativePasteSelection(data, 0, 0)) return false;
+      {
         int tag = v.nextCurveTag++;
         v.savedCurves.put(
             tag,
             new CurveSnapshot(
                 v.curve, v.color, v.brushRadius, v.brushOpacity, new SelectionSnapshot(v)));
-        while (v.savedCurves.size() > 15) v.savedCurves.removeAt(0);
+        while (v.savedCurves.size() > 100) v.savedCurves.removeAt(0);
         DrawingView.nativeMarkCurve(tag);
       }
       v.curve = null;
@@ -166,11 +217,24 @@ final class LineCurveTool implements DrawingTool {
     preview.setAlpha(Math.round((v.color >>> 24) * v.brushOpacity));
     preview.setStyle(Paint.Style.STROKE);
     preview.setStrokeWidth(v.brushRadius * 2);
-    preview.setStrokeCap(Paint.Cap.ROUND);
+    preview.setStrokeCap(Paint.Cap.SQUARE);
     canvas.drawPath(v.curvePath(), preview);
     preview.setStyle(Paint.Style.FILL);
     preview.setColor(0xff7040b0);
     preview.setAlpha(255);
-    for (int i = 0; i < 4; i++) canvas.drawCircle(v.curve.x[i], v.curve.y[i], 6 / scale, preview);
+    for (CurveDraft other : v.curve.others) drawNodes(canvas,other,scale,preview);
+    drawNodes(canvas,v.curve,scale,preview);
+  }
+
+  private static void drawNodes(Canvas canvas, CurveDraft curve, float scale, Paint paint) {
+    for (int i=0;i<curve.x.length;i++) {
+      paint.setStyle(Paint.Style.FILL);
+      paint.setColor(0xffffffff);
+      canvas.drawCircle(curve.x[i],curve.y[i],5/scale,paint);
+      paint.setStyle(Paint.Style.STROKE);
+      paint.setStrokeWidth(1.5f/scale);
+      paint.setColor(0xff7040b0);
+      canvas.drawCircle(curve.x[i],curve.y[i],5/scale,paint);
+    }
   }
 }
