@@ -38,10 +38,16 @@ public final class WorkspaceDeviceTests {
  @Test public void unsavedBackOffersCancelWithoutLosingLayers(){
   instrumentation.runOnMainSync(()->{assertTrue(drawing().newDocument(16,16));assertTrue(drawing().addLayer());activity.onBackPressed();});instrumentation.waitForIdleSync();
   // Dialog windows are separate roots; use UiAutomation to observe the user-facing choice.
-  android.view.accessibility.AccessibilityNodeInfo root=instrumentation.getUiAutomation().getRootInActiveWindow();assertNotNull(root);
-  java.util.List<android.view.accessibility.AccessibilityNodeInfo> choices=root.findAccessibilityNodeInfosByText("Cancelar");assertFalse(choices.isEmpty());
-  long revision=drawing().revision();assertTrue(choices.get(0).performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK));instrumentation.waitForIdleSync();
-  assertFalse(activity.isFinishing());assertEquals(2,drawing().layerCount());assertEquals(revision,drawing().revision());
+  android.view.accessibility.AccessibilityNodeInfo cancel=null;long deadline=android.os.SystemClock.uptimeMillis()+5000;
+  while(cancel==null&&android.os.SystemClock.uptimeMillis()<deadline){
+   android.view.accessibility.AccessibilityNodeInfo root=instrumentation.getUiAutomation().getRootInActiveWindow();
+   if(root!=null){java.util.List<android.view.accessibility.AccessibilityNodeInfo> choices=root.findAccessibilityNodeInfosByText("Cancelar");if(choices.isEmpty())choices=root.findAccessibilityNodeInfosByText("CANCELAR");if(!choices.isEmpty())cancel=choices.get(0);}
+   if(cancel==null)android.os.SystemClock.sleep(100);
+  }
+  assertNotNull("Unsaved-change dialog must expose Cancel",cancel);
+  while(!cancel.isClickable()&&cancel.getParent()!=null)cancel=cancel.getParent();
+  long revision=drawing().revision();assertTrue("Cancel must accept click",cancel.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK));instrumentation.waitForIdleSync();
+  assertFalse("Cancel must retain the activity",activity.isFinishing());assertEquals("Cancel must retain both layers",2,drawing().layerCount());assertEquals(revision,drawing().revision());
  }
  @Test public void projectAndRecoveryPreserveDimensionsAndRejectStaleRevision()throws Exception{
   java.io.File file=new java.io.File(instrumentation.getTargetContext().getCacheDir(),"device-recovery-test.vlycore");
@@ -53,6 +59,17 @@ public final class WorkspaceDeviceTests {
   instrumentation.runOnMainSync(()->assertTrue(drawing().newDocument(3,2)));
   try(android.os.ParcelFileDescriptor fd=android.os.ParcelFileDescriptor.open(file,android.os.ParcelFileDescriptor.MODE_READ_ONLY)){assertTrue(drawing().readProject(fd.getFd()));}
   instrumentation.runOnMainSync(()->{drawing().projectOpened();assertEquals(23,drawing().documentWidth());assertEquals(17,drawing().documentHeight());});assertTrue(file.delete());
+ }
+ @Test public void svgRasterizationAndPackagedXpmColors()throws Exception{
+  String source="<svg xmlns='http://www.w3.org/2000/svg' width='40' height='20' viewBox='0 0 40 20'><rect width='20' height='20' fill='#ff0000'/></svg>";
+  Bitmap bitmap=SvgRaster.read(new java.io.ByteArrayInputStream(source.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+  try{assertEquals(40,bitmap.getWidth());assertEquals(20,bitmap.getHeight());assertEquals(0xffff0000,bitmap.getPixel(10,10));assertEquals(0,bitmap.getPixel(30,10));}finally{bitmap.recycle();}
+  source="<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20000 10000'><rect width='20000' height='10000' fill='blue'/></svg>";
+  bitmap=SvgRaster.read(new java.io.ByteArrayInputStream(source.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+  try{assertTrue((long)bitmap.getWidth()*bitmap.getHeight()<=4000000);assertTrue(bitmap.getWidth()<=8192);assertEquals(0xff0000ff,bitmap.getPixel(1,1));}finally{bitmap.recycle();}
+  String xpm="\"1 1 1 1\",\"a c Light Goldenrod Yellow\",\"a\"";
+  assertEquals(0xfffafad2,XRasterReader.xpm(new java.io.ByteArrayInputStream(xpm.getBytes(java.nio.charset.StandardCharsets.UTF_8))).pixels[0]);
+  try{SvgRaster.read(new java.io.ByteArrayInputStream("<!DOCTYPE svg><svg/>".getBytes(java.nio.charset.StandardCharsets.UTF_8)));fail("Entity declarations must be rejected");}catch(java.io.IOException expected){}
  }
  @Test public void quickCommandsHaveAccessibleTouchTargets(){
   instrumentation.runOnMainSync(()->{float density=activity.getResources().getDisplayMetrics().density;for(String label:new String[]{"Archivo","Editar","Ver","Nuevo","Guardar","Deshacer","Rehacer"}){

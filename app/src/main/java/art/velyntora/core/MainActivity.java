@@ -23,7 +23,7 @@ import java.io.OutputStream;
 
 /** Android workspace modeled after Pinta's tool, canvas, palette and status regions. */
 public final class MainActivity extends Activity {
-    private static final int SAVE_PROJECT = 43, OPEN_PROJECT = 44, SAVE_JPEG = 45, SAVE_WEBP = 46, SAVE_BMP = 47, SAVE_TGA = 48, OPEN_TGA = 49, SAVE_ORA = 50, OPEN_ORA = 51, SAVE_TIFF = 52, OPEN_TIFF = 53, SAVE_GIF = 54, OPEN_ICO = 55, SAVE_ICO = 56, OPEN_PPM = 57, SAVE_PPM = 58, OPEN_BMP = 59;
+    private static final int SAVE_PROJECT = 43, OPEN_PROJECT = 44, SAVE_JPEG = 45, SAVE_WEBP = 46, SAVE_BMP = 47, SAVE_TGA = 48, OPEN_TGA = 49, SAVE_ORA = 50, OPEN_ORA = 51, SAVE_TIFF = 52, OPEN_TIFF = 53, SAVE_GIF = 54, OPEN_ICO = 55, SAVE_ICO = 56, OPEN_PPM = 57, SAVE_PPM = 58, OPEN_BMP = 59, OPEN_PCX = 60, OPEN_XBM = 61, OPEN_XPM = 62, OPEN_SVG = 63, OPEN_CONTAINER = 64;
     private static final int SAVE_PNG = 41;
     private static final int OPEN_IMAGE = 42;
     private DrawingView drawing;
@@ -49,12 +49,30 @@ public final class MainActivity extends Activity {
     private boolean dirty(){return drawing.hasPendingCurve()||drawing.revision()!=savedRevision;}
     private void markDocumentClean(String name){savedRevision=drawing.revision();documentName=name==null?"Sin título":name;updateStatus();}
     private void updateStatus(){if(status==null)return;status.setText(String.format(java.util.Locale.US,
-        "%s%s  |  %d × %d px  |  Zoom: %.1f %%  |  Rotación: %.1f°",documentName,dirty()?" • Sin guardar":"",drawing.documentWidth(),drawing.documentHeight(),drawing.zoomPercent(),drawing.rotationDegrees()));}
+        "%s%s  |  %d × %d px  |  Zoom: %.1f %%  |  Rotación: %.1f°",documentName,dirty()?" • Sin guardar":"",drawing.documentWidth(),drawing.documentHeight(),drawing.zoomPercent(),drawing.rotationDegrees())+drawing.cursorStatus());}
     private void protectDocument(Runnable action){
         if(projectProgress!=null){message("Espera a que termine la operación actual");return;}
         if(!dirty()){action.run();return;}
         new AlertDialog.Builder(this).setTitle("Cambios sin guardar").setMessage("Guarda un proyecto VLYCORE u OpenRaster para conservar las capas antes de sustituir este dibujo.")
             .setNegativeButton("Cancelar",null).setNeutralButton("Guardar proyecto",(d,w)->projectPicker(true)).setPositiveButton("Descartar cambios",(d,w)->action.run()).show();
+    }
+    @Override public boolean onKeyDown(int key,android.view.KeyEvent event){
+        if(event.isCtrlPressed()){
+            if(projectProgress!=null)return true;
+            switch(key){
+                case android.view.KeyEvent.KEYCODE_Z:if(event.isShiftPressed())redo();else undo();return true;
+                case android.view.KeyEvent.KEYCODE_Y:redo();return true;
+                case android.view.KeyEvent.KEYCODE_S:projectPicker(true);return true;
+                case android.view.KeyEvent.KEYCODE_O:openImage();return true;
+                case android.view.KeyEvent.KEYCODE_N:protectDocument(()->configureDimensions(0));return true;
+                case android.view.KeyEvent.KEYCODE_A:drawing.selectAll();return true;
+                case android.view.KeyEvent.KEYCODE_D:drawing.deselect();return true;
+                case android.view.KeyEvent.KEYCODE_C:copySelection();return true;
+                case android.view.KeyEvent.KEYCODE_X:cutSelection();return true;
+                case android.view.KeyEvent.KEYCODE_V:pasteSelection();return true;
+            }
+        }
+        return super.onKeyDown(key,event);
     }
     @Override public void onBackPressed(){protectDocument(()->super.onBackPressed());}
     @Override protected void onStop(){
@@ -1278,11 +1296,15 @@ public final class MainActivity extends Activity {
     private void importTga(Uri uri){importRaster(uri,OPEN_TGA);}
     private void importRaster(Uri uri,int request){
         if(projectProgress!=null){message("Espera a que termine la operación actual");return;}
-        final String format=request==OPEN_TIFF?"TIFF":request==OPEN_ICO?"ICO":request==OPEN_PPM?"Netpbm":request==OPEN_BMP?"BMP":"TGA";
+        final String format=request==OPEN_TIFF?"TIFF":request==OPEN_ICO?"ICO":request==OPEN_PPM?"Netpbm":request==OPEN_BMP?"BMP":request==OPEN_PCX?"PCX":request==OPEN_XBM?"XBM":request==OPEN_XPM?"XPM":request==OPEN_SVG?"SVG":request==OPEN_CONTAINER?"ANI/ICNS/QuickTime":"TGA";
         android.app.ProgressDialog progress=new android.app.ProgressDialog(this);progress.setMessage("Abriendo "+format+"…");progress.setCancelable(false);projectProgress=progress;progress.show();drawing.setEnabled(false);
         new Thread(()->{int[] pixels=null;int width=0,height=0;try(InputStream input=getContentResolver().openInputStream(uri)){
                 if(input==null)throw new java.io.IOException("Sin archivo");
-                if(request==OPEN_BMP){BmpReader.Image image=BmpReader.read(new java.io.BufferedInputStream(input));pixels=image.pixels;width=image.width;height=image.height;}
+                if(request==OPEN_PCX){PcxReader.Image image=PcxReader.read(input);pixels=image.pixels;width=image.width;height=image.height;}
+                else if(request==OPEN_XBM||request==OPEN_XPM){XRasterReader.Image image=request==OPEN_XBM?XRasterReader.xbm(input):XRasterReader.xpm(input);pixels=image.pixels;width=image.width;height=image.height;}
+                else if(request==OPEN_SVG){Bitmap bitmap=SvgRaster.read(input);try{width=bitmap.getWidth();height=bitmap.getHeight();pixels=new int[width*height];bitmap.getPixels(pixels,0,width,0,0,width,height);}finally{bitmap.recycle();}}
+                else if(request==OPEN_CONTAINER){IconContainers.Image image=IconContainers.read(input,this::decodeContainerImage);pixels=image.pixels;width=image.width;height=image.height;}
+                else if(request==OPEN_BMP){BmpReader.Image image=BmpReader.read(new java.io.BufferedInputStream(input));pixels=image.pixels;width=image.width;height=image.height;}
                 else if(request==OPEN_TIFF){TiffReader.Image image=TiffReader.read(new java.io.BufferedInputStream(input));pixels=image.pixels;width=image.width;height=image.height;}
                 else if(request==OPEN_PPM){PpmCodec.Image image=PpmCodec.read(new java.io.BufferedInputStream(input));pixels=image.pixels;width=image.width;height=image.height;}
                 else if(request==OPEN_ICO){IcoCodec.Image image=IcoCodec.read(new java.io.BufferedInputStream(input),png->{
@@ -1312,6 +1334,18 @@ public final class MainActivity extends Activity {
             if(cursor!=null&&cursor.moveToFirst())return cursor.getString(0);
         }catch(Exception ignored){}return uri.getLastPathSegment();
     }
+    private IconContainers.Image decodeContainerImage(byte[] encoded)throws java.io.IOException{
+        if(encoded.length>=4&&encoded[0]==0&&encoded[1]==0&&(encoded[2]==1||encoded[2]==2)&&encoded[3]==0){
+            byte[] ico=encoded.clone();ico[2]=1; // CUR embeds the same image data; hotspot is irrelevant to a drawing.
+            IcoCodec.Image image=IcoCodec.read(new java.io.ByteArrayInputStream(ico),png->{IconContainers.Image decoded=decodeContainerImage(png);return new IcoCodec.Image(decoded.width,decoded.height,decoded.pixels);});
+            return new IconContainers.Image(image.width,image.height,image.pixels);
+        }
+        BitmapFactory.Options bounds=new BitmapFactory.Options();bounds.inJustDecodeBounds=true;BitmapFactory.decodeByteArray(encoded,0,encoded.length,bounds);
+        if(bounds.outWidth<1||bounds.outHeight<1)throw new java.io.IOException("Imagen del contenedor incompatible");
+        BitmapFactory.Options options=new BitmapFactory.Options();options.inSampleSize=ImageDecodePolicy.sampleSize(bounds.outWidth,bounds.outHeight);options.inPreferredConfig=Bitmap.Config.ARGB_8888;
+        Bitmap bitmap=BitmapFactory.decodeByteArray(encoded,0,encoded.length,options);if(bitmap==null)throw new java.io.IOException("Imagen del contenedor inválida");
+        try{int w=bitmap.getWidth(),h=bitmap.getHeight();if(w>8192||h>8192||(long)w*h>4000000)throw new java.io.IOException("Imagen demasiado grande");int[] pixels=new int[w*h];bitmap.getPixels(pixels,0,w,0,0,w,h);return new IconContainers.Image(w,h,pixels);}finally{bitmap.recycle();}
+    }
     private void openDetected(Uri uri){
         // Providers may perform network IO: never inspect their stream on the UI thread.
         if(projectProgress!=null)return;
@@ -1325,7 +1359,7 @@ public final class MainActivity extends Activity {
             final int format=kind;final boolean readable=ok;
             runOnUiThread(()->{if(isDestroyed())return;progress.dismiss();projectProgress=null;drawing.setEnabled(true);
                 if(!readable){message("No se pudo leer el archivo");return;}
-                switch(format){case RasterFormat.BMP:importRaster(uri,OPEN_BMP);break;case RasterFormat.TIFF:importRaster(uri,OPEN_TIFF);break;case RasterFormat.ICO:importRaster(uri,OPEN_ICO);break;case RasterFormat.NETPBM:importRaster(uri,OPEN_PPM);break;case RasterFormat.TGA:importRaster(uri,OPEN_TGA);break;case RasterFormat.PROJECT:transferProject(uri,false);break;case RasterFormat.ORA:transferOpenRaster(uri,false);break;default:importImage(uri);}
+                switch(format){case RasterFormat.PCX:importRaster(uri,OPEN_PCX);break;case RasterFormat.XBM:importRaster(uri,OPEN_XBM);break;case RasterFormat.XPM:importRaster(uri,OPEN_XPM);break;case RasterFormat.SVG:importRaster(uri,OPEN_SVG);break;case RasterFormat.CONTAINER:importRaster(uri,OPEN_CONTAINER);break;case RasterFormat.BMP:importRaster(uri,OPEN_BMP);break;case RasterFormat.TIFF:importRaster(uri,OPEN_TIFF);break;case RasterFormat.ICO:importRaster(uri,OPEN_ICO);break;case RasterFormat.NETPBM:importRaster(uri,OPEN_PPM);break;case RasterFormat.TGA:importRaster(uri,OPEN_TGA);break;case RasterFormat.PROJECT:transferProject(uri,false);break;case RasterFormat.ORA:transferOpenRaster(uri,false);break;default:importImage(uri);}
             });
         },"velyntora-format-detection").start();
     }

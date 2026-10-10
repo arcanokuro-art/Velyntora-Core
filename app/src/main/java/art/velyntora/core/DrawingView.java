@@ -113,12 +113,16 @@ public final class DrawingView extends View {
  public boolean resizeDocument(int w,int h,boolean scalePixels,boolean bilinear,int anchor){if(!resizeDocumentPixels(w,h,scalePixels,bilinear,anchor))return false;documentResized();return true;}
  public boolean resizeDocumentPixels(int w,int h,boolean scalePixels,boolean bilinear,int anchor){return nativeResizeDocumentOptions(w,h,scalePixels,bilinear,anchor);}
  public void documentResized(){deselect();refresh();fitCanvas();}
- private void resetDocumentTools(){cancelCurve();savedCurves.clear();cloneOriginReady=false;drawing=false;strokeEditing=false;movingSelection=false;movingPixels=false;navigating=false;shapePath.reset();dragBackup=null;}
+ private void resetDocumentTools(){cursorX=cursorY=-1;cancelCurve();savedCurves.clear();cloneOriginReady=false;drawing=false;strokeEditing=false;movingSelection=false;movingPixels=false;navigating=false;shapePath.reset();dragBackup=null;}
  public boolean newDocument(int w,int h){if(w<=0||h<=0||w>8192||h>8192||(long)w*h>4000000||!nativeCreate(w,h))return false;resetDocumentTools();deselect();refresh();fitCanvas();return true;}
  public boolean cropDocument(){if(!hasSelection())return false;int left=(int)Math.floor(selectionLeft),top=(int)Math.floor(selectionTop);if(!nativeCropDocument(left,top,(int)Math.ceil(selectionRight)-left,(int)Math.ceil(selectionBottom)-top))return false;deselect();refresh();fitCanvas();return true;}
  private final Viewport viewport=new Viewport(canvasWidth,canvasHeight);
  private boolean navigating;
  private float gestureX,gestureY,gestureDistance,gestureAngle;
+ private int cursorX=-1,cursorY=-1;
+ public String cursorStatus(){return cursorX<0?"":"  |  X: "+cursorX+" Y: "+cursorY;}
+ private void updateCursor(float x,float y){int cx=(int)Math.floor(x),cy=(int)Math.floor(y);if(cx<0||cy<0||cx>=canvasWidth||cy>=canvasHeight){cx=-1;cy=-1;}if(cx!=cursorX||cy!=cursorY){cursorX=cx;cursorY=cy;if(viewportChangedListener!=null)viewportChangedListener.run();}}
+ @Override public boolean onHoverEvent(MotionEvent event){if(event.getActionMasked()==MotionEvent.ACTION_HOVER_EXIT)updateCursor(-1,-1);else updateCursor((float)viewport.documentX(event.getX(),event.getY()),(float)viewport.documentY(event.getX(),event.getY()));return true;}
  private Runnable viewportChangedListener;
  public void setOnViewportChangedListener(Runnable listener){viewportChangedListener=listener;}
  public float zoomPercent(){return (float)(viewport.scale*100);}
@@ -278,7 +282,7 @@ public final class DrawingView extends View {
  private java.util.function.IntConsumer pickedColorListener;
  public void setOnColorPickedListener(java.util.function.IntConsumer listener){pickedColorListener=listener;}
  public void setOnCanvasChangedListener(Runnable listener){canvasChangedListener=listener;}
- public DrawingView(Context context){super(context);if(nativeWidth()==0&&!nativeCreate(canvasWidth,canvasHeight))throw new IllegalStateException("Canvas error");refresh();}
+ public DrawingView(Context context){super(context);setContentDescription("Lienzo de dibujo; arrastra para usar la herramienta activa y utiliza dos dedos para navegar");if(nativeWidth()==0&&!nativeCreate(canvasWidth,canvasHeight))throw new IllegalStateException("Canvas error");refresh();}
  public boolean setLayerOpacity(float opacity){boolean ok=nativeSetLayerOpacity(opacity);if(ok)refresh();return ok;}
  public float layerOpacity(){return nativeLayerOpacity();}
  public Bitmap layerThumbnail(int index){
@@ -721,6 +725,7 @@ public final class DrawingView extends View {
   }
   float x=(float)viewport.documentX(event.getX(),event.getY());
   float y=(float)viewport.documentY(event.getX(),event.getY());
+  updateCursor(x,y);
  switch(event.getActionMasked()){
  case MotionEvent.ACTION_DOWN:
   if(x<0||y<0||x>=canvasWidth||y>=canvasHeight)return true;

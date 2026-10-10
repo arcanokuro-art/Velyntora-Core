@@ -14,6 +14,13 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Legacy raster and icon containers
+        run: |
+          mkdir -p build/java-tests
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/{VlyProjectStream,OpenRasterArchive,PcxReader,XRasterReader,IconContainers}.java tests/{PcxReaderTests,XRasterReaderTests,IconContainersTests}.java
+          java -cp build/java-tests art.velyntora.core.PcxReaderTests
+          java -cp build/java-tests:app/src/main/resources art.velyntora.core.XRasterReaderTests
+          java -cp build/java-tests art.velyntora.core.IconContainersTests
       - name: BMP decoding, format detection and EXIF orientation
         run: |
           mkdir -p build/java-tests
