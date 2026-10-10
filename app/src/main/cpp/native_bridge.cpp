@@ -72,7 +72,7 @@ void storeActive(){
 void loadActive(){
  if(layers&&canvas)canvas->setPixels(layers->layer(layers->activeIndex()).pixels);
 }
-void resetHistory(){curveTag=0;undoStack.clear();redoStack.clear();brushMask.clear();}
+void resetHistory(){sampledSource.clear();curveTag=0;undoStack.clear();redoStack.clear();brushMask.clear();}
 void restore(const Snapshot& snapshot){
  auto restored=std::make_unique<velyntora::LayerDocument>(snapshot.layers);
  auto restoredCanvas=std::make_unique<velyntora::Canvas>(restored->width(),restored->height());

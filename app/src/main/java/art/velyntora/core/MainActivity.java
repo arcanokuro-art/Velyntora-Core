@@ -35,6 +35,7 @@ public final class MainActivity extends Activity {
     private boolean panelsInline;
     private HorizontalScrollView commandScroll,paletteScroll;
     private Button currentColorButton;
+    private final android.util.SparseArray<String> toolLabels=new android.util.SparseArray<>();
     private final android.util.SparseArray<Button> toolButtons=new android.util.SparseArray<>();
     private final java.util.ArrayList<Bitmap> thumbnails = new java.util.ArrayList<>();
     private android.os.Handler layerRefreshHandler = new android.os.Handler(android.os.Looper.getMainLooper());
@@ -540,6 +541,7 @@ public final class MainActivity extends Activity {
         drawing.setOnTextPositionListener(this::configureText);
         drawing.setOnColorPickedListener(color -> {setActiveColor(color);message("Color seleccionado");});
         drawing.setOnCanvasChangedListener(() -> {
+            syncToolState();
             layerRefreshHandler.removeCallbacks(layerRefreshTask);
             layerRefreshHandler.postDelayed(layerRefreshTask, 120);
         });
@@ -799,7 +801,7 @@ public final class MainActivity extends Activity {
         iconButton.setTextSize(12);
         iconButton.setAllCaps(false);
         iconButton.setMinWidth(0);
-        iconButton.setMinimumWidth(0);iconButton.setBackgroundResource(R.drawable.tool_button_background);iconButton.setBackgroundTintList(null);iconButton.setSelected(tool==drawing.currentTool());toolButtons.put(tool,iconButton);
+        iconButton.setMinimumWidth(0);iconButton.setBackgroundResource(R.drawable.tool_button_background);iconButton.setBackgroundTintList(null);iconButton.setSelected(tool==drawing.currentTool());toolButtons.put(tool,iconButton);toolLabels.put(tool,label);
         int icon = 0;
         switch (tool) {
             case DrawingView.PENCIL: icon = R.drawable.pinta_pencil; break;
@@ -826,8 +828,8 @@ public final class MainActivity extends Activity {
             case DrawingView.MOVE_SELECTION: icon = R.drawable.pinta_move_selection; break;
             case DrawingView.CIRCLE: icon = R.drawable.pinta_ellipse; break;
             case DrawingView.FREEFORM: icon = R.drawable.pinta_lasso; break;
-            case DrawingView.CLONE: icon = R.drawable.pinta_brush; break;
-            case DrawingView.RECOLOR: icon = R.drawable.pinta_bucket; break;
+            case DrawingView.CLONE: icon = R.drawable.pinta_clone; break;
+            case DrawingView.RECOLOR: icon = R.drawable.pinta_recolor; break;
             case DrawingView.GRADIENT: icon = R.drawable.pinta_gradient; break;
             case DrawingView.MOVE_PIXELS: icon = R.drawable.pinta_move_pixels; break;
         }
@@ -849,12 +851,16 @@ public final class MainActivity extends Activity {
         iconButton.setOnClickListener(v -> {
             drawing.setTool(tool);
             drawing.setColor(activeColor);
-            selectedTool.setText(label);
-            for(int i=0;i<toolButtons.size();i++)toolButtons.valueAt(i).setSelected(toolButtons.keyAt(i)==tool);
-            if(android.os.Build.VERSION.SDK_INT>=30)for(int i=0;i<toolButtons.size();i++)toolButtons.valueAt(i).setStateDescription(toolButtons.keyAt(i)==tool?"Activa":"");
+            syncToolState();
             if(!panelsInline&&toolScroll!=null)toolScroll.setVisibility(View.GONE);
         });
         android.widget.GridLayout.LayoutParams cell = new android.widget.GridLayout.LayoutParams();cell.width=dp(48);cell.height=dp(48);parent.addView(iconButton,cell);
+    }
+
+    private void syncToolState(){
+        if(drawing==null)return;int active=drawing.currentTool();
+        for(int i=0;i<toolButtons.size();i++){boolean selected=toolButtons.keyAt(i)==active;Button button=toolButtons.valueAt(i);button.setSelected(selected);if(android.os.Build.VERSION.SDK_INT>=30)button.setStateDescription(selected?"Activa":"");}
+        if(selectedTool!=null&&toolLabels.get(active)!=null)selectedTool.setText(toolLabels.get(active));
     }
 
     private void menu(LinearLayout parent, String title, String[] labels, Runnable[] actions) {

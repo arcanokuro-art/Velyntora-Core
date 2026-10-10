@@ -35,6 +35,7 @@ public final class NativeRasterTests {
   check(DrawingView.nativeUndo());check(DrawingView.nativeCurveTag()==0);check(DrawingView.nativeRedo());check(DrawingView.nativeCurveTag()==7);
   DrawingView.nativeBeginEdit();DrawingView.nativeStyledStroke(.5f,.5f,.5f,.5f,.5f,0xff0000ff,1,1,true,false);check(DrawingView.nativeCurveTag()==0);check(DrawingView.nativeUndo());check(DrawingView.nativeCurveTag()==7);
 
+  check(DrawingView.nativeLoadBitmap(1,1,new int[]{0}));check(DrawingView.nativeCurveTag()==0);check(!DrawingView.nativeUndo());
   int[] sampled={0xff112233,0xff445566,0,0};check(DrawingView.nativeLoadBitmap(4,1,sampled));DrawingView.nativeSetBrushSelection(null);
   DrawingView.nativeBeginEdit();DrawingView.nativeBeginSampled(2,0);DrawingView.nativeSampledStroke(true,-2,0,0,0,2.5f,.5f,3.5f,.5f,.5f,1,1);
   check(Arrays.equals(DrawingView.nativePixels(),new int[]{sampled[0],sampled[1],sampled[0],sampled[1]}));check(DrawingView.nativeUndo());check(Arrays.equals(DrawingView.nativePixels(),sampled));check(DrawingView.nativeRedo());
