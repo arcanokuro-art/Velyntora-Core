@@ -162,8 +162,13 @@ Lápiz dedicado de un píxel: trazo alineado a centros de píxel, borde duro, si
 
 ## Degradado lineal y movimiento de máscaras (parcial)
 
-Degradado del color activo a transparente por arrastre, aplicado sólo a la selección si existe y con una operación de historial. Extremos con alfa gradual y sin RGB visible al llegar a transparencia total. Por ahora no incluye segundo color, variantes radiales ni edición posterior de tiradores. El movimiento del contorno de lazo y varita conserva y traslada su máscara en píxeles enteros; cancelar restaura la posición. Estos cambios no cierran los entregables abiertos: avance 17/20 = 85.00 %. Las pruebas de degradado forman parte de CI.
+Degradado del color activo a transparente por arrastre, aplicado sólo a la selección si existe y con una operación de historial. Extremos con alfa gradual y sin RGB visible al llegar a transparencia total. Incluye modos lineal y radial, seleccionables manteniendo pulsada la herramienta. No incluye segundo color ni edición posterior de tiradores. El movimiento del contorno de lazo y varita conserva y traslada su máscara en píxeles enteros; cancelar restaura la posición. Estos cambios no cierran los entregables abiertos: avance 17/20 = 85.00 %. Las pruebas de degradado forman parte de CI.
 
 ## Formas pendientes (parcial)
 
 Forma libre: arrastre para construir un contorno cerrado rasterizado en la capa activa, respetando la selección y con un solo paso de historial. Vista previa durante el arrastre; cancelar no escribe píxeles. Círculo: variante de la elipse que impone ancho y alto iguales. Quedan Línea/Curva editable, Tampón de clonar, Recoloración y variantes avanzadas del degradado. Las funciones nuevas siguen pendientes de compilación/verificación del cambio completo; avance global 85.00 %.
+
+
+## Verificación local del bloque de herramientas
+
+Se corrigieron declaraciones duplicadas de Forma libre causadas por cambios simultáneos y se confirmó una única variable `action` en la navegación. Compiladas y ejecutadas 15 suites Java y 15 suites C++ del árbol local. Las pruebas de degradado cubren también el modo radial y rechazan extremos numéricos que desbordan la longitud. Esto no acredita la compilación Android ni la interacción visual: SDK/Gradle no disponibles en el entorno y publicación bloqueada por revisión automática. Cambios conservados en la rama local `codex/pending-drawing-tools`; no se contabiliza un hito nuevo. Avance 17/20 = 85.00 %.

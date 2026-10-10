@@ -187,6 +187,8 @@ public final class DrawingView extends View {
  }
  private final NavigationTool navigationTool=new NavigationTool(4);
  private int color=0xFF202020,tool=BRUSH;
+ private boolean radialGradient;
+ public void setRadialGradient(boolean radial){radialGradient=radial;}
  private float brushRadius=4f,brushOpacity=1f,brushHardness=1f;
  private boolean squareBrush,pressureBrush=true,strokeEditing;
  public float brushOpacity(){return brushOpacity;}
@@ -755,7 +757,7 @@ public final class DrawingView extends View {
     nativeBeginEdit();nativeShape(ELLIPSE,(int)startX,(int)startY,(int)(startX+Math.copySign(size,x-startX)),(int)(startY+Math.copySign(size,y-startY)),color);
    }
    else if(tool==GRADIENT){
-    int[] data=GradientRaster.create(canvasWidth,canvasHeight,startX,startY,x,y,color);
+    int[] data=GradientRaster.create(canvasWidth,canvasHeight,startX,startY,x,y,color,radialGradient);
     if(hasSelection())for(int row=0;row<canvasHeight;row++)for(int col=0;col<canvasWidth;col++)if(!selectionContains(col,row))data[2+row*canvasWidth+col]=0;
     nativePasteSelection(data,0,0);
    }

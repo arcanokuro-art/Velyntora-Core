@@ -612,7 +612,7 @@ public final class MainActivity extends Activity {
         tool(toolGrid, "Triángulo", DrawingView.TRIANGLE);
         tool(toolGrid, "Triángulo relleno", DrawingView.FILLED_TRIANGLE);
         tool(toolGrid, "Texto", DrawingView.TEXT);
-        tool(toolGrid, "Degradado lineal: color activo a transparente", DrawingView.GRADIENT);
+        tool(toolGrid, "Degradado: color a transparente; mantener pulsado para elegir tipo", DrawingView.GRADIENT);
         tool(toolGrid, "Cubeta", DrawingView.BUCKET);
         tool(toolGrid, "Cuentagotas", DrawingView.PICKER);
         tool(toolGrid, "Borrador", DrawingView.ERASER);
@@ -836,6 +836,11 @@ public final class MainActivity extends Activity {
             if(android.os.Build.VERSION.SDK_INT>=30)iconButton.setStateDescription(tool==drawing.currentTool()?"Activa":"");
             if (android.os.Build.VERSION.SDK_INT >= 26) iconButton.setTooltipText(label);
         }
+        if(tool==DrawingView.GRADIENT)iconButton.setOnLongClickListener(v -> {
+            new AlertDialog.Builder(this).setTitle("Tipo de degradado")
+                .setItems(new String[]{"Lineal","Radial"},(dialog,index)->drawing.setRadialGradient(index==1)).show();
+            return true;
+        });
         iconButton.setOnClickListener(v -> {
             drawing.setTool(tool);
             drawing.setColor(activeColor);
