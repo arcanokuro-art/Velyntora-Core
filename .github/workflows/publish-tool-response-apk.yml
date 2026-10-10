@@ -17,14 +17,14 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: 3e9cfda31e01001b57f584b41dfc074f1d0e4a52
+      VERIFIED_SHA: 27acb24729536532a1c784430b875d22f0c58a14
       RELEASE_TAG: v0.1.0-tool-response-preview
     steps:
       - name: Wait for the exact source build and tests
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 38066223929 38066223881 38066223869; do
+          for run_id in 38066510420 38066510540 38066510393; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "main"' run.json
@@ -40,7 +40,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 38066223929 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 38066510420 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
           cp apk/*.apk Velyntora-Core-Respuesta.apk
           sha256sum Velyntora-Core-Respuesta.apk > Velyntora-Core-Respuesta.apk.sha256
@@ -53,7 +53,7 @@ jobs:
           Previsualización de rectángulos, elipses, círculo, triángulos y formas redondeadas durante el arrastre.
           Línea/Curva y Forma libre conservan su código.
           
-          APK debug para prueba en teléfono, procedente del commit 3e9cfda31e01001b57f584b41dfc074f1d0e4a52.
+          APK debug para prueba en teléfono, procedente del commit 27acb24729536532a1c784430b875d22f0c58a14.
           Compilación Android y pruebas del núcleo y del emulador aprobadas antes de publicar.
           Descargar Velyntora-Core-Respuesta.apk. Suma SHA-256 adjunta.
           NOTES
