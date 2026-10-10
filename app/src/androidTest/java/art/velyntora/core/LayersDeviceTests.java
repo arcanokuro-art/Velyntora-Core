@@ -45,9 +45,12 @@ public final class LayersDeviceTests {
   android.app.Instrumentation inst=InstrumentationRegistry.getInstrumentation();android.content.Intent intent=new android.content.Intent(inst.getTargetContext(),MainActivity.class);intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);MainActivity activity=(MainActivity)inst.startActivitySync(intent);
   java.util.concurrent.atomic.AtomicReference<AlertDialog> dialog=new java.util.concurrent.atomic.AtomicReference<>();
   try{
+   inst.runOnMainSync(()->activity.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE));
+   long deadline=android.os.SystemClock.uptimeMillis()+5000;while(activity.getResources().getConfiguration().orientation!=2&&android.os.SystemClock.uptimeMillis()<deadline)android.os.SystemClock.sleep(50);inst.waitForIdleSync();
    inst.runOnMainSync(()->{for(int i=activity.readDrawing().layerCount();i<12;i++)assertTrue(activity.readDrawing().addLayer());activity.refreshLayerPanel();activity.readToolScroll().setVisibility(View.GONE);activity.readLayerScroll().setVisibility(View.VISIBLE);});inst.waitForIdleSync();
-   capture(inst,"layers-panel");
-   inst.runOnMainSync(()->dialog.set(LayerPropertiesDialog.show(activity,activity.readDrawing().activeLayer())));inst.waitForIdleSync();capture(inst,"layers-properties");
+   android.os.SystemClock.sleep(150);capture(inst,"layers-panel");
+   inst.runOnMainSync(()->{ScrollView list=(ScrollView)activity.readLayerItems().getParent();LinearLayout panel=(LinearLayout)list.getParent();LinearLayout commands=(LinearLayout)panel.getChildAt(2);assertEquals(6,commands.getChildCount());assertTrue("List must have a viewport",list.getHeight()>0);assertTrue("Actions must stay inside panel",commands.getBottom()<=panel.getHeight());list.fullScroll(View.FOCUS_DOWN);});inst.waitForIdleSync();android.os.SystemClock.sleep(150);capture(inst,"layers-panel-bottom");
+   inst.runOnMainSync(()->dialog.set(LayerPropertiesDialog.show(activity,activity.readDrawing().activeLayer())));inst.waitForIdleSync();android.os.SystemClock.sleep(150);capture(inst,"layers-properties");
   }finally{inst.runOnMainSync(()->{if(dialog.get()!=null)dialog.get().dismiss();activity.finish();});}
  }
 

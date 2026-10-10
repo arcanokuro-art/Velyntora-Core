@@ -1,6 +1,6 @@
 # Capas modulares
 
-Panel compacto con miniaturas y fondo de transparencia, nombres y casillas de visibilidad. Lista desplazable independiente; acciones fijas: añadir, eliminar, duplicar, combinar abajo, subir y bajar. Propiedades accesibles por pulsación larga o botón; edición en borrador, validación y aceptación atómica con un checkpoint de historial.
+Panel compacto con miniaturas y fondo de transparencia, nombres y casillas de visibilidad. Lista desplazable independiente; acciones fijas: añadir, eliminar, duplicar, combinar abajo, subir y bajar. Propiedades accesibles por doble toque, pulsación larga o menú Capas; edición en borrador, validación y aceptación atómica con un checkpoint de historial.
 
 ## Propiedad del código
 
