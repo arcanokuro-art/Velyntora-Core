@@ -60,6 +60,20 @@ public final class WorkspaceDeviceTests {
   try(android.os.ParcelFileDescriptor fd=android.os.ParcelFileDescriptor.open(file,android.os.ParcelFileDescriptor.MODE_READ_ONLY)){assertTrue(drawing().readProject(fd.getFd()));}
   instrumentation.runOnMainSync(()->{drawing().projectOpened();assertEquals(23,drawing().documentWidth());assertEquals(17,drawing().documentHeight());});assertTrue(file.delete());
  }
+ private void gesture(DrawingView view,float x0,float y0,float x1,float y1,boolean cancel){
+  long now=android.os.SystemClock.uptimeMillis();float left=view.getWidth()/2f-view.documentWidth()/2f,top=view.getHeight()/2f-view.documentHeight()/2f;
+  int[] actions={android.view.MotionEvent.ACTION_DOWN,android.view.MotionEvent.ACTION_MOVE,cancel?android.view.MotionEvent.ACTION_CANCEL:android.view.MotionEvent.ACTION_UP};
+  for(int i=0;i<actions.length;i++){android.view.MotionEvent event=android.view.MotionEvent.obtain(now,now+i*10,actions[i],left+(i==0?x0:x1),top+(i==0?y0:y1),0);try{view.onTouchEvent(event);}finally{event.recycle();}}
+ }
+ @Test public void shapesRespectSelectionOpacityAndCanceledGesture(){
+  instrumentation.runOnMainSync(()->{
+   DrawingView view=drawing();assertTrue(view.newDocument(64,64));view.setZoomPercent(100);view.setTool(DrawingView.SELECT_RECTANGLE);gesture(view,8,8,24,24,false);assertTrue(view.hasSelection());
+   view.setColor(0xffff0000);view.configureBrush(.5f,1,false,false);view.setTool(DrawingView.FILLED_RECTANGLE);gesture(view,0,0,32,32,false);
+   assertTrue("Painting a shape must preserve selection",view.hasSelection());Bitmap image=view.snapshot();try{assertEquals(0x80ff0000,image.getPixel(10,10));assertEquals(0,image.getPixel(2,2));assertEquals(0,image.getPixel(30,30));}finally{image.recycle();}
+   long revision=view.revision();view.setTool(DrawingView.RECTANGLE);gesture(view,9,9,20,20,true);assertEquals("Canceled shape must not create history",revision,view.revision());
+   view.undo();image=view.snapshot();try{assertEquals(0,image.getPixel(10,10));}finally{image.recycle();}
+  });
+ }
  @Test public void svgRasterizationAndPackagedXpmColors()throws Exception{
   String source="<svg xmlns='http://www.w3.org/2000/svg' width='40' height='20' viewBox='0 0 40 20'><rect width='20' height='20' fill='#ff0000'/></svg>";
   Bitmap bitmap=SvgRaster.read(new java.io.ByteArrayInputStream(source.getBytes(java.nio.charset.StandardCharsets.UTF_8)));

@@ -9,6 +9,7 @@ class DrawingView {
  static native void nativeSampledStroke(boolean clone,int ox,int oy,int replacement,int tolerance,float x0,float y0,float x1,float y1,float radius,float opacity,float hardness);
  static native boolean nativeCreate(int w,int h);
  static native void nativeBeginEdit();
+ static native boolean nativeFillSelection(int x,int y,int color,float opacity,byte[] selection);
  static native boolean nativeResizeDocumentOptions(int w,int h,boolean scale,boolean bilinear,int anchor);
  static native boolean nativeLoadBitmap(int w,int h,int[] pixels);
  static native boolean nativeAddLayer();
@@ -32,6 +33,10 @@ class DrawingView {
 public final class NativeRasterTests {
  static void check(boolean ok){if(!ok)throw new AssertionError();}
  public static void main(String[] args){
+  check(DrawingView.nativeLoadBitmap(5,1,new int[5]));long fillBefore=DrawingView.nativeRevision();
+  check(DrawingView.nativeFillSelection(0,0,0xffff0000,.5f,new byte[]{1,1,0,1,1}));check(Arrays.equals(DrawingView.nativePixels(),new int[]{0x80ff0000,0x80ff0000,0,0,0}));
+  check(DrawingView.nativeUndo());check(DrawingView.nativeRevision()==fillBefore);check(DrawingView.nativeRedo());long fillAfter=DrawingView.nativeRevision();
+  check(!DrawingView.nativeFillSelection(2,0,0xffff0000,1,new byte[]{1,1,0,1,1}));check(!DrawingView.nativeFillSelection(0,0,0,1,null));check(DrawingView.nativeRevision()==fillAfter);
   check(DrawingView.nativeCreate(1,1));long clean=DrawingView.nativeRevision();
   check(!DrawingView.nativeResizeDocumentOptions(0,1,true,false,0));check(DrawingView.nativeRevision()==clean);
   check(DrawingView.nativePasteSelection(new int[]{1,1,0xff123456},0,0));long edited=DrawingView.nativeRevision();check(edited!=clean);

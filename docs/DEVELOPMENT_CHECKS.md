@@ -21,6 +21,7 @@ Los 20 hitos conservan su peso de 5 puntos. Esta lista permite verificar 09, 16 
 
 - Objetivos de toque de 48 dp, nombres accesibles y estado activo en herramientas/capas; lienzo y controles etiquetados.
 - Evitar sustitución silenciosa de cambios pendientes; guardar proyectos, cancelar descarte y mantener documento ante error.
+- Las formas canceladas no crean historial; formas y cubeta respetan la selección y el alfa.
 - Identidad de revisión conservada por Undo/Redo; recuperación atómica y rechazo de escritura de una revisión obsoleta.
 - Lectura, escritura y remuestreo en trabajo; impedir acciones de edición mientras hay operación modal en curso.
 - Compilación APK, suites Core/Java/JNI y pruebas de dispositivo aprobadas sobre el cambio final. Todo defecto que estas comprobaciones detecten debe corregirse antes de cerrar el hito.

@@ -1108,3 +1108,15 @@ extern "C" JNIEXPORT jint JNICALL Java_art_velyntora_core_DrawingView_nativeCurv
 extern "C" JNIEXPORT void JNICALL Java_art_velyntora_core_DrawingView_nativeMarkCurve(JNIEnv*,jclass,jint tag){std::lock_guard<std::mutex> lock(guard);curveTag=tag;}
 
 extern "C" JNIEXPORT jlong JNICALL Java_art_velyntora_core_DrawingView_nativeRevision(JNIEnv*,jclass){std::lock_guard<std::mutex> lock(guard);return static_cast<jlong>(revision);}
+
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeFillSelection(JNIEnv* env,jclass,jint x,jint y,jint color,jfloat opacity,jbyteArray selection){
+ std::lock_guard<std::mutex> lock(guard);
+ if(!canvas||x<0||y<0||x>=canvas->width()||y>=canvas->height()||!std::isfinite(opacity)||opacity<=0||opacity>1)return JNI_FALSE;
+ try{
+  std::vector<std::uint8_t> mask;
+  if(selection){if(env->GetArrayLength(selection)!=static_cast<jsize>(canvas->pixels().size()))return JNI_FALSE;mask.resize(canvas->pixels().size());env->GetByteArrayRegion(selection,0,static_cast<jsize>(mask.size()),reinterpret_cast<jbyte*>(mask.data()));if(env->ExceptionCheck()||!mask[static_cast<std::size_t>(y)*canvas->width()+x])return JNI_FALSE;}
+  velyntora::Canvas mixed(1,1);mixed.setPixels({canvas->pixels()[static_cast<std::size_t>(y)*canvas->width()+x]});mixed.strokeStyled(.5f,.5f,.5f,.5f,.5f,static_cast<std::uint32_t>(color),opacity,1,true,false);
+  auto filled=*canvas;filled.fill(x,y,mixed.pixels()[0],mask.empty()?nullptr:&mask);if(filled.pixels()==canvas->pixels())return JNI_FALSE;
+  checkpoint();canvas->setPixels(filled.pixels());storeActive();return JNI_TRUE;
+ }catch(const std::exception&){return JNI_FALSE;}
+}
