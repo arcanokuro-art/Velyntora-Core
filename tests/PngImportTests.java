@@ -15,13 +15,26 @@ public final class PngImportTests {
    }
   }
   ByteArrayOutputStream encoded=new ByteArrayOutputStream();
-  PngWriter.write(encoded,10000,10000,(y,row)->java.util.Arrays.fill(row,0xff000000|y));
+  PngWriter.write(encoded,7000,7000,(y,row)->java.util.Arrays.fill(row,0xff000000|y));
   check(PngStripeImporter.load(new ByteArrayInputStream(encoded.toByteArray()),1));DrawingView.nativeAcceptImageImport();
-  check(DrawingView.nativeWidth()==10000 && DrawingView.nativeHeight()==10000);
-  for(int y:new int[]{0,1,103,9999})check(DrawingView.nativeRegionPixels(9999,y,1,1)[0]==(0xff000000|y));
+  check(DrawingView.nativeWidth()==7000 && DrawingView.nativeHeight()==7000);
+  for(int y:new int[]{0,1,103,6999})check(DrawingView.nativeRegionPixels(6999,y,1,1)[0]==(0xff000000|y));
   byte[] broken=encoded.toByteArray();broken[broken.length-13]^=1;
   boolean rejected=false;try{PngStripeImporter.load(new ByteArrayInputStream(broken),1);}catch(IOException error){rejected=true;}finally{DrawingView.nativeCancelImageImport();}
-  check(rejected);check(DrawingView.nativeWidth()==10000);check(DrawingView.nativeRegionPixels(9999,9999,1,1)[0]==(0xff000000|9999));
-  check(DrawingView.nativeCreate(64,64));System.out.println("Original 10000x10000 PNG import, all EXIF orientations and corrupt-import rollback passed");
+  check(rejected);check(DrawingView.nativeWidth()==7000);check(DrawingView.nativeRegionPixels(6999,6999,1,1)[0]==(0xff000000|6999));
+  ByteArrayOutputStream oversized=new ByteArrayOutputStream();
+  java.awt.image.BufferedImage fixture=new java.awt.image.BufferedImage(9030,7,java.awt.image.BufferedImage.TYPE_INT_ARGB);
+  for(int y=0;y<7;y++)for(int x=0;x<9030;x++)fixture.setRGB(x,y,x<4500?0xffff0000:0xff0000ff);
+  javax.imageio.ImageIO.write(fixture,"png",oversized);
+  for(int orientation=1;orientation<=8;orientation++){
+    ImageImportSize plan=new ImageImportSize(9030,7,orientation);
+    check(PngStripeImporter.load(new ByteArrayInputStream(oversized.toByteArray()),orientation,plan));DrawingView.nativeAcceptImageImport();
+    check(DrawingView.nativeWidth()==plan.displayWidth() && DrawingView.nativeHeight()==plan.displayHeight());
+    for(int[] point:new int[][]{{0,0},{plan.displayWidth()-1,plan.displayHeight()-1}}){
+      int source=ExifOrientation.sourceIndex(point[0],point[1],plan.width,plan.height,orientation);
+      check(DrawingView.nativeRegionPixels(point[0],point[1],1,1)[0]==(source%plan.width<3500?0xffff0000:0xff0000ff));
+    }
+  }
+  check(DrawingView.nativeCreate(64,64));System.out.println("Original 7000x7000 PNG import, all EXIF orientations and corrupt-import rollback passed");
  }
 }

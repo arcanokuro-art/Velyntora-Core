@@ -467,6 +467,31 @@ final class DocumentStorage {
       host.message("Espera a que termine la operación actual");
       return;
     }
+    android.app.ProgressDialog checking=new android.app.ProgressDialog(host);
+    checking.setMessage("Comprobando tamaño de imagen…");checking.setCancelable(false);
+    host.writeProjectProgress(checking);checking.show();host.readDrawing().setEnabled(false);
+    new Thread(()->{
+      ImageImportSize size=null;
+      try{size=RegionImageImporter.probe(host,uri);}catch(Exception error){}
+      final ImageImportSize plan=size;
+      host.runOnUiThread(()->{
+        checking.dismiss();host.writeProjectProgress(null);host.readDrawing().setEnabled(true);
+        if(host.isDestroyed())return;
+        if(plan==null){host.message("No se pudo leer el tamaño de la imagen");return;}
+        if(plan.reduced()) {
+          importConfirmation=new AlertDialog.Builder(host).setTitle("La imagen supera el límite")
+              .setMessage(plan.confirmation()).setNegativeButton("Cancelar",(dialog,which)->{})
+              .setPositiveButton("Reducir e importar",(dialog,which)->importImage(uri,plan)).create();
+          importConfirmation.setOnDismissListener(dialog->importConfirmation=null);
+          importConfirmation.show();
+        }else importImage(uri,plan);
+      });
+    },"velyntora-image-size").start();
+  }
+  private AlertDialog importConfirmation;
+  AlertDialog importConfirmation(){return importConfirmation;}
+  private void importImage(Uri uri,ImageImportSize size) {
+    if(host.readProjectProgress()!=null){host.message("Espera a que termine la operación actual");return;}
     android.app.ProgressDialog progress = new android.app.ProgressDialog(host);
     progress.setMessage("Abriendo imagen…");
     progress.setCancelable(false);
@@ -479,7 +504,7 @@ final class DocumentStorage {
       String name = host.fileName(uri);
       CanvasRendering.Frame prepared = null;
       try {
-        RegionImageImporter.load(host,uri);
+        RegionImageImporter.load(host,uri,size);
         int width=DrawingView.nativeWidth(),height=DrawingView.nativeHeight();
         float scale=Math.min(viewWidth/(float)width,viewHeight/(float)height)*.9f;
         prepared=CanvasRendering.prepareFrame(scale);

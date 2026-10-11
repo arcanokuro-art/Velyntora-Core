@@ -80,6 +80,10 @@ jobs:
         run: |
           javac -d build/java-tests app/src/main/java/art/velyntora/core/document/dimensions/CanvasLimits.java app/src/main/java/art/velyntora/core/document/dimensions/DocumentDimensions.java tests/DocumentDimensionsTests.java
           java -cp build/java-tests art.velyntora.core.DocumentDimensionsTests
+      - name: Proportional import sizing and 7000px boundary
+        run: |
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/document/dimensions/CanvasLimits.java app/src/main/java/art/velyntora/core/document/importing/ImageImportSize.java tests/ImageImportSizeTests.java
+          java -cp build/java-tests art.velyntora.core.ImageImportSizeTests
       - name: Image decode sizing tests
         run: |
           javac -d build/java-tests app/src/main/java/art/velyntora/core/document/dimensions/CanvasLimits.java app/src/main/java/art/velyntora/core/formats/shared/ImageDecodePolicy.java tests/ImageDecodePolicyTests.java
@@ -139,5 +143,5 @@ jobs:
           java -Djava.library.path=build -cp build/java-tests art.velyntora.core.NativeRasterTests
       - name: Original-resolution PNG import and transactional rollback
         run: |
-          javac -d build/java-tests app/src/main/java/art/velyntora/core/document/dimensions/CanvasLimits.java app/src/main/java/art/velyntora/core/formats/shared/RasterFileWriter.java app/src/main/java/art/velyntora/core/formats/png/PngWriter.java app/src/main/java/art/velyntora/core/formats/metadata/ExifOrientation.java app/src/main/java/art/velyntora/core/document/importing/ImageImportStripe.java app/src/main/java/art/velyntora/core/document/importing/PngStripeImporter.java tests/NativeRasterTests.java tests/PngImportTests.java
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/document/dimensions/CanvasLimits.java app/src/main/java/art/velyntora/core/formats/shared/RasterFileWriter.java app/src/main/java/art/velyntora/core/formats/png/PngWriter.java app/src/main/java/art/velyntora/core/formats/metadata/ExifOrientation.java app/src/main/java/art/velyntora/core/document/importing/ImageImportStripe.java app/src/main/java/art/velyntora/core/document/importing/PngStripeImporter.java app/src/main/java/art/velyntora/core/document/importing/{ImageImportSize,PngReducedRows}.java tests/NativeRasterTests.java tests/PngImportTests.java
           java -Xmx96m -Djava.library.path=build -cp build/java-tests art.velyntora.core.PngImportTests

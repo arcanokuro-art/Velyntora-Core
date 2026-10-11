@@ -1,3 +1,5 @@
-# Original-resolution image import
+# Image import
 
-RegionImageImporter decodes JPEG/PNG/WebP regions into bounded ARGB arrays, streams them into a native import transaction and handles all eight EXIF orientations within those regions. The document retains source dimensions up to 10000 per side / 100 million pixels. Oversized files are rejected explicitly, never silently reduced. Decoder and file access run on the import worker. A failed transaction preserves the previous document.
+ImageImportSize owns proportional fitting to 7000 px per side / 49 million pixels and EXIF-aware displayed dimensions. DocumentStorage probes metadata on a worker, then asks permission to reduce an oversized image. Cancellation leaves the document unchanged; there is no silent reduction. 6067 × 9030 becomes 4703 × 7000.
+
+RegionImageImporter imports supported Android region formats in bounded stripes. Oversized JPEG/PNG/WebP is filtered into bounded output stripes, preserving aspect ratio and all eight EXIF orientations. Images inside the limit retain original pixels and can use PngStripeImporter. Decoder and file access run on the import worker. Failed import restores the previous native document. Unsupported region formats use a sampled Bitmap fallback capped at four million decoded pixels before producing the confirmed output size. The fallback can lose more detail than the region decoder. Unreadable formats are rejected without changing the document.

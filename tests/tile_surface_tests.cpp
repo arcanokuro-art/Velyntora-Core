@@ -5,9 +5,9 @@
 
 using velyntora::tiles::TileSurface;
 int main() {
-  TileSurface surface(10000,10000,0xFFFFFFFFu,256*256*4);
+  TileSurface surface(7000,7000,0xFFFFFFFFu,256*256*4);
   assert(surface.allocatedTiles()==0 && surface.cachedBytes()==0);
-  assert(surface.readRegion(9999,9999,1,1)[0]==0xFFFFFFFFu);
+  assert(surface.readRegion(6999,6999,1,1)[0]==0xFFFFFFFFu);
   auto initial = surface;
   // A continuous edit across four tile boundaries, with a one-tile cache.
   TileSurface::Pixels edit(20*20,0x80442211u);
@@ -22,27 +22,27 @@ int main() {
   assert(surface.readRegion(255,255,1,1)[0]==0xFF123456u);
   surface = history; // undo
   assert(surface.readRegion(255,255,1,1)[0]==0x80442211u);
-  surface.writeRegion(9999,9999,1,1,{0xFFABCDEFu});
+  surface.writeRegion(6999,6999,1,1,{0xFFABCDEFu});
   surface.compact();
   assert(history.readRegion(255,255,1,1)[0]==0x80442211u);
-  assert(surface.readRegion(9999,9999,1,1)[0]==0xFFABCDEFu);
+  assert(surface.readRegion(6999,6999,1,1)[0]==0xFFABCDEFu);
   surface.writeRegion(250,250,20,20,TileSurface::Pixels(400,0xFFFFFFFFu));
   assert(surface.allocatedTiles()==1);
   bool invalid=false;
-  try { surface.writeRegion(9999,9999,2,1,{1,2}); }
+  try { surface.writeRegion(6999,6999,2,1,{1,2}); }
   catch (const std::invalid_argument&) { invalid=true; }
-  assert(invalid && surface.readRegion(9999,9999,1,1)[0]==0xFFABCDEFu);
+  assert(invalid && surface.readRegion(6999,6999,1,1)[0]==0xFFABCDEFu);
   invalid=false;
-  try { surface.readRegion(0,0,10000,10000); }
+  try { surface.readRegion(0,0,7000,7000); }
   catch (const std::invalid_argument&) { invalid=true; }
   assert(invalid);
-  // Stream a real 54.8M-pixel extent; disk-backed cache stays bounded.
-  TileSurface image(6067,9030,0,1024*1024);
-  for(int y=0;y<9030;y+=256) {
-    int rows=std::min(256,9030-y);
+  // Stream a real 32.9M-pixel extent; disk-backed cache stays bounded.
+  TileSurface image(4703,7000,0,1024*1024);
+  for(int y=0;y<7000;y+=256) {
+    int rows=std::min(256,7000-y);
     // The public region cap requires narrower strips at this width.
-    for(int x=0;x<6067;x+=2048) {
-      int cols=std::min(2048,6067-x);
+    for(int x=0;x<4703;x+=2048) {
+      int cols=std::min(2048,4703-x);
       TileSurface::Pixels pixels(std::size_t(cols)*rows);
       for(int row=0;row<rows;++row)
         for(int col=0;col<cols;++col)
@@ -52,11 +52,11 @@ int main() {
       assert(image.cachedBytes()<=1024*1024);
     }
   }
-  assert(image.readRegion(6066,9029,1,1)[0]==(0xFF000000u|(9029<<12)|6066));
+  assert(image.readRegion(4702,6999,1,1)[0]==(0xFF000000u|(6999<<12)|4702));
   image.clear(0);
-  assert(image.allocatedTiles()==0 && image.readRegion(6066,9029,1,1)[0]==0);
+  assert(image.allocatedTiles()==0 && image.readRegion(4702,6999,1,1)[0]==0);
   invalid=false;
-  try { TileSurface tooLarge(10001,10000); }
+  try { TileSurface tooLarge(7001,7000); }
   catch (const std::invalid_argument&) { invalid=true; }
   assert(invalid);
   std::cout << "Tiled canvas storage tests passed\n";

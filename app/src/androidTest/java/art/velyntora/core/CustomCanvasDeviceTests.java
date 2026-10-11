@@ -63,13 +63,13 @@ public final class CustomCanvasDeviceTests {
       DrawingView v=activity.readDrawing();assertTrue(v.newDocument(3840,2160));
       assertEquals(3840,v.documentWidth());assertEquals(2160,v.documentHeight());assertTrue(v.readBitmap().getWidth()<=3840);
       assertEquals(0xffffffff,DrawingView.nativeRegionPixels(3839,2159,1,1)[0]);
-      assertFalse(v.newDocument(10001,10000));assertFalse(v.newDocument(10001,1));assertEquals(3840,v.documentWidth());
+      assertFalse(v.newDocument(7001,7000));assertFalse(v.newDocument(7001,1));assertEquals(3840,v.documentWidth());
     });
   }
   @Test public void tenThousandBoundaryKeepsLayersSparseAndUndoExact(){
     inst.runOnMainSync(()->{
-      DrawingView v=activity.readDrawing();assertTrue(v.newDocument(10000,10000));
-      assertEquals(10000,v.documentWidth());assertEquals(10000,v.documentHeight());
+      DrawingView v=activity.readDrawing();assertTrue(v.newDocument(7000,7000));
+      assertEquals(7000,v.documentWidth());assertEquals(7000,v.documentHeight());
       assertTrue((long)v.readBitmap().getWidth()*v.readBitmap().getHeight()<=1048576);
       assertTrue(v.readBitmap().isMutable());
       for(int i=0;i<31;i++)assertTrue(v.addLayer());
@@ -79,7 +79,7 @@ public final class CustomCanvasDeviceTests {
       assertEquals(0xff123456,DrawingView.nativeRegionPixels(5000,5000,1,1)[0]);
       assertTrue(DrawingView.nativeUndo());assertEquals(0xffffffff,DrawingView.nativeRegionPixels(5000,5000,1,1)[0]);
       assertTrue(DrawingView.nativeRedo());assertEquals(0xff123456,DrawingView.nativeRegionPixels(5000,5000,1,1)[0]);
-      assertFalse(v.newDocument(10001,10000));assertEquals(10000,v.documentWidth());
+      assertFalse(v.newDocument(7001,7000));assertEquals(7000,v.documentWidth());
       assertTrue(v.newDocument(64,64));
     });
   }

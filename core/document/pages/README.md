@@ -1,6 +1,6 @@
 # Paged document pixels
 
-The document limit is **10,000 × 10,000 pixels**. Canvas and layers use the same
+The document limit is **7,000 × 7,000 pixels**. Canvas and layers use the same
 4096-pixel immutable/COW page representation. Blank layers store their background
 color without allocating an image. The shared resident cache is limited to 16 MiB;
 evicted pages use unlinked session files, segmented at 32 MiB so abandoned pages
@@ -12,7 +12,7 @@ and paged intermediate values instead of full-document ARGB/float buffers.
 
 JPEG and generic Android image import decode bounded regions. Noninterlaced RGB
 and RGBA PNG import without custom color profiles uses a single inflater stream and bounded stripes. PNG color profiles and nonstandard gamma use the Android decoder. Imported
-coordinates and EXIF orientation remain at original resolution. The display uses
+coordinates and EXIF orientation remain at original resolution within the limit. Oversized images require explicit confirmation and are proportionally filtered into bounded stripes. The display uses
 native sampled tiles and a bounded preview; that preview is not document data.
 PNG, BMP, TGA, TIFF, GIF and PPM export read original-resolution native rows.
 Bitmap-based codecs and dense selection masks still have higher transient memory

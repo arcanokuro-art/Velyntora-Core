@@ -12,7 +12,7 @@ import org.junit.Test;
 
 /** Exercises the actual file importer, rather than a blank document of similar dimensions. */
 public final class LargeImportResponsivenessTests {
-  @Test public void originalDimensionsImportAndLayerOperationsKeepMainThreadResponsive() throws Exception {
+  @Test public void confirmedReductionAndLayerOperationsKeepMainThreadResponsive() throws Exception {
     Instrumentation inst=InstrumentationRegistry.getInstrumentation();
     MainActivity host=(MainActivity)inst.startActivitySync(new Intent(inst.getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
     File input=new File(host.getCacheDir(),"original-6067x9030.png");
@@ -21,11 +21,21 @@ public final class LargeImportResponsivenessTests {
       inst.runOnMainSync(()->host.importImage(Uri.fromFile(input)));
       waitResponsive(inst,host);
       inst.runOnMainSync(()->{
+        android.app.AlertDialog dialog=host.readImportConfirmation();assertNotNull(dialog);
+        android.widget.TextView message=dialog.findViewById(android.R.id.message);
+        assertTrue(message.getText().toString().contains("4703 × 7000"));
+        dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick();
+      });
+      waitResponsive(inst,host);
+      inst.runOnMainSync(()->{
         DrawingView view=host.readDrawing();
-        assertEquals(6067,view.documentWidth());assertEquals(9030,view.documentHeight());
+        assertEquals(4703,view.documentWidth());assertEquals(7000,view.documentHeight());
         assertTrue((long)view.readBitmap().getWidth()*view.readBitmap().getHeight()<=1048576);
         assertTrue(view.isEnabled());assertEquals(1,view.layerCount());
-        assertEquals(0xff000078 | ((1500/32)&255)<<16 | ((2200/32)&255)<<8,DrawingView.nativeRegionPixels(1500,2200,1,1)[0]);
+        int color=DrawingView.nativeRegionPixels(1000,1700,1,1)[0];
+        assertEquals(255,color>>>24);assertEquals(120,color&255);
+        assertTrue(Math.abs(((color>>16)&255)-(int)(1000*6067.0/4703/32))<=1);
+        assertTrue(Math.abs(((color>>8)&255)-(int)(1700*9030.0/7000/32))<=1);
         view.configureBrush(1,1,false,false);view.setTool(DrawingView.BRUSH);view.setColor(0xff123456);view.setBrushRadius(12);view.setToolOpacityPercent(100);
         for(int stroke=0;stroke<3;stroke++){
           long time=SystemClock.uptimeMillis();
@@ -35,7 +45,7 @@ public final class LargeImportResponsivenessTests {
           }
           assertTrue("Repeated stroke blocked the UI",SystemClock.uptimeMillis()-time<1500);
         }
-        assertEquals(0xff123456,DrawingView.nativeRegionPixels(3033,4515,1,1)[0]);
+        assertEquals(0xff123456,DrawingView.nativeRegionPixels(2351,3500,1,1)[0]);
 
       });
       ContinuousFrameProbe.stroke(inst,host);
@@ -52,6 +62,43 @@ public final class LargeImportResponsivenessTests {
       waitResponsive(inst,host);
       inst.runOnMainSync(()->{host.readDrawing().newDocument(64,64);host.finish();});input.delete();
     }
+  }
+  @Test public void cancellingOversizedImportPreservesDocument() throws Exception {
+    Instrumentation inst=InstrumentationRegistry.getInstrumentation();
+    MainActivity host=(MainActivity)inst.startActivitySync(new Intent(inst.getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+    File input=new File(host.getCacheDir(),"oversized-cancel.png");
+    try {
+      png(input,7001,2);
+      inst.runOnMainSync(()->{assertTrue(host.readDrawing().newDocument(37,29));host.importImage(Uri.fromFile(input));});
+      waitResponsive(inst,host);
+      inst.runOnMainSync(()->{
+        android.app.AlertDialog dialog=host.readImportConfirmation();assertNotNull(dialog);
+        assertEquals(37,DrawingView.nativeWidth());assertEquals(29,DrawingView.nativeHeight());
+        dialog.getButton(android.content.DialogInterface.BUTTON_NEGATIVE).performClick();
+        assertEquals(37,host.readDrawing().documentWidth());assertEquals(29,host.readDrawing().documentHeight());
+        assertTrue(host.readDrawing().isEnabled());assertNull(host.readProjectProgress());
+      });
+    }finally{inst.runOnMainSync(host::finish);input.delete();}
+  }
+  @Test public void oversizedJpegUsesConfirmedRegionReduction() throws Exception {
+    Instrumentation inst=InstrumentationRegistry.getInstrumentation();
+    MainActivity host=(MainActivity)inst.startActivitySync(new Intent(inst.getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+    File input=new File(host.getCacheDir(),"oversized-region.jpg");
+    try {
+      android.graphics.Bitmap bitmap=android.graphics.Bitmap.createBitmap(7001,17,android.graphics.Bitmap.Config.ARGB_8888);
+      try(OutputStream out=new FileOutputStream(input)){bitmap.eraseColor(0xff239751);assertTrue(bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG,100,out));}finally{bitmap.recycle();}
+      inst.runOnMainSync(()->host.importImage(Uri.fromFile(input)));waitResponsive(inst,host);
+      inst.runOnMainSync(()->{android.app.AlertDialog dialog=host.readImportConfirmation();assertNotNull(dialog);dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick();});
+      waitResponsive(inst,host);
+      inst.runOnMainSync(()->{
+        assertEquals(7000,host.readDrawing().documentWidth());assertEquals(17,host.readDrawing().documentHeight());
+        for(int x:new int[]{0,3500,6999}){
+          int color=DrawingView.nativeRegionPixels(x,8,1,1)[0];
+          assertEquals(255,color>>>24);assertTrue(Math.abs(((color>>16)&255)-35)<=3);
+          assertTrue(Math.abs(((color>>8)&255)-151)<=3);assertTrue(Math.abs((color&255)-81)<=3);
+        }
+      });
+    }finally{waitResponsive(inst,host);inst.runOnMainSync(()->{host.readDrawing().newDocument(64,64);host.finish();});input.delete();}
   }
   static void waitResponsive(Instrumentation inst,MainActivity host) throws Exception {
     long deadline=SystemClock.uptimeMillis()+60000;boolean[] busy={true};int heartbeats=0;long worst=0;

@@ -29,14 +29,19 @@ final class PngStripeImporter {
     }
     void finish()throws IOException{byte[] bytes=new byte[8192];while(read(bytes)>=0){} }
   }
-  static boolean load(InputStream input,int orientation)throws IOException{
+  static boolean load(InputStream input,int orientation)throws IOException{return load(input,orientation,null);}
+  static boolean load(InputStream input,int orientation,ImageImportSize plan)throws IOException{
     DataInputStream in=new DataInputStream(new BufferedInputStream(input));
     if(in.readLong()!=0x89504e470d0a1a0aL)return false;
     if(in.readInt()!=13 || in.readInt()!=0x49484452)return false;
     int width=in.readInt(),height=in.readInt(),depth=in.readUnsignedByte(),type=in.readUnsignedByte();
     int compression=in.readUnsignedByte(),filter=in.readUnsignedByte(),interlace=in.readUnsignedByte();in.readInt();
     if(depth!=8 || (type!=2 && type!=6) || compression!=0 || filter!=0 || interlace!=0)return false;
-    if(!CanvasLimits.accepts(width,height))throw new IOException("El límite es 10.000 × 10.000 px");
+    if(width<=0 || height<=0 || width>1048576)throw new IOException("Dimensiones PNG no compatibles");
+    if(plan==null && !CanvasLimits.accepts(width,height))throw new IOException("El límite es 7.000 × 7.000 px");
+    if(plan!=null && (width!=plan.sourceWidth || height!=plan.sourceHeight))throw new IOException("La imagen cambió durante la importación");
+    boolean reduced=plan!=null && plan.reduced();
+    int outputWidth=reduced?plan.width:width,outputHeight=reduced?plan.height:height;
     int size;
     while(true){size=in.readInt();int kind=in.readInt();if(size<0)throw new IOException("Chunk PNG inválido");
       if(kind==IDAT)break;
@@ -46,12 +51,13 @@ final class PngStripeImporter {
       if(kind==IEND)throw new IOException("PNG sin píxeles");skip(in,size+4L);
     }
     boolean rotated=orientation>=5;
-    if(!DrawingView.nativeBeginImageImport(rotated?height:width,rotated?width:height))throw new IOException("No se pudo preparar el documento");
+    if(!DrawingView.nativeBeginImageImport(rotated?outputHeight:outputWidth,rotated?outputWidth:outputHeight))throw new IOException("No se pudo preparar el documento");
     Idat idat=new Idat(in,size);Inflater inflater=new Inflater();
     try {
       DataInputStream pixels=new DataInputStream(new InflaterInputStream(idat,inflater,65536));
       int bpp=type==2?3:4,stride=width*bpp,rows=Math.max(1,Math.min(256,1048576/width));
       byte[] previous=new byte[stride],current=new byte[stride];int[] stripe=new int[width*rows];
+      PngReducedRows reducer=reduced?new PngReducedRows(plan):null;
       for(int top=0;top<height;top+=rows){int count=Math.min(rows,height-top);
         for(int y=0;y<count;y++){
           int mode=pixels.readUnsignedByte();if(mode>4)throw new IOException("Filtro PNG inválido");pixels.readFully(current);
@@ -62,10 +68,12 @@ final class PngStripeImporter {
             current[at]=(byte)((current[at]&255)+value);
           }
           for(int x=0;x<width;x++){int at=x*bpp;stripe[y*width+x]=(type==6?(current[at+3]&255)<<24:0xff000000)|(current[at]&255)<<16|(current[at+1]&255)<<8|(current[at+2]&255);}
+          if(reducer!=null)reducer.row(top+y,stripe,y*width);
           byte[] swap=previous;previous=current;current=swap;
         }
-        ImageImportStripe.write(width,height,orientation,top,count,stripe);
+        if(reducer==null)ImageImportStripe.write(width,height,orientation,top,count,stripe);
       }
+      if(reducer!=null)reducer.finish();
       if(pixels.read()!=-1)throw new IOException("PNG contiene datos adicionales");idat.finish();
       if(!DrawingView.nativeFinishImageImport())throw new IOException("No se pudo instalar el documento");
       return true;

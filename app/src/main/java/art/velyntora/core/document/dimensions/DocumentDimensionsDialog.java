@@ -81,7 +81,7 @@ final class DocumentDimensionsDialog {
     form.addView(width);
     form.addView(host.text("Alto (px)"));
     form.addView(height);
-    form.addView(host.text("Límite: 10000 px por lado y 100 millones de píxeles en total."));
+    form.addView(host.text("Límite: 7000 px por lado y 49 millones de píxeles en total."));
     final int originalWidth = host.readDrawing().documentWidth(), originalHeight = host.readDrawing().documentHeight();
     final int[] ratio = {originalWidth, originalHeight}, lastEdited = {0};
     final boolean[] updating = {false};

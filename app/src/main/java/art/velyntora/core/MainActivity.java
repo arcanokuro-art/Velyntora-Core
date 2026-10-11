@@ -498,6 +498,8 @@ public final class MainActivity extends Activity {
     documentStorage.savePng();
   }
 
+  android.app.AlertDialog readImportConfirmation() { return documentStorage.importConfirmation(); }
+
   void importImage(Uri uri) {
     documentStorage.importImage(uri);
   }

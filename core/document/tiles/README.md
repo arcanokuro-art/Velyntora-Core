@@ -4,7 +4,7 @@ Rama `codex/large-canvas-12000`. No está conectado todavía con la aplicación 
 el límite de producción continúa en 16 millones de píxeles. No subir ese límite
 hasta completar y validar la integración.
 
-`TileSurface` admite 1–10000 píxeles por lado, bloques de 256 × 256, fondo
+`TileSurface` admite 1–7000 píxeles por lado, bloques de 256 × 256, fondo
 implícito y lecturas/escrituras de regiones de hasta 1048576 píxeles. Los bloques
 modificados se escriben en un archivo temporal privado. Caché LRU de 8 MiB por
 almacén; snapshots comparten registros inmutables y sólo reemplazan bloques
@@ -27,5 +27,5 @@ No distribuir esta base como soporte completo de lienzos grandes.
 al escribir. `StrokeTiles` sustituye los buffers completos de opacidad por bloques
 tocados. El final de un gesto continuo sólo refresca su región. Las capas admiten
 hasta 32 entradas; el proyecto v2 conserva la representación de píxeles existente.
-El lienzo activo y el Bitmap Android todavía son completos: abrir 10000 × 10000
+El lienzo activo y el Bitmap Android todavía son completos: abrir imágenes grandes
 a resolución original sigue pendiente y no debe anunciarse como implementado.
