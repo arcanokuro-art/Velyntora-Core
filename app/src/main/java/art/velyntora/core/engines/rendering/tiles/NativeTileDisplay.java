@@ -13,7 +13,9 @@ final class NativeTileDisplay implements CanvasTileDisplay {
   private final int width,height,overviewSample;
   private final Bitmap overview;
   private final LinkedHashMap<Key,Tile> cache=new LinkedHashMap<>(16,.75f,true);
-  private final Set<Key> pending=new HashSet<>(),dirtyKeys=new HashSet<>();
+  private final Set<Key> dirtyKeys=new HashSet<>();
+  private List<Key> wanted=List.of();
+  private boolean refinementPending;
   private final ExecutorService worker=Executors.newSingleThreadExecutor();
   private final Handler ui=new Handler(Looper.getMainLooper());
   private final Paint paint=new Paint(Paint.FILTER_BITMAP_FLAG);
@@ -60,40 +62,66 @@ final class NativeTileDisplay implements CanvasTileDisplay {
       Key key=new Key(chosen,x,y);put(key,create(key));
     }
   }
-  private void request(Key key){
-    if(closed || !pending.add(key))return;long version=generation;
+  private List<Key> keys(int sample,Rect visible){
+    List<Key> result=new ArrayList<>();int span=sample*SIDE;
+    if(visible.isEmpty())return result;
+    for(int y=visible.top/span;y*span<visible.bottom;y++)for(int x=visible.left/span;x*span<visible.right;x++)result.add(new Key(sample,x,y));
+    return result;
+  }
+  private boolean complete(List<Key> keys){
+    if(keys.size()>CAPACITY)return false;
+    for(Key key:keys)if(!cache.containsKey(key))return false;
+    return true;
+  }
+  private void requestVisible(List<Key> keys){
+    wanted=keys;
+    if(closed || refinementPending)return;
+    List<Key> missing=new ArrayList<>();
+    for(Key key:keys)if(!cache.containsKey(key)||dirtyKeys.contains(key))missing.add(key);
+    if(missing.isEmpty())return;
+    refinementPending=true;long version=generation;
+    List<Key> requested=List.copyOf(keys);
     worker.execute(()->{
-      Tile result=null;try{result=create(key);}catch(RuntimeException|OutOfMemoryError ignored){}
-      Tile completed=result;
+      Map<Key,Tile> results=new LinkedHashMap<>();boolean succeeded=true;
+      try{for(Key key:missing)results.put(key,create(key));}
+      catch(RuntimeException|OutOfMemoryError error){succeeded=false;}
+      boolean ready=succeeded;
       ui.post(()->{
-        pending.remove(key);
-        if(completed==null)return;
-        if(closed || generation!=version){completed.bitmap.recycle();if(!closed && redraw!=null)redraw.run();return;}
-        put(key,completed);dirtyKeys.remove(key);if(redraw!=null)redraw.run();
+        refinementPending=false;
+        if(!closed && version==generation && ready && wanted.equals(requested)){
+          // Protect reused visible tiles from LRU eviction while installing the batch.
+          for(Key key:requested)cache.get(key);
+          for(var entry:results.entrySet()){put(entry.getKey(),entry.getValue());dirtyKeys.remove(entry.getKey());}
+        }else for(Tile tile:results.values())tile.bitmap.recycle();
+        if(!closed){
+          if(redraw!=null)redraw.run();
+          if(version!=generation || !wanted.equals(requested))requestVisible(wanted);
+        }
       });
     });
   }
   public void draw(Canvas canvas,float scale){
-    if(closed)return;int chosen=sample(scale),span=chosen*SIDE;Rect clip=canvas.getClipBounds();
-    int left=Math.max(0,clip.left),top=Math.max(0,clip.top),right=Math.min(width,clip.right),bottom=Math.min(height,clip.bottom);
+    if(closed)return;
+    Rect clip=canvas.getClipBounds();
+    Rect visible=new Rect(Math.max(0,clip.left),Math.max(0,clip.top),Math.min(width,clip.right),Math.min(height,clip.bottom));
+    if(visible.isEmpty())return;
+    int chosen=sample(scale);
+    List<Key> desired=keys(chosen,visible);
+    while(chosen<overviewSample && desired.size()>CAPACITY){chosen*=2;desired=keys(chosen,visible);}
+    // A frame uses one complete resolution across the visible document. Reuse finer
+    // cached pixels on zoom-out instead of dropping immediately to the overview.
+    List<Key> ready=null;
+    for(int level=1;level<overviewSample;level*=2){
+      List<Key> candidates=keys(level,visible);
+      if(complete(candidates)){ready=candidates;break;}
+    }
     paint.setFilterBitmap(scale<1);
-    // SRC inside an isolated layer avoids double alpha at overlapping gutters.
     int layer=canvas.saveLayer(null,null);
     canvas.drawBitmap(overview,null,new Rect(0,0,overview.getWidth()*overviewSample,overview.getHeight()*overviewSample),paint);
-    // Retain prepared coarser detail on unusually wide/rotated viewports.
-    for(int coarse=overviewSample/2;coarse>chosen;coarse/=2){
-      int coarseSpan=coarse*SIDE;
-      for(int y=top/coarseSpan;y*coarseSpan<bottom;y++)for(int x=left/coarseSpan;x*coarseSpan<right;x++){
-        Tile tile=cache.get(new Key(coarse,x,y));
-        if(tile!=null)canvas.drawBitmap(tile.bitmap,null,tile.bounds,paint);
-      }
-    }
-    if(chosen<overviewSample)for(int y=top/span;y*span<bottom;y++)for(int x=left/span;x*span<right;x++){
-      Key key=new Key(chosen,x,y);Tile tile=cache.get(key);
-      if(tile!=null){canvas.drawBitmap(tile.bitmap,null,tile.bounds,paint);if(dirtyKeys.contains(key))request(key);}
-      else request(key);
-    }
+    if(ready!=null)for(Key key:ready){Tile tile=cache.get(key);canvas.drawBitmap(tile.bitmap,null,tile.bounds,paint);}
     canvas.restoreToCount(layer);
+    if(ready!=null && !ready.isEmpty() && ready.get(0).sample<=chosen)desired=ready;
+    if(chosen<overviewSample)requestVisible(desired);else wanted=List.of();
   }
 
   public void invalidate(int left,int top,int w,int h){

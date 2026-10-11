@@ -8,6 +8,43 @@ import org.junit.Test;
 
 /** Cold native tile caches must never expose artificial checkerboard gaps. */
 public final class NativeRenderingDeviceTests {
+  @Test public void navigationNeverMixesPartialDetailAndRetainsSharpZoomOut() throws Exception {
+    Instrumentation inst=InstrumentationRegistry.getInstrumentation();
+    MainActivity host=(MainActivity)inst.startActivitySync(new Intent(inst.getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+    try {
+      inst.runOnMainSync(()->{
+        assertTrue(host.readDrawing().newDocument(6000,6000));
+        DrawingView.nativeBeginEdit();
+        for(int x=2650;x<3350;x+=17)DrawingView.nativeStroke(x,2650,x+100,3350,1,0xff112233);
+      });
+      CanvasRendering.Frame partial=CanvasRendering.prepareFrame(.8f,new Rect(2990,2990,3010,3010));
+      Bitmap actual=Bitmap.createBitmap(512,512,Bitmap.Config.ARGB_8888),expected=Bitmap.createBitmap(512,512,Bitmap.Config.ARGB_8888);
+      try {
+        inst.runOnMainSync(()->{
+          Canvas a=new Canvas(actual),e=new Canvas(expected);
+          for(Canvas c:new Canvas[]{a,e}){c.translate(256,256);c.rotate(-28);c.scale(.8f,.8f);c.translate(-3000,-3000);}
+          partial.display.draw(a,.8f);
+          Paint paint=new Paint(Paint.FILTER_BITMAP_FLAG);
+          e.drawBitmap(partial.bitmap,null,new Rect(0,0,partial.bitmap.getWidth()*8,partial.bitmap.getHeight()*8),paint);
+          int[] ap=new int[512*512],ep=new int[ap.length];actual.getPixels(ap,0,512,0,0,512,512);expected.getPixels(ep,0,512,0,0,512,512);
+          assertArrayEquals("Partial sharp blocks were exposed",ep,ap);
+        });
+      }finally{inst.runOnMainSync(partial::dispose);actual.recycle();expected.recycle();}
+      CanvasRendering.Frame sharp=CanvasRendering.prepareFrame(4f,new Rect(2600,2600,3400,3400));
+      Bitmap output=Bitmap.createBitmap(128,128,Bitmap.Config.ARGB_8888),reference=Bitmap.createBitmap(128,128,Bitmap.Config.ARGB_8888);
+      Bitmap source=Bitmap.createBitmap(DrawingView.nativeSampleRegion(2600,2600,1,800,800),800,800,Bitmap.Config.ARGB_8888);
+      try {
+        inst.runOnMainSync(()->{
+          Canvas a=new Canvas(output),e=new Canvas(reference);
+          for(Canvas c:new Canvas[]{a,e}){c.translate(64,64);c.rotate(-28);c.scale(.49f,.49f);c.translate(-3000,-3000);}
+          sharp.display.draw(a,.49f);
+          e.drawBitmap(source,null,new Rect(2600,2600,3400,3400),new Paint(Paint.FILTER_BITMAP_FLAG));
+          int[] ap=new int[128*128],ep=new int[ap.length];output.getPixels(ap,0,128,0,0,128,128);reference.getPixels(ep,0,128,0,0,128,128);
+          assertArrayEquals("Zoom-out discarded existing sharp detail",ep,ap);
+        });
+      }finally{inst.runOnMainSync(sharp::dispose);source.recycle();output.recycle();reference.recycle();}
+    }finally{inst.runOnMainSync(()->{host.readDrawing().newDocument(64,64);host.finish();});}
+  }
   @Test public void preparedHistoryFrameIsSharpOnItsFirstDraw() throws Exception {
     Instrumentation inst=InstrumentationRegistry.getInstrumentation();
     MainActivity host=(MainActivity)inst.startActivitySync(new Intent(inst.getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
