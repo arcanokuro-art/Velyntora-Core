@@ -1,0 +1,59 @@
+name: Publish experimental performance APK
+on:
+  push:
+    branches: [codex/large-canvas-12000]
+    paths: [.github/workflows/publish-large-canvas-preview.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: experimental-large-canvas-preview
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      VERIFIED_SHA: 19f1fbc855d12c5cf33e5e0a83808d10512167ce
+      RELEASE_TAG: v0.1.0-large-canvas-performance-preview
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require exact experimental source checks
+        run: |
+          set -euo pipefail
+          for run_id in 38115148476 38115148457 38115148461 38115148454; do
+            for attempt in $(seq 1 85); do
+              gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
+              jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "codex/large-canvas-12000"' run.json
+              if jq -e '.status == "completed"' run.json >/dev/null; then
+                jq -e '.conclusion == "success"' run.json
+                break
+              fi
+              test "$attempt" -lt 85
+              sleep 20
+            done
+          done
+      - name: Download verified APK
+        run: |
+          set -euo pipefail
+          gh run download 38115148476 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
+          cp apk/*.apk Velyntora-Core-Rendimiento-Experimental.apk
+          sha256sum Velyntora-Core-Rendimiento-Experimental.apk > Velyntora-Core-Rendimiento-Experimental.apk.sha256
+      - name: Publish experimental prerelease
+        run: |
+          set -euo pipefail
+          cat > notes.md <<'NOTES'
+          Prueba experimental de rendimiento; main y la versión estable permanecen intactas.
+          Capas con bloques dispersos y copia al escribir; fondos uniformes sin buffers completos; snapshots comparten bloques intactos. Opacidad de trazos con buffers sólo para bloques tocados. Al terminar trazos continuos se actualiza únicamente su región.
+          Hasta 32 capas dentro del tamaño de documento vigente; elimina el límite lógico de 24M entre capas y conserva el formato v2 de proyecto. Prueba Android de trazos repetidos, cuatro capas, undo/redo y guardado/reapertura en 3034 × 4515, además de las regresiones existentes.
+          IMPORTANTE: el lienzo activo y el Bitmap de pantalla todavía son completos. El límite del documento continúa en 16 millones de píxeles y 8192 por lado; las imágenes mayores siguen siendo reducidas al importar. Este APK todavía NO implementa apertura o creación de 10000 × 10000 a resolución original. No integrar a main sin revisión del usuario.
+          APK debug del commit 19f1fbc855d12c5cf33e5e0a83808d10512167ce, publicado sólo tras aprobar núcleo, almacenamiento, compilación y Android. SHA256 adjunta.
+          NOTES
+          if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$VERIFIED_SHA" --title "Velyntora Core — rendimiento experimental" --notes-file notes.md --prerelease
+          fi
+          gh release upload "$RELEASE_TAG" Velyntora-Core-Rendimiento-Experimental.apk Velyntora-Core-Rendimiento-Experimental.apk.sha256 --repo "$GH_REPO" --clobber
