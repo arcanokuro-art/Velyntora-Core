@@ -1027,6 +1027,7 @@ public final class DrawingView extends View {
     canvasRendering.finishStrokeRefresh();
   }
   void drawCanvasPixels(Canvas canvas){canvasRendering.drawPixels(canvas);}
+  NativeTileDisplay.Preparation captureCanvasDetail(){return canvasRendering.captureDetail();}
   void installCanvasFrame(CanvasRendering.Frame frame){canvasRendering.installFrame(frame);}
   void importedFrameReady(CanvasRendering.Frame frame){
     resetDocumentTools();deselect();installCanvasFrame(frame);fitCanvas();

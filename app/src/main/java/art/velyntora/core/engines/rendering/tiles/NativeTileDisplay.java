@@ -49,23 +49,23 @@ final class NativeTileDisplay implements CanvasTileDisplay {
     while(cache.size()>CAPACITY){Iterator<Map.Entry<Key,Tile>> it=cache.entrySet().iterator();Tile discarded=it.next().getValue();it.remove();discarded.bitmap.recycle();}
   }
   public void warm(float scale){ /* The prepared overview already covers the entire document. */ }
+  record Preparation(int sample,Rect bounds){}
+  Preparation preparation(){
+    if(detail==null || detailKeys.isEmpty())return null;
+    return new Preparation(detailKeys.get(0).sample,new Rect(detailBounds));
+  }
   /** Worker-only preparation before this display is published to the UI. */
-  void warmVisible(float scale,Rect visible){
-    int chosen=sample(scale);
-    int left=Math.max(0,visible.left),top=Math.max(0,visible.top);
-    int right=Math.min(width,visible.right),bottom=Math.min(height,visible.bottom);
-    if(left>=right || top>=bottom)return;
-    while(chosen<overviewSample){
-      int span=chosen*SIDE;
-      long count=(long)((right-1)/span-left/span+1)*((bottom-1)/span-top/span+1);
-      if(count<=CAPACITY)break;
-      chosen*=2;
-    }
+  void warmVisible(float scale,Rect visible){warmVisible(sample(scale),visible);}
+  void warmVisible(Preparation plan){warmVisible(plan.sample,new Rect(plan.bounds));}
+  private void warmVisible(int chosen,Rect visible){
+    Rect bounds=new Rect(Math.max(0,visible.left),Math.max(0,visible.top),Math.min(width,visible.right),Math.min(height,visible.bottom));
+    if(bounds.isEmpty())return;
+    List<Key> prepared=keys(chosen,bounds);
+    while(chosen<overviewSample && prepared.size()>CAPACITY){chosen*=2;prepared=keys(chosen,bounds);}
     if(chosen>=overviewSample)return;
-    int span=chosen*SIDE;
-    for(int y=top/span;y*span<bottom;y++)for(int x=left/span;x*span<right;x++){
-      Key key=new Key(chosen,x,y);put(key,create(key));
-    }
+    for(Key key:prepared)put(key,create(key));
+    // Stage the exact resolution off the UI, including rotated viewport coverage.
+    compose(prepared);
   }
   private List<Key> keys(int sample,Rect visible){
     List<Key> result=new ArrayList<>();int span=sample*SIDE;
@@ -106,7 +106,7 @@ final class NativeTileDisplay implements CanvasTileDisplay {
     });
   }
   private void compose(List<Key> keys){
-    if(detail!=null && detailRevision==revision && detailKeys.equals(keys))return;
+    if(detail!=null && detailRevision==revision && detailKeys.containsAll(keys))return;
     Key first=keys.get(0),last=keys.get(keys.size()-1);int span=SIDE*first.sample;
     Rect bounds=new Rect(first.x*span,first.y*span,Math.min(width,(last.x+1)*span),Math.min(height,(last.y+1)*span));
     int w=(bounds.width()+first.sample-1)/first.sample,h=(bounds.height()+first.sample-1)/first.sample;

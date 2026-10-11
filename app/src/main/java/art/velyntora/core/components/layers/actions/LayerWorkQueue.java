@@ -9,6 +9,9 @@ final class LayerWorkQueue {
     run(host,operation,redraw,"Actualizando capas…","No se pudo completar la operación de capa",completed);
   }
   static void run(MainActivity host, BooleanSupplier operation, boolean redraw,String message,String failure,Runnable completed) {
+    run(host,operation,redraw,message,failure,completed,null);
+  }
+  static void run(MainActivity host,BooleanSupplier operation,boolean redraw,String message,String failure,Runnable completed,Runnable settled){
     if (host.readProjectProgress() != null) return;
     DrawingView drawing = host.readDrawing();
     drawing.confirmCurve();
@@ -23,12 +26,13 @@ final class LayerWorkQueue {
     ui.postDelayed(showProgress,250);
     float scale = (float)drawing.readViewport().scale;
     android.graphics.Rect visible=CanvasRendering.visibleBounds(drawing);
+    NativeTileDisplay.Preparation detail=drawing.captureCanvasDetail();
     new Thread(() -> {
       boolean result = false;
       CanvasRendering.Frame prepared = null;
       try {
         result = operation.getAsBoolean();
-        if (result && redraw) prepared = CanvasRendering.prepareFrame(scale,visible);
+        if (result && redraw) prepared = CanvasRendering.prepareFrame(scale,visible,detail);
       } catch (RuntimeException | OutOfMemoryError error) {
         result = false;
       }
@@ -49,7 +53,8 @@ final class LayerWorkQueue {
           drawing.setEnabled(true);
           if (!host.isDestroyed()) { host.refreshLayerPanel(); host.updateStatus(); }
         }
-        if (success && !host.isDestroyed() && completed != null) completed.run();
+        try{if (success && !host.isDestroyed() && completed != null) completed.run();}
+        finally{if(settled!=null)settled.run();}
       });
     }, "velyntora-layer-operation").start();
   }

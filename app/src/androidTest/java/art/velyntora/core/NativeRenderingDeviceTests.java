@@ -8,6 +8,61 @@ import org.junit.Test;
 
 /** Cold native tile caches must never expose artificial checkerboard gaps. */
 public final class NativeRenderingDeviceTests {
+  @Test public void rotatedHistoryPreservesMeasuredDetailAndRapidCommands() throws Exception {
+    Instrumentation inst=InstrumentationRegistry.getInstrumentation();
+    MainActivity host=(MainActivity)inst.startActivitySync(new Intent(inst.getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+    try {
+      inst.runOnMainSync(()->{
+        assertTrue(host.readDrawing().newDocument(4031,6000));DrawingView.nativeBeginEdit();
+        for(int x=1700;x<2200;x+=17)DrawingView.nativeStroke(x,1200,x+50,1700,1,0xff112233);
+      });
+      CanvasRendering.Frame before=CanvasRendering.prepareFrame(4f,new Rect(1200,800,2800,2400));
+      Bitmap baseline=Bitmap.createBitmap(512,320,Bitmap.Config.ARGB_8888),actual=Bitmap.createBitmap(512,320,Bitmap.Config.ARGB_8888);
+      Viewport viewport=new Viewport(4031,6000);viewport.scale=.49;viewport.angle=66.5;viewport.centerX=256;viewport.centerY=160;
+      viewport.centerX-=viewport.screenX(2000,1500)-256;viewport.centerY-=viewport.screenY(2000,1500)-160;
+      try {
+        Canvas base=new Canvas(baseline);transform(base,viewport);before.display.draw(base,.49f);
+        NativeTileDisplay.Preparation measured=((NativeTileDisplay)before.display).preparation();assertNotNull(measured);assertEquals(1,measured.sample());
+        DrawingView.nativeBeginEdit();DrawingView.nativeStroke(2000,1500,2000,1500,8,0xff000000);assertTrue(DrawingView.nativeUndo());
+        CanvasRendering.Frame restored=CanvasRendering.prepareFrame(.49f,new Rect(1200,800,2800,2400),measured);
+        try {
+          Canvas canvas=new Canvas(actual);transform(canvas,viewport);restored.display.draw(canvas,.49f);
+          int[] expected=new int[512*320],pixels=new int[expected.length];baseline.getPixels(expected,0,512,0,0,512,320);actual.getPixels(pixels,0,512,0,0,512,320);
+          assertArrayEquals("History reduced the measured resolution at 66.5 degrees",expected,pixels);
+        }finally{restored.dispose();}
+      }finally{before.dispose();baseline.recycle();actual.recycle();}
+      inst.runOnMainSync(()->{
+        for(int i=0;i<4;i++){DrawingView.nativeBeginEdit();DrawingView.nativeStroke(2400+i*20,2200,2400+i*20,2200,3,0xff000000);}
+        android.view.View undo=findCommand(host.getWindow().getDecorView(),"Deshacer");assertNotNull(undo);
+        for(int i=0;i<4;i++)undo.performClick();
+      });
+      waitMarkers(inst,host,false);
+      inst.runOnMainSync(()->{
+        android.view.View redo=findCommand(host.getWindow().getDecorView(),"Rehacer");assertNotNull(redo);
+        for(int i=0;i<4;i++)redo.performClick();
+      });
+      waitMarkers(inst,host,true);
+    }finally{LargeImportResponsivenessTests.waitResponsive(inst,host);inst.runOnMainSync(()->{host.readDrawing().newDocument(64,64);host.finish();});}
+  }
+  private static void transform(Canvas canvas,Viewport viewport){
+    canvas.translate((float)viewport.centerX,(float)viewport.centerY);canvas.rotate((float)viewport.angle);canvas.scale((float)viewport.scale,(float)viewport.scale);canvas.translate(-4031/2f,-6000/2f);canvas.clipRect(0,0,4031,6000);
+  }
+  private static android.view.View findCommand(android.view.View view,String label){
+    if(label.contentEquals(view.getContentDescription()==null?"":view.getContentDescription()))return view;
+    if(view instanceof android.view.ViewGroup group)for(int i=0;i<group.getChildCount();i++){android.view.View found=findCommand(group.getChildAt(i),label);if(found!=null)return found;}
+    return null;
+  }
+  private static void waitMarkers(Instrumentation inst,MainActivity host,boolean drawn) throws Exception {
+    long deadline=android.os.SystemClock.uptimeMillis()+30000;boolean[] ready={false};
+    while(!ready[0]){
+      inst.runOnMainSync(()->{
+        ready[0]=host.readProjectProgress()==null;
+        for(int i=0;i<4;i++)ready[0]&=(DrawingView.nativeRegionPixels(2400+i*20,2200,1,1)[0]==(drawn?0xff000000:0xffffffff));
+      });
+      assertTrue("Rapid history commands were dropped",android.os.SystemClock.uptimeMillis()<deadline);
+      if(!ready[0])Thread.sleep(40);
+    }
+  }
   @Test public void navigationNeverMixesPartialDetailAndRetainsSharpZoomOut() throws Exception {
     Instrumentation inst=InstrumentationRegistry.getInstrumentation();
     MainActivity host=(MainActivity)inst.startActivitySync(new Intent(inst.getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));

@@ -25,15 +25,29 @@ import java.io.OutputStream;
 /** Owns components/history behavior; the host is the workspace composition facade. */
 final class HistoryActions {
   private final MainActivity host;
+  private final java.util.ArrayDeque<Boolean> pending=new java.util.ArrayDeque<>();
+  private boolean running;
+  private void settled(){
+    running=false;
+    if(host.isDestroyed()){pending.clear();return;}
+    host.readDrawing().post(()->{
+      if(running || host.readProjectProgress()!=null)return;
+      if(!pending.isEmpty()){
+        boolean redo=pending.removeFirst();if(redo)redo();else undo();
+        if(!running)settled();
+      }
+    });
+  }
   HistoryActions(MainActivity host) { this.host = host; }
 
   void undo() {
     DrawingView drawing=host.readDrawing();
-    if(host.readProjectProgress()!=null)return;
+    if(host.readProjectProgress()!=null){if(running)pending.addLast(false);return;}
     if(drawing.curve!=null) {drawing.undo();host.refreshLayerPanel();return;}
     if((DrawingView.nativeHistoryAvailability()&1)==0)return;
     drawing.finishOpacityStroke();drawing.canceledCurve=null;drawing.curveHistory.clear();
     int tag=DrawingView.nativeCurveTag();
+    running=true;
     LayerWorkQueue.run(host,DrawingView::nativeUndo,true,"Deshaciendo…","No se pudo deshacer el cambio",()->{
       drawing.deselect();
       CurveSnapshot saved=drawing.savedCurves.get(tag);
@@ -45,19 +59,20 @@ final class HistoryActions {
         if(drawing.pickedColorListener!=null)drawing.pickedColorListener.accept(drawing.color);
       }
       drawing.viewportChanged();
-    });
+    },this::settled);
   }
 
   void redo() {
     DrawingView drawing=host.readDrawing();
-    if(host.readProjectProgress()!=null)return;
+    if(host.readProjectProgress()!=null){if(running)pending.addLast(true);return;}
     if(drawing.canceledCurve!=null || drawing.curve!=null) {
       drawing.redo();host.refreshLayerPanel();return;
     }
     if((DrawingView.nativeHistoryAvailability()&2)==0)return;
     drawing.finishOpacityStroke();
+    running=true;
     LayerWorkQueue.run(host,DrawingView::nativeRedo,true,"Rehaciendo…","No se pudo rehacer el cambio",()->{
       drawing.deselect();drawing.viewportChanged();
-    });
+    },this::settled);
   }
 }

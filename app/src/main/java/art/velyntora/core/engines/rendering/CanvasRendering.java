@@ -13,6 +13,14 @@ import android.view.View;
 final class CanvasRendering {
   private final DrawingView host;
   private CanvasTileDisplay display;
+  private double drawnScale,drawnAngle,drawnX,drawnY;
+  private int drawnWidth,drawnHeight;
+  NativeTileDisplay.Preparation captureDetail(){
+    Viewport v=host.readViewport();
+    if(display instanceof NativeTileDisplay tiled && drawnScale==v.scale && drawnAngle==v.angle
+        && drawnX==v.centerX && drawnY==v.centerY && drawnWidth==host.getWidth() && drawnHeight==host.getHeight())return tiled.preparation();
+    return null;
+  }
   CanvasRendering(DrawingView host) { this.host = host; }
   static final class Frame {
     final Bitmap bitmap;final CanvasTileDisplay display;final int width,height;
@@ -51,6 +59,12 @@ final class CanvasRendering {
       return frame;
     }catch(RuntimeException|OutOfMemoryError error){frame.dispose();throw error;}
   }
+  static Frame prepareFrame(float scale,Rect visible,NativeTileDisplay.Preparation detail){
+    if(detail==null)return prepareFrame(scale,visible);
+    Frame frame=prepareFrame(scale);
+    try{if(frame.display instanceof NativeTileDisplay tiled)tiled.warmVisible(detail);return frame;}
+    catch(RuntimeException|OutOfMemoryError error){frame.dispose();throw error;}
+  }
   void installFrame(Frame frame){
     host.removeCallbacks(host.readStrokeRefresh());host.writeStrokeRefreshPending(false);
     if(display!=null)display.clear();
@@ -68,6 +82,8 @@ final class CanvasRendering {
       if(display instanceof NativeTileDisplay tiled)tiled.redraw(host::invalidate);
     }
     display.draw(canvas,(float)host.readViewport().scale);
+    Viewport v=host.readViewport();drawnScale=v.scale;drawnAngle=v.angle;drawnX=v.centerX;drawnY=v.centerY;
+    drawnWidth=host.getWidth();drawnHeight=host.getHeight();
   }
 
   void noteStrokeBounds(float x0,float y0,float x1,float y1,float radius) {
