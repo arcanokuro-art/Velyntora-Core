@@ -29,6 +29,7 @@ final class CommandBar {
 
   void create(LinearLayout root) {
     LinearLayout header = host.row();
+    host.iconButton(header, "Menú principal", "menu", host::openMainMenu);
     LinearLayout commands = host.row();
     host.iconButton(commands, "Nuevo", "new", () -> host.protectDocument(() -> host.configureDimensions(0)));
     host.iconButton(commands, "Abrir", "open", host::openImage);
@@ -46,7 +47,6 @@ final class CommandBar {
     header.addView(host.readDocumentTitle(), new LinearLayout.LayoutParams(0, host.dp(48), 1));
     host.iconButton(header, "Herramientas", "tools", () -> host.togglePanel(host.readToolScroll()));
     host.iconButton(header, "Capas", "layers", () -> host.togglePanel(host.readLayerScroll()));
-    host.iconButton(header, "Menú principal", "menu", host::openMainMenu);
     root.addView(header);
 
   }
