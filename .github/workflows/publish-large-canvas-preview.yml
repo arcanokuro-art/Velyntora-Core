@@ -17,14 +17,14 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: 79598ea3ab705103049a5682b51f802edf561847
+      VERIFIED_SHA: 340d4c61e808628edf99a05439949ff4591ffbfd
       RELEASE_TAG: v0.1.0-responsive-import-preview
     steps:
       - uses: actions/checkout@v4
       - name: Require exact experimental source checks
         run: |
           set -euo pipefail
-          for run_id in 38117139620 38117139624 38117139633 38117139638; do
+          for run_id in 38117542144 38117542262 38117542189 38117542210; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "codex/large-canvas-12000"' run.json
@@ -39,7 +39,7 @@ jobs:
       - name: Download verified APK
         run: |
           set -euo pipefail
-          gh run download 38117139620 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 38117542144 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
           cp apk/*.apk Velyntora-Core-Importacion-Fluida-Experimental.apk
           sha256sum Velyntora-Core-Importacion-Fluida-Experimental.apk > Velyntora-Core-Importacion-Fluida-Experimental.apk.sha256
@@ -49,10 +49,11 @@ jobs:
           cat > notes.md <<'NOTES'
           Prueba experimental de rendimiento; main y la versión estable permanecen intactas.
           Decodificación, extracción de píxeles y transferencia JNI de imágenes fuera del hilo de interfaz. El diálogo permanece hasta instalar el documento terminado. Composición y acciones del panel de capas en trabajador serializado. Seleccionar o añadir una capa transparente reutiliza la imagen visible.
+          Importación y actualización de capas por bloques completos, con reutilización de páginas sin cambios y lectura por tramos; evita buscar cada píxel individualmente en el mapa de bloques.
           Presentación mediante texturas de 256px con caché limitada, niveles según zoom y márgenes contra costuras; los trazos invalidan sólo las texturas afectadas. Motor nativo compilado con optimización O2. Geometría y archivos de herramientas protegidas intactos.
           Prueba del importador con archivo real de 6067 × 9030, latidos de interfaz durante carga y acciones de capas, trazos repetidos y exactitud de píxeles entre texturas. Regresiones Android con fuentes 1.0 y 1.8.
           IMPORTANTE: el lienzo activo y el Bitmap de pantalla todavía son completos. El límite del documento continúa en 16 millones de píxeles y 8192 por lado; las imágenes mayores siguen siendo reducidas al importar. Este APK todavía NO implementa apertura o creación de 10000 × 10000 a resolución original. No integrar a main sin revisión del usuario.
-          APK debug del commit 79598ea3ab705103049a5682b51f802edf561847, publicado sólo tras aprobar núcleo, almacenamiento, compilación y Android. SHA256 adjunta.
+          APK debug del commit 340d4c61e808628edf99a05439949ff4591ffbfd, publicado sólo tras aprobar núcleo, almacenamiento, compilación y Android. SHA256 adjunta.
           NOTES
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
             gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$VERIFIED_SHA" --title "Velyntora Core — importación y capas experimental" --notes-file notes.md --prerelease
