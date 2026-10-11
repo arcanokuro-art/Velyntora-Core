@@ -28,6 +28,11 @@ jobs:
           mkdir -p build/java-tests
           javac -d build/java-tests app/src/main/java/art/velyntora/core/components/opacity/ToolOpacity.java tests/ToolOpacityTests.java
           java -cp build/java-tests art.velyntora.core.ToolOpacityTests
+      - name: Saved color palette
+        run: |
+          mkdir -p build/java-tests
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/components/color/palette/saved/model/SavedPalette.java tests/SavedPaletteTests.java
+          java -cp build/java-tests art.velyntora.core.components.color.palette.saved.SavedPaletteTests
       - name: Independent color model
         run: |
           mkdir -p build/java-tests

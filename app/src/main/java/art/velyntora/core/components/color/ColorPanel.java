@@ -109,6 +109,15 @@ final class ColorPanel {
           host.setActiveColor(host.readSecondaryColor());
           host.setSecondaryColor(first);
         });
+    Button saveColor = new Button(host);
+    saveColor.setText("+");
+    saveColor.setTextSize(22);
+    saveColor.setMinWidth(0);saveColor.setMinimumWidth(0);
+    saveColor.setPadding(0,0,0,0);
+    saveColor.setContentDescription("Guardar color activo");
+    if(android.os.Build.VERSION.SDK_INT>=26)
+      saveColor.setTooltipText("Guardar color activo. Mantener pulsado para guardar el secundario");
+    colors.addView(saveColor,new LinearLayout.LayoutParams(host.dp(48),host.dp(48)));
     int[] palette = {
       0xff000000,
       0xffffffff,
@@ -158,6 +167,7 @@ final class ColorPanel {
           });
     }
     colors.addView(paletteGrid);
+    SavedColorsControls.attach(host,colors,saveColor);
     host.writePaletteScroll(host.addScrollable(root, colors));
 
   }
