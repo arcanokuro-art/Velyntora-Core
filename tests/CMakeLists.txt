@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
 project(velyntora_tests LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 enable_testing()
 add_executable(sparse_memory_tests sparse_memory_tests.cpp)
 target_include_directories(sparse_memory_tests PRIVATE ../core/include)

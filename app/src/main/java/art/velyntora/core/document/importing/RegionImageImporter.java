@@ -19,8 +19,10 @@ final class RegionImageImporter {
     }
     try(InputStream input=host.getContentResolver().openInputStream(uri)){
       if(input==null)throw new IOException("No se puede leer la imagen");
-      BitmapRegionDecoder decoder=BitmapRegionDecoder.newInstance(input,false);
-      if(decoder==null)throw new IOException("Imagen no compatible con lectura por regiones");
+      BitmapRegionDecoder decoder;
+      try{decoder=BitmapRegionDecoder.newInstance(input,false);}
+      catch(IOException|RuntimeException unsupported){loadBitmapFallback(host,uri,orientation);return;}
+      if(decoder==null){loadBitmapFallback(host,uri,orientation);return;}
       try {
         int width=decoder.getWidth(),height=decoder.getHeight();
         if(!CanvasLimits.accepts(width,height))throw new IOException("El límite es 10.000 × 10.000 px");
@@ -37,6 +39,26 @@ final class RegionImageImporter {
         if(!DrawingView.nativeFinishImageImport())throw new IOException("No se pudo instalar el documento");
       }finally{decoder.recycle();}
     }
+  }
+  private static void loadBitmapFallback(MainActivity host,Uri uri,int orientation)throws IOException{
+    BitmapFactory.Options bounds=new BitmapFactory.Options();bounds.inJustDecodeBounds=true;
+    try(InputStream source=host.getContentResolver().openInputStream(uri)){BitmapFactory.decodeStream(source,null,bounds);}
+    int width=bounds.outWidth,height=bounds.outHeight;
+    if(!CanvasLimits.accepts(width,height) || (long)width*height>16000000)
+      throw new IOException("El formato no admite lectura por regiones");
+    BitmapFactory.Options options=new BitmapFactory.Options();options.inPreferredConfig=Bitmap.Config.ARGB_8888;
+    Bitmap image;
+    try(InputStream source=host.getContentResolver().openInputStream(uri)){image=BitmapFactory.decodeStream(source,null,options);}
+    if(image==null)throw new IOException("Imagen no compatible");
+    try{
+      boolean rotated=orientation>=5;
+      if(!DrawingView.nativeBeginImageImport(rotated?height:width,rotated?width:height))throw new IOException("No se pudo preparar el documento");
+      int rows=Math.max(1,Math.min(256,1048576/width));
+      for(int y=0;y<height;y+=rows){int n=Math.min(rows,height-y);int[] stripe=new int[width*n];
+        image.getPixels(stripe,0,width,0,y,width,n);ImageImportStripe.write(width,height,orientation,y,n,stripe);
+      }
+      if(!DrawingView.nativeFinishImageImport())throw new IOException("No se pudo instalar el documento");
+    }finally{image.recycle();}
   }
   private RegionImageImporter(){}
 }
