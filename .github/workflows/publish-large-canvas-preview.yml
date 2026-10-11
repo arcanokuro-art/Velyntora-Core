@@ -17,14 +17,14 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: 3182a14bd65b193df0860ac5f9ecec56512d1fbb
-      RELEASE_TAG: v0.1.0-10000px-paged-preview
+      VERIFIED_SHA: 409182f62df73b0448f2be15a8f4a87fbdd5bdb2
+      RELEASE_TAG: v0.1.0-7000px-paged-preview
     steps:
       - uses: actions/checkout@v4
       - name: Require exact experimental source checks
         run: |
           set -euo pipefail
-          for run_id in 38147050592 38147050568 38147050481 38147050495; do
+          for run_id in 38153467958 38153467849 38153467843 38153468010; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "codex/large-canvas-12000"' run.json
@@ -39,26 +39,25 @@ jobs:
       - name: Download verified APK
         run: |
           set -euo pipefail
-          gh run download 38147050592 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 38153467958 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
-          cp apk/*.apk Velyntora-Core-10000px-Experimental.apk
-          sha256sum Velyntora-Core-10000px-Experimental.apk > Velyntora-Core-10000px-Experimental.apk.sha256
+          cp apk/*.apk Velyntora-Core-7000px-Experimental.apk
+          sha256sum Velyntora-Core-7000px-Experimental.apk > Velyntora-Core-7000px-Experimental.apk.sha256
       - name: Publish experimental prerelease
         run: |
           set -euo pipefail
           cat > notes.md <<'NOTES'
-          Rama experimental; main permanece intacta. El nombre histórico de la rama conserva 12000, pero el límite funcional es **10.000 × 10.000 px** y se rechaza cualquier lado mayor.
-          JPEG y PNG se importan a resolución original, incluyendo 6067 × 9030. La importación usa regiones o franjas acotadas; PNG RGB/RGBA sin perfiles personalizados se decodifica en una sola pasada. Los perfiles de color usan el decodificador Android. Un fallo durante la importación mantiene el documento anterior.
-          El lienzo y las capas comparten páginas de 4096 píxeles con copia al modificar. Las capas vacías guardan sólo su color base. La caché residente nativa se limita a 16 MiB y las páginas restantes usan archivos temporales de sesión. El tamaño del documento no implica reservar un Bitmap completo en la vista: se presentan teselas nativas y una vista previa acotada. Las texturas son modificables y conservan actualizaciones parciales durante los trazos.
-          El historial no tiene un corte fijo por cantidad de pasos; usa bloques inmutables archivados y restauración diferida. El almacenamiento disponible es su límite práctico y el historial dura la sesión. Se conserva la geometría de los pinceles y Línea/Curva. Efectos y transformaciones usan buffers paginados; PNG, BMP, TGA, TIFF, GIF y PPM se exportan por filas originales.
-          Pruebas: núcleo, límites, mezcla de capas, 140 pasos nativos de deshacer/rehacer en 10000 × 10000, 150 estados archivados, importación PNG original de 10000 × 10000 con la JVM limitada a 96 MB, ocho orientaciones EXIF y recuperación de archivos corruptos. Android: 47 pruebas con fuente normal y otras 47 con fuente grande; creación de 10000 × 10000 con 32 capas vacías, trazos e historial, e importación de 6067 × 9030 con trazos continuos y medición de cuadros.
-          Las máscaras densas, Remove AI y algunos códecs que todavía necesitan buffers completos mantienen requisitos mayores de memoria. El rendimiento depende del dispositivo, del contenido y del número de capas; los resultados del emulador no garantizan 60 FPS en cualquier equipo. Versión experimental para revisión, sin integrar a main.
-          APK debug del commit 3182a14bd65b193df0860ac5f9ecec56512d1fbb, publicado sólo tras aprobar núcleo, almacenamiento, compilación y Android. SHA256 adjunta.
+          Rama experimental; main permanece intacta. El límite funcional es **7.000 × 7.000 px** (49 millones de píxeles). El nombre de la rama es histórico.
+          Al abrir JPEG, PNG o WebP que supera 7000 px por lado, aparece un aviso con las dimensiones originales y el tamaño proporcional propuesto. Se puede cancelar o elegir **Reducir e importar**. Ejemplo: **6067 × 9030 → 4703 × 7000**. No se recorta ni se deforma la imagen. Las imágenes dentro del límite conservan sus píxeles originales.
+          La comprobación de dimensiones y la importación se realizan fuera del hilo de interfaz. PNG RGB/RGBA sin perfiles personalizados se reduce en una sola pasada con interpolación y alfa premultiplicado. Los formatos por regiones se reducen en franjas filtradas. Los formatos Android sin lectura por regiones usan una decodificación muestreada acotada, que puede perder más detalle. Los lectores auxiliares de formatos especiales mantienen sus límites y rutas existentes. Cancelar o una importación fallida conserva el documento anterior.
+          Se conserva el motor por páginas y teselas, las herramientas y el historial sin corte fijo de pasos. Las comprobaciones incluyen el límite de creación, cálculos proporcionales, ocho orientaciones EXIF, importación PNG/JPEG confirmada, cancelación y trazos y operaciones de capas sobre una imagen reducida.
+          Las comprobaciones automáticas no garantizan la fluidez en todos los dispositivos. Esta versión requiere revisión física; la reducción del límite no implica declarar resueltos todos los problemas anteriores de capas o Deshacer. Remove AI y algunos formatos, máscaras y operaciones mantienen requisitos mayores de memoria.
+          APK debug del commit 409182f62df73b0448f2be15a8f4a87fbdd5bdb2, publicado sólo tras aprobar núcleo, almacenamiento, compilación y Android. SHA256 adjunta.
           NOTES
           # The release tag points at this publishing commit. The APK remains pinned to VERIFIED_SHA.
           # Reject any application-code difference between the verified build and this tag.
           gh api "repos/$GH_REPO/compare/$VERIFIED_SHA...$GITHUB_SHA" --jq '.files' | jq -e 'all(.filename == ".github/workflows/publish-large-canvas-preview.yml")'
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Velyntora Core — 10.000 px y motor por bloques" --notes-file notes.md --prerelease
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Velyntora Core — 7.000 px e importación proporcional" --notes-file notes.md --prerelease
           fi
-          gh release upload "$RELEASE_TAG" Velyntora-Core-10000px-Experimental.apk Velyntora-Core-10000px-Experimental.apk.sha256 --repo "$GH_REPO" --clobber
+          gh release upload "$RELEASE_TAG" Velyntora-Core-7000px-Experimental.apk Velyntora-Core-7000px-Experimental.apk.sha256 --repo "$GH_REPO" --clobber
