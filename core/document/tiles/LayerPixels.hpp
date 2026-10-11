@@ -75,7 +75,7 @@ class LayerPixels {
     LayerPixels result(saved.size,saved.background);
     for(const auto& entry:saved.blocks) {
       if(entry.key>= (saved.size+blockSize-1)/blockSize)throw std::runtime_error("History block");
-      auto block=std::make_shared<Block>(std::min(blockSize,saved.size-entry.key*blockSize));
+      auto block=std::make_shared<Block>(std::min<std::uint64_t>(blockSize,saved.size-entry.key*blockSize));
       file->read(entry.offset,block->data(),block->size()*sizeof(std::uint32_t));
       block->archive=file;block->offset=entry.offset;
       result.blocks_.emplace(entry.key,std::move(block));

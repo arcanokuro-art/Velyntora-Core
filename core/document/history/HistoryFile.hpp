@@ -21,13 +21,13 @@ class HistoryFile {
   ~HistoryFile(){fclose(file_);}
   HistoryFile(const HistoryFile&)=delete;
   std::uint64_t append(const void* data,std::size_t bytes) {
-    if(fseeko(file_,0,SEEK_END))throw std::runtime_error("History seek");
-    auto offset=ftello(file_);
+    if(fseeko64(file_,0,SEEK_END))throw std::runtime_error("History seek");
+    auto offset=ftello64(file_);
     if(offset<0 || fwrite(data,1,bytes,file_)!=bytes)throw std::runtime_error("History write");
     return offset;
   }
   void read(std::uint64_t offset,void* data,std::size_t bytes) {
-    if(fseeko(file_,offset,SEEK_SET)||fread(data,1,bytes,file_)!=bytes)
+    if(fseeko64(file_,offset,SEEK_SET)||fread(data,1,bytes,file_)!=bytes)
       throw std::runtime_error("History read");
   }
   void flush(){if(fflush(file_))throw std::runtime_error("History flush");}
