@@ -8,7 +8,7 @@ permissions:
   contents: write
   actions: read
 concurrency:
-  group: publish-remove-ai-toolbar-fix
+  group: publish-tool-opacity
   cancel-in-progress: false
 jobs:
   publish:
@@ -17,14 +17,14 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: 13fbbe14a2551a5de5a228e9aa44295a2e64671b
-      RELEASE_TAG: v0.1.0-remove-ai-toolbar-fix
+      VERIFIED_SHA: 0a60ac4aafb9e94a5cc198d5e291b71f3c702bfa
+      RELEASE_TAG: v0.1.0-tool-opacity-preview
     steps:
       - name: Wait for the exact source build and tests
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 38095643290 38095643261 38095643294; do
+          for run_id in 38100175077 38100175137 38100175076; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "main"' run.json
@@ -40,21 +40,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 38095643290 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 38100175077 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
-          cp apk/*.apk Velyntora-Core-Remove-AI.apk
-          sha256sum Velyntora-Core-Remove-AI.apk > Velyntora-Core-Remove-AI.apk.sha256
+          cp apk/*.apk Velyntora-Core-Opacidad.apk
+          sha256sum Velyntora-Core-Opacidad.apk > Velyntora-Core-Opacidad.apk.sha256
       - name: Publish the updated APK
         shell: bash
         run: |
           set -euo pipefail
           cat > notes.md <<'NOTES'
-          Corrige los botones Eliminar y Limpiar máscara de Remove AI después de reorganizar la interfaz o cambiar la orientación. Antes podían conservar una instancia cerrada aunque la máscara siguiera pintándose; ahora resuelven la instancia activa en cada pulsación.
-          Prueba Android de los botones reales tras dos reorganizaciones, comprobando limpieza, inferencia, cambio de píxeles y Deshacer. Conserva MI-GAN 512 local, modelo incluido, cancelación, alfa y exterior de la máscara.
-          Línea/Curva y las otras herramientas permanecen intactas.
-          APK debug del commit 13fbbe14a2551a5de5a228e9aa44295a2e64671b, publicado tras aprobar compilación, núcleo y Android con fuentes normal y ampliada. SHA256 adjunta.
+          Añade opacidad independiente 0–100 % a 19 herramientas: pincel, lápiz, contornos y rellenos, forma libre, cubeta, degradado, texto, clonar, recolorear, borrador y Línea/Curva. Cada herramienta recuerda su porcentaje incluso al volver a abrir la aplicación. La opacidad de capa se mantiene independiente.
+          Pincel, lápiz, borrador, clonar y recolorear conservan una intensidad uniforme por gesto; un segundo gesto sí puede acumular pintura o borrado. Al 0 % no hay cambios en píxeles ni historial. Alfa del color, selección y Deshacer se respetan.
+          Línea/Curva mantiene su geometría y edición, y recupera la opacidad guardada al reabrirse con Deshacer. Remove AI permanece intacta.
+          Incluye pruebas de píxeles para las 19 herramientas, acumulación, borrado parcial, selección, alfa, persistencia y arrastre del control dentro de la barra desplazable.
+          APK debug del commit 0a60ac4aafb9e94a5cc198d5e291b71f3c702bfa, publicado únicamente tras aprobar compilación, núcleo y Android con fuentes normal y ampliada. SHA256 adjunta.
           NOTES
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "${{ github.sha }}" --title "Velyntora Core — corrección Remove AI" --notes-file notes.md --prerelease
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "${{ github.sha }}" --title "Velyntora Core — opacidad de herramientas" --notes-file notes.md --prerelease
           fi
-          gh release upload "$RELEASE_TAG" Velyntora-Core-Remove-AI.apk Velyntora-Core-Remove-AI.apk.sha256 --repo "$GH_REPO" --clobber
+          gh release upload "$RELEASE_TAG" Velyntora-Core-Opacidad.apk Velyntora-Core-Opacidad.apk.sha256 --repo "$GH_REPO" --clobber
