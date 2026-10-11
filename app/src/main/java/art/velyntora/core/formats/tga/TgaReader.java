@@ -1,5 +1,7 @@
 package art.velyntora.core;
 
+import art.velyntora.core.document.CanvasLimits;
+
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -88,9 +90,9 @@ final class TgaReader {
         || (descriptor & 0xc0) != 0
         || w < 1
         || h < 1
-        || w > 8192
-        || h > 8192
-        || (long) w * h > 4000000) throw new IOException("TGA no compatible o demasiado grande");
+        || w > CanvasLimits.MAX_SIDE
+        || h > CanvasLimits.MAX_SIDE
+        || (long) w * h > CanvasLimits.MAX_PIXELS) throw new IOException("TGA no compatible o demasiado grande");
     if (colorMap != 0 && colorMap != 1
         || type == 1
             && (colorMap != 1 || count == 0 || first + count > 65536 || depth != 8 && depth != 16)

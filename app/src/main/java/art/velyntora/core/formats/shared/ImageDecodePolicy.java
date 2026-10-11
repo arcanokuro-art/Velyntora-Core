@@ -1,5 +1,7 @@
 package art.velyntora.core;
 
+import art.velyntora.core.document.CanvasLimits;
+
 /** Conservative bounds for Android decoders that round subsampled dimensions up. */
 final class ImageDecodePolicy {
   static int sampleSize(int width, int height) {
@@ -7,7 +9,7 @@ final class ImageDecodePolicy {
     int sample = 1;
     while (true) {
       long w = ((long) width + sample - 1) / sample, h = ((long) height + sample - 1) / sample;
-      if (w <= 8192 && h <= 8192 && w * h <= 4000000) return sample;
+      if (w <= CanvasLimits.MAX_SIDE && h <= CanvasLimits.MAX_SIDE && w * h <= CanvasLimits.MAX_PIXELS) return sample;
       if (sample >= 1 << 30) throw new IllegalArgumentException("Image dimensions too large");
       sample *= 2;
     }

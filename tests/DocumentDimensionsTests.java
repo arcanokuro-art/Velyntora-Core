@@ -8,7 +8,7 @@ public final class DocumentDimensionsTests {
   size(DocumentDimensions.fromWidth(3,2,5),5,3);size(DocumentDimensions.fromHeight(3,2,3),5,3);
   size(DocumentDimensions.fromPercent(1920,1080,50),960,540);size(DocumentDimensions.fromPercent(101,99,12.5),13,12);
   size(new DocumentDimensions(8000,500),8000,500);size(new DocumentDimensions(2000,2000),2000,2000);
-  rejected(()->new DocumentDimensions(2048,2048));rejected(()->new DocumentDimensions(8193,1));rejected(()->new DocumentDimensions(0,1));
+  size(new DocumentDimensions(2048,2048),2048,2048);size(new DocumentDimensions(2560,1600),2560,1600);size(new DocumentDimensions(3840,2160),3840,2160);size(new DocumentDimensions(4000,4000),4000,4000);rejected(()->new DocumentDimensions(4001,4000));rejected(()->new DocumentDimensions(8193,1));rejected(()->new DocumentDimensions(0,1));
   rejected(()->DocumentDimensions.fromWidth(1,8192,Integer.MAX_VALUE));rejected(()->DocumentDimensions.fromHeight(8192,1,Integer.MAX_VALUE));
   rejected(()->DocumentDimensions.fromPercent(1,1,0));rejected(()->DocumentDimensions.fromPercent(1,1,Double.NaN));rejected(()->DocumentDimensions.fromPercent(1,1,Double.POSITIVE_INFINITY));rejected(()->DocumentDimensions.fromPercent(1,1,1));
   for(int w:new int[]{1,17,101,640,1920})for(int h:new int[]{1,19,99,480,1080})for(double percent:new double[]{50,100}){DocumentDimensions d=DocumentDimensions.fromPercent(w,h,percent);size(d,(int)Math.round(w*percent/100),(int)Math.round(h*percent/100));}

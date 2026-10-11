@@ -1,5 +1,7 @@
 package art.velyntora.core;
 
+import art.velyntora.core.document.CanvasLimits;
+
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -12,7 +14,7 @@ final class XRasterReader {
     final int[] pixels;
 
     Image(int w, int h) throws IOException {
-      if (w < 1 || h < 1 || w > 8192 || h > 8192 || (long) w * h > 4000000)
+      if (w < 1 || h < 1 || w > CanvasLimits.MAX_SIDE || h > CanvasLimits.MAX_SIDE || (long) w * h > CanvasLimits.MAX_PIXELS)
         throw new IOException("Imagen X demasiado grande");
       width = w;
       height = h;

@@ -50,9 +50,7 @@ final class CanvasRendering {
 
   void refreshPixels() {
     int width = host.nativeWidth(), height = host.nativeHeight();
-    int[] pixels = host.nativePixels();
-    if (width <= 0 || height <= 0 || pixels == null || pixels.length != (long) width * height)
-      return;
+    if (width <= 0 || height <= 0) return;
     if (width != host.readCanvasWidth() || height != host.readCanvasHeight()) {
       Bitmap replacement = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
       host.readBitmap().recycle();
@@ -61,7 +59,14 @@ final class CanvasRendering {
       host.writeCanvasHeight(height);
       host.readViewport().documentSize(width, height);
     }
-    host.readBitmap().setPixels(pixels, 0, width, 0, 0, width, height);
+    // Bounded stripes avoid a document-sized Java array and native flattened copy.
+    int rows = Math.max(1, 262144 / width);
+    for (int y=0; y<height; y+=rows) {
+      int count=Math.min(rows,height-y);
+      int[] pixels=host.nativeRegionPixels(0,y,width,count);
+      if(pixels==null || pixels.length!=(long)width*count) return;
+      host.readBitmap().setPixels(pixels,0,width,0,y,width,count);
+    }
     host.invalidate();
   }
 

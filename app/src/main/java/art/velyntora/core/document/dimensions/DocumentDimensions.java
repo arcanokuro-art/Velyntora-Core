@@ -1,18 +1,20 @@
 package art.velyntora.core;
 
+import art.velyntora.core.document.CanvasLimits;
+
 /** Pixel dimensions and aspect-preserving calculations shared by document dialogs. */
 final class DocumentDimensions {
   final int width, height;
 
   DocumentDimensions(int w, int h) {
-    if (w < 1 || h < 1 || w > 8192 || h > 8192 || (long) w * h > 4000000)
-      throw new IllegalArgumentException("Usa hasta 8192 px por lado y 4 millones de píxeles");
+    if (!CanvasLimits.accepts(w,h))
+      throw new IllegalArgumentException("Usa hasta 8192 px por lado y 16 millones de píxeles");
     width = w;
     height = h;
   }
 
   private static int rounded(double value) {
-    if (!Double.isFinite(value) || value < 0.5 || value > 8192.499999)
+    if (!Double.isFinite(value) || value < 0.5 || value >= CanvasLimits.MAX_SIDE + .5)
       throw new IllegalArgumentException("La dimensión calculada debe estar entre 1 y 8192 px");
     return (int) Math.round(value);
   }

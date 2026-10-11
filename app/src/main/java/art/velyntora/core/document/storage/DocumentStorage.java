@@ -1,5 +1,7 @@
 package art.velyntora.core;
 
+import art.velyntora.core.document.CanvasLimits;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
@@ -44,9 +46,9 @@ final class DocumentStorage {
       if (input == null) throw new java.io.IOException("No se puede leer el archivo");
       Bitmap decoded = BitmapFactory.decodeStream(input, null, options);
       if (decoded == null) throw new java.io.IOException("Imagen no compatible");
-      if (decoded.getWidth() > 8192
-          || decoded.getHeight() > 8192
-          || (long) decoded.getWidth() * decoded.getHeight() > 4000000) {
+      if (decoded.getWidth() > CanvasLimits.MAX_SIDE
+          || decoded.getHeight() > CanvasLimits.MAX_SIDE
+          || (long) decoded.getWidth() * decoded.getHeight() > CanvasLimits.MAX_PIXELS) {
         decoded.recycle();
         throw new java.io.IOException("Imagen demasiado grande");
       }
@@ -545,7 +547,7 @@ final class DocumentStorage {
     if (bitmap == null) throw new java.io.IOException("Imagen del contenedor inválida");
     try {
       int w = bitmap.getWidth(), h = bitmap.getHeight();
-      if (w > 8192 || h > 8192 || (long) w * h > 4000000)
+      if (w > CanvasLimits.MAX_SIDE || h > CanvasLimits.MAX_SIDE || (long) w * h > CanvasLimits.MAX_PIXELS)
         throw new java.io.IOException("Imagen demasiado grande");
       int[] pixels = new int[w * h];
       bitmap.getPixels(pixels, 0, w, 0, 0, w, h);

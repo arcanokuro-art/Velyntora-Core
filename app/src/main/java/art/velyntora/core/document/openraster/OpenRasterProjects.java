@@ -1,5 +1,7 @@
 package art.velyntora.core;
 
+import art.velyntora.core.document.CanvasLimits;
+
 import android.content.Context;
 import android.graphics.*;
 import android.net.Uri;
@@ -77,9 +79,9 @@ final class OpenRasterProjects {
     BitmapFactory.decodeByteArray(bytes, 0, bytes.length, bounds);
     if (bounds.outWidth < 1
         || bounds.outHeight < 1
-        || bounds.outWidth > 8192
-        || bounds.outHeight > 8192
-        || (long) bounds.outWidth * bounds.outHeight > 4000000)
+        || bounds.outWidth > CanvasLimits.MAX_SIDE
+        || bounds.outHeight > CanvasLimits.MAX_SIDE
+        || (long) bounds.outWidth * bounds.outHeight > CanvasLimits.MAX_PIXELS)
       throw new IOException("Capa demasiado grande");
     Bitmap source = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
     if (source == null) throw new IOException("PNG inválido");

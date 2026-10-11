@@ -1,5 +1,7 @@
 package art.velyntora.core;
 
+import art.velyntora.core.document.CanvasLimits;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
@@ -19,9 +21,9 @@ final class GifWriter {
         || source == null
         || width < 1
         || height < 1
-        || width > 8192
-        || height > 8192
-        || (long) width * height > 4000000)
+        || width > CanvasLimits.MAX_SIDE
+        || height > CanvasLimits.MAX_SIDE
+        || (long) width * height > CanvasLimits.MAX_PIXELS)
       throw new IllegalArgumentException("Invalid GIF dimensions");
     Map<Integer, Integer> palette = new LinkedHashMap<>();
     int[] row = new int[width];

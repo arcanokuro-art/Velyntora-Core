@@ -1,5 +1,7 @@
 package art.velyntora.core;
 
+import art.velyntora.core.document.CanvasLimits;
+
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 
@@ -18,9 +20,9 @@ final class VlyProjectStream {
   static void limits(int w, int h, int count, int active) throws IOException {
     if (w < 1
         || h < 1
-        || w > 8192
-        || h > 8192
-        || (long) w * h > 4000000
+        || w > CanvasLimits.MAX_SIDE
+        || h > CanvasLimits.MAX_SIDE
+        || (long) w * h > CanvasLimits.MAX_PIXELS
         || count < 1
         || count > 32
         || (long) w * h * count > 24000000

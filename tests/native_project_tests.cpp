@@ -44,4 +44,23 @@ int main(){
  assert(layers->layerCount()==6);assert(!Java_art_velyntora_core_DrawingView_nativeAddLayer(nullptr,nullptr));
  assert(layers->layerCount()==6);
 
+ // Exact JNI paths: custom creation, persistence, resize/undo and boundary budget.
+ assert(Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,2560,1600));
+ Java_art_velyntora_core_DrawingView_nativeBeginEdit(nullptr,nullptr);
+ Java_art_velyntora_core_DrawingView_nativeStyledStroke(nullptr,nullptr,1280.5,800.5,1280.5,800.5,4,0xff123456,1,1,false,false);
+ assert(canvas->pixels()[800*2560+1280]==0xff123456);
+ char largePath[]="/tmp/velyntora-large-XXXXXX";int largeFd=mkstemp(largePath);assert(largeFd>=0);unlink(largePath);
+ assert(Java_art_velyntora_core_DrawingView_nativeSaveProject(nullptr,nullptr,largeFd));
+ assert(Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,32,32));
+ assert(lseek(largeFd,0,SEEK_SET)==0);assert(Java_art_velyntora_core_DrawingView_nativeOpenProject(nullptr,nullptr,largeFd));close(largeFd);
+ assert(layers->width()==2560&&layers->height()==1600&&canvas->pixels()[800*2560+1280]==0xff123456);
+ assert(Java_art_velyntora_core_DrawingView_nativeResizeDocument(nullptr,nullptr,2560,1700,false));
+ assert(Java_art_velyntora_core_DrawingView_nativeUndo(nullptr,nullptr));assert(layers->height()==1600);
+ assert(Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,3840,2160));
+ assert(Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,4000,4000));
+ assert(canvas->pixels().size()==16000000);
+ assert(!Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,4001,4000));
+ assert(!Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,8193,1));
+ assert(layers->width()==4000&&layers->height()==4000);
+ assert(Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,32,32));
 }

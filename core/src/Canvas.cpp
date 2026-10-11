@@ -1,3 +1,4 @@
+#include "velyntora/CanvasLimits.hpp"
 #include "velyntora/Canvas.hpp"
 
 #include <algorithm>
@@ -6,7 +7,7 @@
 #include <utility>
 namespace velyntora {
 Canvas::Canvas(int w, int h) : width_(w), height_(h) {
-  if (w <= 0 || h <= 0 || static_cast<std::uint64_t>(w) * h > 16000000ULL)
+  if (w <= 0 || h <= 0 || static_cast<std::uint64_t>(w) * h > velyntora::limits::maxDocumentPixels)
     throw std::invalid_argument("Invalid canvas size");
   pixels_.resize(static_cast<std::size_t>(w) * h, 0xFFFFFFFFu);
 }

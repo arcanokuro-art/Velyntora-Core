@@ -1,5 +1,7 @@
 package art.velyntora.core;
 
+import art.velyntora.core.document.CanvasLimits;
+
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 
@@ -80,9 +82,9 @@ final class PpmCodec {
         maximum = bitmap ? 1 : reader.integer();
     if (width < 1
         || height < 1
-        || width > 8192
-        || height > 8192
-        || (long) width * height > 4000000
+        || width > CanvasLimits.MAX_SIDE
+        || height > CanvasLimits.MAX_SIDE
+        || (long) width * height > CanvasLimits.MAX_PIXELS
         || maximum < 1
         || maximum > 65535) throw new IOException("Netpbm demasiado grande o inválido");
     if (binary) {
@@ -130,9 +132,9 @@ final class PpmCodec {
         || source == null
         || width < 1
         || height < 1
-        || width > 8192
-        || height > 8192
-        || (long) width * height > 4000000)
+        || width > CanvasLimits.MAX_SIDE
+        || height > CanvasLimits.MAX_SIDE
+        || (long) width * height > CanvasLimits.MAX_PIXELS)
       throw new IllegalArgumentException("Invalid PPM dimensions");
     out.write(("P6\n" + width + " " + height + "\n255\n").getBytes(StandardCharsets.US_ASCII));
     int[] pixels = new int[width];

@@ -1,5 +1,7 @@
 package art.velyntora.core;
 
+import art.velyntora.core.document.CanvasLimits;
+
 import java.io.*;
 
 /** PCX RLE reader: 8-bit RGB/indexed and planar 1-bit EGA/monochrome. */
@@ -30,9 +32,9 @@ final class PcxReader {
         stride = u16(b, 66);
     if (w < 1
         || h < 1
-        || w > 8192
-        || h > 8192
-        || (long) w * h > 4000000
+        || w > CanvasLimits.MAX_SIDE
+        || h > CanvasLimits.MAX_SIDE
+        || (long) w * h > CanvasLimits.MAX_PIXELS
         || stride < ((long) w * bits + 7) / 8
         || stride == 0
         || (bits == 8 ? planes != 1 && planes != 3 : bits != 1 || planes < 1 || planes > 4))

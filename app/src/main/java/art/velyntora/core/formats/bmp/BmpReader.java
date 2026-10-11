@@ -1,5 +1,7 @@
 package art.velyntora.core;
 
+import art.velyntora.core.document.CanvasLimits;
+
 import java.io.*;
 
 /** Bounded Windows/OS2 BMP reader: indexed RGB, bitfields, and RLE4/RLE8. */
@@ -73,9 +75,9 @@ final class BmpReader {
     if (w < 1
         || signedH == Integer.MIN_VALUE
         || signedH == 0
-        || w > 8192
+        || w > CanvasLimits.MAX_SIDE
         || Math.abs(signedH) > 8192
-        || (long) w * Math.abs(signedH) > 4000000
+        || (long) w * Math.abs(signedH) > CanvasLimits.MAX_PIXELS
         || planes != 1) throw new IOException("Dimensiones BMP inválidas");
     int h = Math.abs(signedH);
     boolean top = signedH < 0;

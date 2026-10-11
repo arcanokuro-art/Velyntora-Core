@@ -1,5 +1,7 @@
 package art.velyntora.core;
 
+import art.velyntora.core.document.CanvasLimits;
+
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -66,7 +68,7 @@ final class CanvasDocument {
   }
 
   boolean newDocument(int w, int h) {
-    if (w <= 0 || h <= 0 || w > 8192 || h > 8192 || (long) w * h > 4000000 || !host.nativeCreate(w, h))
+    if (w <= 0 || h <= 0 || w > CanvasLimits.MAX_SIDE || h > CanvasLimits.MAX_SIDE || (long) w * h > CanvasLimits.MAX_PIXELS || !host.nativeCreate(w, h))
       return false;
     host.resetDocumentTools();
     host.deselect();
@@ -114,7 +116,7 @@ final class CanvasDocument {
   boolean loadBitmap(Bitmap source) {
     if (source == null || source.isRecycled()) return false;
     int w = source.getWidth(), h = source.getHeight();
-    if (w > 8192 || h > 8192 || (long) w * h > 4000000) return false;
+    if (w > CanvasLimits.MAX_SIDE || h > CanvasLimits.MAX_SIDE || (long) w * h > CanvasLimits.MAX_PIXELS) return false;
     int[] pixels = new int[w * h];
     source.getPixels(pixels, 0, w, 0, 0, w, h);
     if (!host.nativeLoadBitmap(w, h, pixels)) return false;

@@ -1,3 +1,4 @@
+#include "velyntora/CanvasLimits.hpp"
 #include "velyntora/LayerDocument.hpp"
 #include "../components/layers/blending/BlendModes.hpp"
 
@@ -8,7 +9,7 @@
 
 namespace velyntora {
 LayerDocument::LayerDocument(int w, int h) : width_(w), height_(h) {
-  if (w <= 0 || h <= 0 || static_cast<std::uint64_t>(w) * h > 16000000ULL)
+  if (w <= 0 || h <= 0 || static_cast<std::uint64_t>(w) * h > velyntora::limits::maxDocumentPixels)
     throw std::invalid_argument("Invalid dimensions");
   layers_.push_back({"Fondo",
                      std::vector<std::uint32_t>(static_cast<std::size_t>(w) * h, 0xFFFFFFFFu), true,

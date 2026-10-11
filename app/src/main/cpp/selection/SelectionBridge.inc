@@ -279,7 +279,7 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
     JNIEnv* env, jclass, jint left, jint top, jint w, jint h, jbyteArray source, jfloat degrees,
     jfloat sx, jfloat sy) {
   std::lock_guard<std::mutex> lock(guard);
-  if (!canvas || !layers || !source || w <= 0 || h <= 0 || std::int64_t(w) * h > 4000000 ||
+  if (!canvas || !layers || !source || w <= 0 || h <= 0 || std::int64_t(w) * h > velyntora::limits::maxDocumentPixels ||
       env->GetArrayLength(source) != std::int64_t(w) * h)
     return JNI_FALSE;
   try {

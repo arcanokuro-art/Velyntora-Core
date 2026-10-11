@@ -1,5 +1,7 @@
 package art.velyntora.core;
 
+import art.velyntora.core.document.CanvasLimits;
+
 import java.io.*;
 import java.util.*;
 import java.util.zip.InflaterInputStream;
@@ -94,9 +96,9 @@ final class TiffReader {
         predictor = scalar(317, 1);
     if (w < 1
         || h < 1
-        || w > 8192
-        || h > 8192
-        || (long) w * h > 4000000
+        || w > CanvasLimits.MAX_SIDE
+        || h > CanvasLimits.MAX_SIDE
+        || (long) w * h > CanvasLimits.MAX_PIXELS
         || samples < 1
         || samples > 4
         || orientation < 1

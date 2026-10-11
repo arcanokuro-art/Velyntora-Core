@@ -1,9 +1,11 @@
+#include "velyntora/CanvasLimits.hpp"
+
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeCreate(JNIEnv*,
                                                                                        jclass,
                                                                                        jint w,
                                                                                        jint h) {
   std::lock_guard<std::mutex> lock(guard);
-  if (w <= 0 || h <= 0 || w > 8192 || h > 8192 || std::int64_t(w) * h > 4000000) return JNI_FALSE;
+  if (w <= 0 || h <= 0 || w > velyntora::limits::maxSide || h > velyntora::limits::maxSide || std::int64_t(w) * h > velyntora::limits::maxDocumentPixels) return JNI_FALSE;
   try {
     auto newCanvas = std::make_unique<velyntora::Canvas>(w, h);
     auto newLayers = std::make_unique<velyntora::LayerDocument>(w, h);
@@ -98,8 +100,8 @@ Java_art_velyntora_core_DrawingView_nativeOpenProject(JNIEnv*, jclass, jint fd) 
             size -= n;
           }
         },
-        0, 0, 4000000));
-    if (restored->width() > 8192 || restored->height() > 8192) return JNI_FALSE;
+        0, 0, velyntora::limits::maxDocumentPixels));
+    if (restored->width() > velyntora::limits::maxSide || restored->height() > velyntora::limits::maxSide) return JNI_FALSE;
     char trailing;
     ssize_t n;
     do {
@@ -131,8 +133,8 @@ extern "C" JNIEXPORT jint JNICALL Java_art_velyntora_core_DrawingView_nativeHeig
 }
 static jboolean resizeDocument(int w, int h, bool scalePixels, bool bilinear, int anchor) {
   std::lock_guard<std::mutex> lock(guard);
-  if (!layers || anchor < 0 || anchor > 8 || w <= 0 || h <= 0 || w > 8192 || h > 8192 ||
-      std::int64_t(w) * h > 4000000 || std::int64_t(w) * h * layers->layerCount() > 24000000)
+  if (!layers || anchor < 0 || anchor > 8 || w <= 0 || h <= 0 || w > velyntora::limits::maxSide || h > velyntora::limits::maxSide ||
+      std::int64_t(w) * h > velyntora::limits::maxDocumentPixels || std::int64_t(w) * h * layers->layerCount() > 24000000)
     return JNI_FALSE;
   if (w == layers->width() && h == layers->height()) return JNI_FALSE;
   try {
@@ -178,7 +180,7 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeLoadBitmap(
     JNIEnv* env, jclass, jint w, jint h, jintArray source) {
   std::lock_guard<std::mutex> lock(guard);
-  if (!source || w <= 0 || h <= 0 || w > 8192 || h > 8192 || std::int64_t(w) * h > 4000000 ||
+  if (!source || w <= 0 || h <= 0 || w > velyntora::limits::maxSide || h > velyntora::limits::maxSide || std::int64_t(w) * h > velyntora::limits::maxDocumentPixels ||
       env->GetArrayLength(source) != std::int64_t(w) * h)
     return JNI_FALSE;
   try {

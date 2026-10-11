@@ -81,6 +81,7 @@ final class DocumentDimensionsDialog {
     form.addView(width);
     form.addView(host.text("Alto (px)"));
     form.addView(height);
+    form.addView(host.text("Límite: 8192 px por lado y 16 millones de píxeles en total."));
     final int originalWidth = host.readDrawing().documentWidth(), originalHeight = host.readDrawing().documentHeight();
     final int[] ratio = {originalWidth, originalHeight}, lastEdited = {0};
     final boolean[] updating = {false};
@@ -184,7 +185,9 @@ final class DocumentDimensionsDialog {
                 "Cuadrado · 1024 × 1024",
                 "Horizontal · 1920 × 1080",
                 "Vertical · 1080 × 1920",
-                "Panorama · 2400 × 1000"
+                "Panorama · 2400 × 1000",
+                "Horizontal · 2560 × 1600",
+                "4K · 3840 × 2160"
               }));
       final int[][] sizes = {
         {originalWidth, originalHeight},
@@ -192,7 +195,9 @@ final class DocumentDimensionsDialog {
         {1024, 1024},
         {1920, 1080},
         {1080, 1920},
-        {2400, 1000}
+        {2400, 1000},
+        {2560, 1600},
+        {3840, 2160}
       };
       presets.setOnItemSelectedListener(
           new android.widget.AdapterView.OnItemSelectedListener() {
