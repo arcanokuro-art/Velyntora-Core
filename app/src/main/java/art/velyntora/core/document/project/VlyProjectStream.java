@@ -25,7 +25,6 @@ final class VlyProjectStream {
         || (long) w * h > CanvasLimits.MAX_PIXELS
         || count < 1
         || count > 32
-        || (long) w * h * count > 24000000
         || active < 0
         || active >= count) throw new IOException("Proyecto demasiado grande o inválido");
   }

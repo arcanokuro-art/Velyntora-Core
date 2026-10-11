@@ -117,7 +117,7 @@
     "nativeImport": "b7790d5322ae33163f4c4700c81a07b9724a048e394a5e7c6649c14bc54bd84e",
     "nativeLayerCount": "65b1018e8ceb8ac1755e87d736724de9a3b45ea4bf6a968f37d8c0c0e9ccea71",
     "nativeActiveLayer": "e500c78d4e4fddbbea4248db5cc212724b3749873bf0f727a080d2e63674cc57",
-    "nativeAddLayer": "4024ca7b007ce215f26713176d97cad8e9748df7686eaf6dd4135d2ebd96e599",
+    "nativeAddLayer": "691df967add461cf54844a7ae2ce2037527538285e85718c9c5ccc4d3e536b28",
     "nativeSelectLayer": "545fdc3875276bb6b69e25113a43567549bd1d9be3821c793005ee1e22e77275",
     "nativeDeleteLayer": "3d0aedd3f354068ca9a9d2cd8e4c653f4ecbe5fcf033d9677bc913a1c82777af",
     "nativeToggleLayer": "fbbfcae5f40b9214c6d378b5b6c775e6d6c39498cf056ceb9a2ba22adf095409",
@@ -161,7 +161,7 @@
     "nativeSaveRecovery": "a13355e754fc7102ac7ceb35a9ae89c4ce435184fae3e5258fc6c5a0d8c5af9c",
     "nativeOpenProject": "8e09f82fb5a5f87739e67f677e4a1e0194338b195149599d2ad9d93f4e4e68bb",
     "nativeWidth": "cdcdd4cfd55b4c530e5ca69cfd5bdc6c685d7a9e7707452752242e9f4c2f7719",
-    "nativeHeight": "b3d0f981ae801920304bab56ff90144de92d7ca9c9ab6dbc627c5ea446d2134c",
+    "nativeHeight": "27e63f2c1fc11d21e43b90d30d489e05af64d83cb16388da72cc2392cb6336f7",
     "nativeResizeDocument": "f9c8a180605d22c9f5bf78dda3c969fb4247c444c9cfe7d6f87638c7030f9627",
     "nativeResizeDocumentOptions": "d1336d45fb880771842fc0b5daa128053e9bff04a41d61b4d486cc5225c47540",
     "nativeCropDocument": "e900705312b7ce9c3225fc07315d328e2a8a1f44896440eadc992a9dd8f5b19c",
@@ -187,7 +187,7 @@
     "nativeLayerName": "a2fd021cfcfd1f7fedf00e1008f4eebbe6dba2eab97b11b405b50233bcf076fd",
     "nativeRenameLayer": "c29758e1a1f09a4a52e1e8b4f45acad2aa012eec09bd3abd80dcb8f17f6af278",
     "nativeLayerBlendMode": "6d398cb5819a8077409e14244e4648168d1468999140f6610c52173434324507",
-    "nativeLayerAction": "c099ccf2c71f63b62fa6e5d3bdb626033aa12c51426513459cc2bd8ed1fd28dd",
+    "nativeLayerAction": "79752e180209210a01b6b85419acd3ee9e2f4875119799840c772396d9b22f33",
     "nativeLayerProperties": "5fa078f31db2f35aa9bda904dbf66c63847125c7031ecde7aac1540d910bc4f5",
     "nativeIndexedLayerOpacity": "ed5562eb570b1d0ad613e70ea5b979e1b44dfa92606211a79fd974f342150515",
     "nativeRemoveSource": "d3d7674b65160e899e79fe3524b378bd0766d0197da218e6a6d81b0ef8adc43e",
@@ -196,5 +196,5 @@
     "nativeEndOpacityStroke": "f6305769269dc1a99b5c1e3e5d04ff3007ed6e4bb1f667e92df4e945651432e8",
     "nativeAntialiasedStroke": "e5795df2468780163fa23c8a8f16b9289f6097be0c8975340cf26c67752f5550"
   },
-  "session": "a11c1fd503885a58ae4ab1c27c3fdd26d1dd79bb55808afd8e22e0b0d991d27f"
+  "session": "51b8218aac4a504553fd3604535324de7fb14654f490194700c1f7a7394e8aaa"
 }

@@ -134,7 +134,7 @@ extern "C" JNIEXPORT jint JNICALL Java_art_velyntora_core_DrawingView_nativeHeig
 static jboolean resizeDocument(int w, int h, bool scalePixels, bool bilinear, int anchor) {
   std::lock_guard<std::mutex> lock(guard);
   if (!layers || anchor < 0 || anchor > 8 || w <= 0 || h <= 0 || w > velyntora::limits::maxSide || h > velyntora::limits::maxSide ||
-      std::int64_t(w) * h > velyntora::limits::maxDocumentPixels || std::int64_t(w) * h * layers->layerCount() > 24000000)
+      std::int64_t(w) * h > velyntora::limits::maxDocumentPixels)
     return JNI_FALSE;
   if (w == layers->width() && h == layers->height()) return JNI_FALSE;
   try {

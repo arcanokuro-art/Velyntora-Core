@@ -12,7 +12,7 @@ LayerDocument::LayerDocument(int w, int h) : width_(w), height_(h) {
   if (w <= 0 || h <= 0 || static_cast<std::uint64_t>(w) * h > velyntora::limits::maxDocumentPixels)
     throw std::invalid_argument("Invalid dimensions");
   layers_.push_back({"Fondo",
-                     std::vector<std::uint32_t>(static_cast<std::size_t>(w) * h, 0xFFFFFFFFu), true,
+                     tiles::LayerPixels(static_cast<std::size_t>(w) * h, 0xFFFFFFFFu), true,
                      1.f});
 }
 bool LayerDocument::renameLayer(std::size_t index, const std::string& name) {
@@ -28,7 +28,7 @@ LayerDocument LayerDocument::resized(int w, int h, bool scalePixels, bool biline
   const int offsetX = int(std::floor((double(w) - width_) * (anchor % 3) / 2));
   const int offsetY = int(std::floor((double(h) - height_) * (anchor / 3) / 2));
   for (const auto& layer : layers_) {
-    Layer output{layer.name, std::vector<std::uint32_t>(std::size_t(w) * h, 0u), layer.visible,
+    Layer output{layer.name, tiles::LayerPixels(std::size_t(w) * h, 0u), layer.visible,
                  layer.opacity, layer.blendMode};
     for (int y = 0; y < h; ++y)
       for (int x = 0; x < w; ++x) {
@@ -75,7 +75,7 @@ LayerDocument LayerDocument::cropped(int left, int top, int w, int h) const {
   LayerDocument result(w, h);
   result.layers_.clear();
   for (const auto& layer : layers_) {
-    Layer output{layer.name, std::vector<std::uint32_t>(std::size_t(w) * h), layer.visible,
+    Layer output{layer.name, tiles::LayerPixels(std::size_t(w) * h,0u), layer.visible,
                  layer.opacity, layer.blendMode};
     for (int y = 0; y < h; ++y)
       std::copy_n(layer.pixels.begin() + std::size_t(y + top) * width_ + left, w,
@@ -88,7 +88,7 @@ LayerDocument LayerDocument::cropped(int left, int top, int w, int h) const {
 void LayerDocument::addLayer(const std::string& name) {
   layers_.insert(
       layers_.begin() + static_cast<std::ptrdiff_t>(active_ + 1),
-      Layer{name, std::vector<std::uint32_t>(static_cast<std::size_t>(width_) * height_, 0u), true,
+      Layer{name, tiles::LayerPixels(static_cast<std::size_t>(width_) * height_,0u), true,
             1.f});
   ++active_;
 }
@@ -140,6 +140,11 @@ std::vector<std::uint32_t> LayerDocument::flatten() const {
   std::vector<std::uint32_t> result(static_cast<std::size_t>(width_) * height_, 0u);
   for (const Layer& layer : layers_) {
     if (!layer.visible || layer.opacity <= 0.f) continue;
+    if(layer.pixels.isUniform() && !(layer.pixels.background()>>24)) continue;
+    if(layer.pixels.isUniform() && layer.opacity==1 && layer.blendMode==0
+        && (layer.pixels.background()>>24)==255) {
+      std::fill(result.begin(),result.end(),layer.pixels.background());continue;
+    }
     for (std::size_t i = 0; i < result.size(); ++i) {
       const std::uint32_t src = layer.pixels[i], dst = result[i];
       result[i] = blending::composite(src,dst,layer.opacity,layer.blendMode);
@@ -163,6 +168,11 @@ std::vector<std::uint32_t> LayerDocument::flattenRegion(int x, int y, int w, int
   std::vector<std::uint32_t> result(static_cast<std::size_t>(w) * h, 0u);
   for (const Layer& layer : layers_) {
     if (!layer.visible || layer.opacity <= 0.f) continue;
+    if(layer.pixels.isUniform() && !(layer.pixels.background()>>24)) continue;
+    if(layer.pixels.isUniform() && layer.opacity==1 && layer.blendMode==0
+        && (layer.pixels.background()>>24)==255) {
+      std::fill(result.begin(),result.end(),layer.pixels.background());continue;
+    }
     for (std::size_t i = 0; i < result.size(); ++i) {
       const std::uint32_t src = layer.pixels[std::size_t(y + i / w) * width_ + x + i % w], dst = result[i];
       result[i] = blending::composite(src,dst,layer.opacity,layer.blendMode);

@@ -996,6 +996,10 @@ public final class DrawingView extends View {
     canvasRendering.requestStrokeRefresh();
   }
 
+  void finishStrokeRefresh() {
+    canvasRendering.finishStrokeRefresh();
+  }
+
   void refresh() {
     canvasRendering.refresh();
   }

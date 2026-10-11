@@ -111,9 +111,11 @@ final class CanvasInput {
         host.getParent().requestDisallowInterceptTouchEvent(false);
         if (host.readDrawing()) {
           Tools.controller(host.readTool()).up(host, x, y, event);
+          boolean regionalStroke=host.readStrokeEditing();
           host.finishOpacityStroke();
           host.writeDrawing(false);
           if (host.readTool() == DrawingView.REMOVE_AI) host.invalidate();
+          else if (regionalStroke) host.finishStrokeRefresh();
           else host.refresh();
         }
         return true;

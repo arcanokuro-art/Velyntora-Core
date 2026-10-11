@@ -40,9 +40,9 @@ int main(){
  assert(layers->width()==240);
 
  assert(Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,4000,1000));
- for(int i=0;i<5;++i)assert(Java_art_velyntora_core_DrawingView_nativeAddLayer(nullptr,nullptr));
- assert(layers->layerCount()==6);assert(!Java_art_velyntora_core_DrawingView_nativeAddLayer(nullptr,nullptr));
- assert(layers->layerCount()==6);
+ for(int i=0;i<31;++i)assert(Java_art_velyntora_core_DrawingView_nativeAddLayer(nullptr,nullptr));
+ assert(layers->layerCount()==32);assert(!Java_art_velyntora_core_DrawingView_nativeAddLayer(nullptr,nullptr));
+ assert(layers->layerCount()==32);
 
  // Exact JNI paths: custom creation, persistence, resize/undo and boundary budget.
  assert(Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,2560,1600));

@@ -5,11 +5,12 @@
 #include <vector>
 
 #include "velyntora/Canvas.hpp"
+#include "../../document/tiles/LayerPixels.hpp"
 
 namespace velyntora {
 struct Layer {
   std::string name;
-  std::vector<std::uint32_t> pixels;
+  tiles::LayerPixels pixels;
   bool visible = true;
   float opacity = 1.f;
   int blendMode = 0;

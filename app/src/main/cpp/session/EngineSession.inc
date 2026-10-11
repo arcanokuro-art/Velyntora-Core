@@ -54,7 +54,7 @@ constexpr std::size_t historyBudget = 96ULL * 1024 * 1024;
 std::size_t snapshotBytes(const Snapshot& snapshot) {
   std::size_t total = 0;
   for (std::size_t i = 0; i < snapshot.layers.layerCount(); ++i)
-    total += snapshot.layers.layer(i).pixels.size() * sizeof(std::uint32_t);
+    total += snapshot.layers.layer(i).pixels.allocatedPixels() * sizeof(std::uint32_t);
   return total;
 }
 std::size_t historyBytes() {

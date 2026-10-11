@@ -3,7 +3,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main]
+    branches: [main, codex/large-canvas-12000]
   workflow_dispatch:
 jobs:
   build:

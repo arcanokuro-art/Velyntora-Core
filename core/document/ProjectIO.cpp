@@ -10,7 +10,7 @@
 namespace velyntora {
 namespace {
 constexpr std::size_t maxLayers = 32, maxName = 4096;
-constexpr std::uint64_t maxPixels = 24000000;
+constexpr std::uint64_t maxPixels = limits::maxDocumentPixels * maxLayers;
 constexpr std::array<unsigned char, 8> magic = {'V', 'L', 'Y', 'C', 'O', 'R', 'E', 2};
 void put(const ProjectWrite& write, std::uint32_t value) {
   unsigned char b[4];

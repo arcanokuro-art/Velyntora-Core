@@ -5,9 +5,9 @@
 
 using velyntora::tiles::TileSurface;
 int main() {
-  TileSurface surface(12000,12000,0xFFFFFFFFu,256*256*4);
+  TileSurface surface(10000,10000,0xFFFFFFFFu,256*256*4);
   assert(surface.allocatedTiles()==0 && surface.cachedBytes()==0);
-  assert(surface.readRegion(11999,11999,1,1)[0]==0xFFFFFFFFu);
+  assert(surface.readRegion(9999,9999,1,1)[0]==0xFFFFFFFFu);
   auto initial = surface;
   // A continuous edit across four tile boundaries, with a one-tile cache.
   TileSurface::Pixels edit(20*20,0x80442211u);
@@ -22,18 +22,18 @@ int main() {
   assert(surface.readRegion(255,255,1,1)[0]==0xFF123456u);
   surface = history; // undo
   assert(surface.readRegion(255,255,1,1)[0]==0x80442211u);
-  surface.writeRegion(11999,11999,1,1,{0xFFABCDEFu});
+  surface.writeRegion(9999,9999,1,1,{0xFFABCDEFu});
   surface.compact();
   assert(history.readRegion(255,255,1,1)[0]==0x80442211u);
-  assert(surface.readRegion(11999,11999,1,1)[0]==0xFFABCDEFu);
+  assert(surface.readRegion(9999,9999,1,1)[0]==0xFFABCDEFu);
   surface.writeRegion(250,250,20,20,TileSurface::Pixels(400,0xFFFFFFFFu));
   assert(surface.allocatedTiles()==1);
   bool invalid=false;
-  try { surface.writeRegion(11999,11999,2,1,{1,2}); }
+  try { surface.writeRegion(9999,9999,2,1,{1,2}); }
   catch (const std::invalid_argument&) { invalid=true; }
-  assert(invalid && surface.readRegion(11999,11999,1,1)[0]==0xFFABCDEFu);
+  assert(invalid && surface.readRegion(9999,9999,1,1)[0]==0xFFABCDEFu);
   invalid=false;
-  try { surface.readRegion(0,0,12000,12000); }
+  try { surface.readRegion(0,0,10000,10000); }
   catch (const std::invalid_argument&) { invalid=true; }
   assert(invalid);
   // Stream a real 54.8M-pixel extent; disk-backed cache stays bounded.
@@ -56,7 +56,7 @@ int main() {
   image.clear(0);
   assert(image.allocatedTiles()==0 && image.readRegion(6066,9029,1,1)[0]==0);
   invalid=false;
-  try { TileSurface tooLarge(12001,12000); }
+  try { TileSurface tooLarge(10001,10000); }
   catch (const std::invalid_argument&) { invalid=true; }
   assert(invalid);
   std::cout << "Tiled canvas storage tests passed\n";

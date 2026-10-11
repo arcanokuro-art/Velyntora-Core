@@ -15,7 +15,7 @@ namespace velyntora::tiles {
 class TileSurface {
  public:
   static constexpr int side = 256;
-  static constexpr int maxSide = 12000;
+  static constexpr int maxSide = 10000;
   static constexpr std::size_t tilePixels = side * side;
   using Pixels = std::vector<std::uint32_t>;
 

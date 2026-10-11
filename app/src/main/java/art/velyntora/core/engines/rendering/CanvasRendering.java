@@ -39,6 +39,14 @@ final class CanvasRendering {
     }
   }
 
+  void finishStrokeRefresh() {
+    host.removeCallbacks(host.readStrokeRefresh());
+    host.writeStrokeRefreshPending(false);
+    refreshStrokePixels();
+    if (host.readCanvasChangedListener() != null) host.readCanvasChangedListener().run();
+    host.viewportChanged();
+  }
+
   void refresh() {
     host.removeCallbacks(host.readStrokeRefresh());
     host.writeStrokeRefreshPending(false);

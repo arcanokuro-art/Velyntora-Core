@@ -66,6 +66,35 @@ public final class CustomCanvasDeviceTests {
       assertFalse(v.newDocument(4001,4000));assertFalse(v.newDocument(8193,1));assertEquals(3840,v.documentWidth());
     });
   }
+  @Test public void repeatedStrokesAndLayersOnLargeImportedDimensions(){
+    inst.runOnMainSync(()->{
+      DrawingView v=activity.readDrawing();assertTrue(v.newDocument(3034,4515));
+      v.rotateView(-v.rotationDegrees());
+      v.setBrushRadius(12);v.configureBrush(1,1,false,false);v.setColor(0xff123456);
+      for(int layer=0;layer<3;layer++){
+        assertTrue(v.addLayer());
+        for(int tool:new int[]{DrawingView.BRUSH,DrawingView.PENCIL,DrawingView.ERASER}){
+          v.setTool(tool);v.setToolOpacityPercent(tool==DrawingView.ERASER?50:100);
+          for(int stroke=0;stroke<3;stroke++)tap(v);
+          int[] actual=DrawingView.nativeRegionPixels(1517,2257,1,1);
+          assertNotNull(actual);
+          assertEquals(actual[0],v.readBitmap().getPixel(1517,2257));
+        }
+      }
+      assertEquals(4,v.layerCount());
+      v.setTool(DrawingView.BRUSH);v.setToolOpacityPercent(100);v.setColor(0xffabcdef);tap(v);
+      assertEquals(0xffabcdef,DrawingView.nativeRegionPixels(1517,2257,1,1)[0]);
+      v.undo();v.redo();assertEquals(0xffabcdef,DrawingView.nativeRegionPixels(1517,2257,1,1)[0]);
+      java.io.File file=new java.io.File(activity.getCacheDir(),"large-layers-test.vlycore");
+      try(android.os.ParcelFileDescriptor fd=android.os.ParcelFileDescriptor.open(file,android.os.ParcelFileDescriptor.MODE_CREATE|android.os.ParcelFileDescriptor.MODE_READ_WRITE|android.os.ParcelFileDescriptor.MODE_TRUNCATE)){
+        assertTrue(DrawingView.nativeSaveProject(fd.getFd()));assertTrue(v.newDocument(64,64));
+        android.system.Os.lseek(fd.getFileDescriptor(),0,android.system.OsConstants.SEEK_SET);
+        assertTrue(DrawingView.nativeOpenProject(fd.getFd()));v.projectOpened();assertEquals(4,v.layerCount());
+        assertEquals(0xffabcdef,DrawingView.nativeRegionPixels(1517,2257,1,1)[0]);
+      }catch(Exception e){throw new AssertionError(e);}finally{file.delete();}
+      assertTrue(v.newDocument(800,800));
+    });
+  }
   void capture(){
     inst.waitForIdleSync();android.os.SystemClock.sleep(3500);
     String dir="/sdcard/Download/velyntora-core-workspace";

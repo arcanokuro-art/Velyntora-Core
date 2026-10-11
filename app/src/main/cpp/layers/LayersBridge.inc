@@ -11,8 +11,7 @@ extern "C" JNIEXPORT jint JNICALL Java_art_velyntora_core_DrawingView_nativeActi
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeAddLayer(JNIEnv*,
                                                                                          jclass) {
   std::lock_guard<std::mutex> lock(guard);
-  if (!layers || layers->layerCount() >= 32 ||
-      std::uint64_t(layers->width()) * layers->height() * (layers->layerCount() + 1) > 24000000)
+  if (!layers || layers->layerCount() >= 32)
     return JNI_FALSE;
   try {
     checkpoint();
@@ -148,7 +147,7 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
   }
 }
 extern "C" JNIEXPORT jint JNICALL Java_art_velyntora_core_DrawingView_nativeLayerBlendMode(JNIEnv*,jclass,jint index){std::lock_guard<std::mutex> lock(guard);return layers&&index>=0&&std::size_t(index)<layers->layerCount()?layers->layer(index).blendMode:0;}
-extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeLayerAction(JNIEnv*,jclass,jint action){std::lock_guard<std::mutex> lock(guard);if(!layers)return JNI_FALSE;if(action==0&&(layers->layerCount()>=32||std::uint64_t(layers->width())*layers->height()*(layers->layerCount()+1)>24000000))return JNI_FALSE;if(action==1&&layers->activeIndex()==0)return JNI_FALSE;try{checkpoint();bool ok=action==0?layers->duplicateActive():action==1?layers->mergeDown():false;if(ok)loadActive();return ok?JNI_TRUE:JNI_FALSE;}catch(...){return JNI_FALSE;}}
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeLayerAction(JNIEnv*,jclass,jint action){std::lock_guard<std::mutex> lock(guard);if(!layers)return JNI_FALSE;if(action==0&&(layers->layerCount()>=32))return JNI_FALSE;if(action==1&&layers->activeIndex()==0)return JNI_FALSE;try{checkpoint();bool ok=action==0?layers->duplicateActive():action==1?layers->mergeDown():false;if(ok)loadActive();return ok?JNI_TRUE:JNI_FALSE;}catch(...){return JNI_FALSE;}}
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeLayerProperties(JNIEnv* env,jclass,jint index,jstring name,jboolean visible,jfloat opacity,jint mode){
  std::lock_guard<std::mutex> lock(guard);if(!layers||index<0||std::size_t(index)>=layers->layerCount()||!name||!std::isfinite(opacity)||opacity<0||opacity>1||mode<0||mode>15)return JNI_FALSE;
  jclass strings=env->FindClass("java/lang/String");auto method=env->GetMethodID(strings,"getBytes","(Ljava/lang/String;)[B");auto charset=env->NewStringUTF("UTF-8");auto bytes=static_cast<jbyteArray>(env->CallObjectMethod(name,method,charset));if(env->ExceptionCheck()||!bytes)return JNI_FALSE;auto length=env->GetArrayLength(bytes);if(length<1||length>4096)return JNI_FALSE;std::string n(length,'\0');env->GetByteArrayRegion(bytes,0,length,reinterpret_cast<jbyte*>(n.data()));if(env->ExceptionCheck()||n.find('\0')!=std::string::npos)return JNI_FALSE;
