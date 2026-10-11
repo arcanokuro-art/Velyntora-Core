@@ -23,7 +23,7 @@ final class TileDisplay implements CanvasTileDisplay {
     sampler.update(source,tile.bitmap,tile.bounds,tile.sample,tile.dirty);
     tile.dirty.setEmpty();
   }
-  TileDisplay(Bitmap source){this.source=source;}
+  TileDisplay(Bitmap source){this.source=source;paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC));}
   private int sample(float scale){
     int sample=1;
     while(sample<128 && scale*sample<.5f)sample*=2;
@@ -71,14 +71,14 @@ final class TileDisplay implements CanvasTileDisplay {
     int left=Math.max(0,clip.left),top=Math.max(0,clip.top);
     int right=Math.min(source.getWidth(),clip.right),bottom=Math.min(source.getHeight(),clip.bottom);
     paint.setFilterBitmap(scale<1);
+    int layer=canvas.saveLayer(null,null);
     for(int y=top/span;y*span<bottom;y++)for(int x=left/span;x*span<right;x++){
       Tile tile=tile(new Key(sample,x,y));
-      Rect destination=new Rect(x*span,y*span,Math.min((x+1)*span,source.getWidth()),
-          Math.min((y+1)*span,source.getHeight()));
-      canvas.save();canvas.clipRect(destination);
-      canvas.drawBitmap(tile.bitmap,null,tile.bounds,paint);canvas.restore();
+      canvas.drawBitmap(tile.bitmap,null,tile.bounds,paint);
     }
+    canvas.restoreToCount(layer);
   }
+
   public void invalidate(int left,int top,int width,int height){
     for(Tile tile:cache.values()){
       int l=Math.max(left,tile.bounds.left),t=Math.max(top,tile.bounds.top);

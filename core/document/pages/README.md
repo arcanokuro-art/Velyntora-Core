@@ -1,6 +1,6 @@
 # Paged document pixels
 
-The document limit is **7,000 × 7,000 pixels**. Canvas and layers use the same
+The document limit is **6,000 × 6,000 pixels**. Canvas and layers use the same
 4096-pixel immutable/COW page representation. Blank layers store their background
 color without allocating an image. The shared resident cache is limited to 16 MiB;
 evicted pages use unlinked session files, segmented at 32 MiB so abandoned pages

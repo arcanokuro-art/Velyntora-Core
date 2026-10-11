@@ -202,7 +202,8 @@
     "nativeFinishImageImport": "662f149db4b28d02d4b6efd3ab605d4f5abdd349cffcc2ee24969e5cf066a739",
     "nativeCancelImageImport": "c1af073a28f0a96dc59dedf37b29f2725c2997c3d799ac5bda1b16444b7b7216",
     "nativeAcceptImageImport": "d2e1bc89f144b7888399460d63be59cf00eb95fb286191172355b12e22f7377f",
-    "nativeFillSelectionWorker": "fba9f2c22d62d6b39e070e452e07dc9f68cbe8985fbb40cbea8ff86ceeabd867"
+    "nativeFillSelectionWorker": "fba9f2c22d62d6b39e070e452e07dc9f68cbe8985fbb40cbea8ff86ceeabd867",
+    "nativeHistoryAvailability": "33568a92fb32e3c905c1ef88baeb301728bb8ffcc7487c5a44bd867fc196898b"
   },
   "session": "117c721239248c8dee7708db972cda2c14d6047a1138dbd1d0cac424f5a2b3b7"
 }

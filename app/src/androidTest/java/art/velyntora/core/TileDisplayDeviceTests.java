@@ -36,4 +36,18 @@ public final class TileDisplayDeviceTests {
       assertTrue("Zoom must reuse unchanged samples",tiles.sampledPixels()-reads<=1000);
     } finally {tiles.clear();source.recycle();output.recycle();}
   }
+  @Test public void rotatedTileGuttersPreserveOpaqueAndTranslucentPixels() {
+    for(int color:new int[]{0xff454545,0x80444444})for(float angle:new float[]{5.8f,-19.7f,37f}){
+      Bitmap source=Bitmap.createBitmap(1025,1025,Bitmap.Config.ARGB_8888);source.eraseColor(color);
+      Bitmap actual=Bitmap.createBitmap(512,512,Bitmap.Config.ARGB_8888),expected=Bitmap.createBitmap(512,512,Bitmap.Config.ARGB_8888);
+      TileDisplay tiles=new TileDisplay(source);
+      try {
+        Canvas a=new Canvas(actual),b=new Canvas(expected);
+        for(Canvas c:new Canvas[]{a,b}){c.translate(256,256);c.rotate(angle);c.scale(1.3f,1.3f);c.translate(-512,-512);}
+        tiles.draw(a,1.3f);Paint paint=new Paint();b.drawBitmap(source,0,0,paint);
+        for(int y=0;y<512;y++)for(int x=0;x<512;x++)assertEquals("Tile seam at "+x+","+y,expected.getPixel(x,y),actual.getPixel(x,y));
+      }finally{tiles.clear();source.recycle();actual.recycle();expected.recycle();}
+    }
+  }
+
 }

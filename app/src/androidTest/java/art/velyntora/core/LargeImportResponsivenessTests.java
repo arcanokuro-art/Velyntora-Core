@@ -23,19 +23,19 @@ public final class LargeImportResponsivenessTests {
       inst.runOnMainSync(()->{
         android.app.AlertDialog dialog=host.readImportConfirmation();assertNotNull(dialog);
         android.widget.TextView message=dialog.findViewById(android.R.id.message);
-        assertTrue(message.getText().toString().contains("4703 × 7000"));
+        assertTrue(message.getText().toString().contains("4031 × 6000"));
         dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick();
       });
       waitResponsive(inst,host);
       inst.runOnMainSync(()->{
         DrawingView view=host.readDrawing();
-        assertEquals(4703,view.documentWidth());assertEquals(7000,view.documentHeight());
+        assertEquals(4031,view.documentWidth());assertEquals(6000,view.documentHeight());
         assertTrue((long)view.readBitmap().getWidth()*view.readBitmap().getHeight()<=1048576);
         assertTrue(view.isEnabled());assertEquals(1,view.layerCount());
         int color=DrawingView.nativeRegionPixels(1000,1700,1,1)[0];
         assertEquals(255,color>>>24);assertEquals(120,color&255);
-        assertTrue(Math.abs(((color>>16)&255)-(int)(1000*6067.0/4703/32))<=1);
-        assertTrue(Math.abs(((color>>8)&255)-(int)(1700*9030.0/7000/32))<=1);
+        assertTrue(Math.abs(((color>>16)&255)-(int)(1000*6067.0/4031/32))<=1);
+        assertTrue(Math.abs(((color>>8)&255)-(int)(1700*9030.0/6000/32))<=1);
         view.configureBrush(1,1,false,false);view.setTool(DrawingView.BRUSH);view.setColor(0xff123456);view.setBrushRadius(12);view.setToolOpacityPercent(100);
         for(int stroke=0;stroke<3;stroke++){
           long time=SystemClock.uptimeMillis();
@@ -45,10 +45,26 @@ public final class LargeImportResponsivenessTests {
           }
           assertTrue("Repeated stroke blocked the UI",SystemClock.uptimeMillis()-time<1500);
         }
-        assertEquals(0xff123456,DrawingView.nativeRegionPixels(2351,3500,1,1)[0]);
+        assertEquals(0xff123456,DrawingView.nativeRegionPixels(2015,3000,1,1)[0]);
 
       });
       ContinuousFrameProbe.stroke(inst,host);
+      for(int step=0;step<4;step++){
+        inst.runOnMainSync(host::undo);waitResponsive(inst,host);
+        inst.runOnMainSync(()->{
+          DrawingView view=host.readDrawing();
+          android.graphics.Bitmap visible=android.graphics.Bitmap.createBitmap(320,480,android.graphics.Bitmap.Config.ARGB_8888);
+          try{
+            android.graphics.Canvas canvas=new android.graphics.Canvas(visible);
+            canvas.scale(320f/view.getWidth(),480f/view.getHeight());view.draw(canvas);
+            // The native imported image itself remains opaque after each history step.
+            for(int x:new int[]{0,1000,2015,4030})assertEquals(255,DrawingView.nativeRegionPixels(x,3000,1,1)[0]>>>24);
+          }finally{visible.recycle();}
+        });
+      }
+      inst.runOnMainSync(host::undo);assertEquals(0,DrawingView.nativeHistoryAvailability()&1);
+      inst.runOnMainSync(()->host.undo());inst.runOnMainSync(()->assertNull(host.readProjectProgress()));
+      for(int step=0;step<4;step++){inst.runOnMainSync(host::redo);waitResponsive(inst,host);}
       inst.runOnMainSync(host::addLayer);
       waitResponsive(inst,host);
       inst.runOnMainSync(()->{assertEquals(2,host.readDrawing().layerCount());host.toggleLayer();});
@@ -68,7 +84,7 @@ public final class LargeImportResponsivenessTests {
     MainActivity host=(MainActivity)inst.startActivitySync(new Intent(inst.getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
     File input=new File(host.getCacheDir(),"oversized-cancel.png");
     try {
-      png(input,7001,2);
+      png(input,6001,2);
       inst.runOnMainSync(()->{assertTrue(host.readDrawing().newDocument(37,29));host.importImage(Uri.fromFile(input));});
       waitResponsive(inst,host);
       inst.runOnMainSync(()->{
@@ -85,14 +101,14 @@ public final class LargeImportResponsivenessTests {
     MainActivity host=(MainActivity)inst.startActivitySync(new Intent(inst.getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
     File input=new File(host.getCacheDir(),"oversized-region.jpg");
     try {
-      android.graphics.Bitmap bitmap=android.graphics.Bitmap.createBitmap(7001,17,android.graphics.Bitmap.Config.ARGB_8888);
+      android.graphics.Bitmap bitmap=android.graphics.Bitmap.createBitmap(6001,17,android.graphics.Bitmap.Config.ARGB_8888);
       try(OutputStream out=new FileOutputStream(input)){bitmap.eraseColor(0xff239751);assertTrue(bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG,100,out));}finally{bitmap.recycle();}
       inst.runOnMainSync(()->host.importImage(Uri.fromFile(input)));waitResponsive(inst,host);
       inst.runOnMainSync(()->{android.app.AlertDialog dialog=host.readImportConfirmation();assertNotNull(dialog);dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick();});
       waitResponsive(inst,host);
       inst.runOnMainSync(()->{
-        assertEquals(7000,host.readDrawing().documentWidth());assertEquals(17,host.readDrawing().documentHeight());
-        for(int x:new int[]{0,3500,6999}){
+        assertEquals(6000,host.readDrawing().documentWidth());assertEquals(17,host.readDrawing().documentHeight());
+        for(int x:new int[]{0,3000,5999}){
           int color=DrawingView.nativeRegionPixels(x,8,1,1)[0];
           assertEquals(255,color>>>24);assertTrue(Math.abs(((color>>16)&255)-35)<=3);
           assertTrue(Math.abs(((color>>8)&255)-151)<=3);assertTrue(Math.abs((color&255)-81)<=3);

@@ -18,6 +18,6 @@ final class ImageImportSize {
   int displayWidth(){return orientation>=5?height:width;}
   int displayHeight(){return orientation>=5?width:height;}
   String confirmation(){return "Esta imagen mide "+sourceDisplayWidth()+" × "+sourceDisplayHeight()
-      +" px y supera el límite permitido de 7000 px por lado.\n\n¿Quieres reducirla a "
+      +" px y supera el límite permitido de 6000 px por lado.\n\n¿Quieres reducirla a "
       +displayWidth()+" × "+displayHeight()+" px para importarla? Se conservarán sus proporciones.";}
 }

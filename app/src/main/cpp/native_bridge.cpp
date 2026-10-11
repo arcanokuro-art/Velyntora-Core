@@ -11,3 +11,5 @@
 #include "opacity/OpacityBridge.inc"
 
 #include "brush/BrushBridge.inc"
+
+#include "history/HistoryStatusBridge.inc"

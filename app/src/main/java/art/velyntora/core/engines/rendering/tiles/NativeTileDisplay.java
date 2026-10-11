@@ -10,7 +10,8 @@ final class NativeTileDisplay implements CanvasTileDisplay {
   private static final int SIDE=256,CAPACITY=128;
   private record Key(int sample,int x,int y){}
   private record Tile(Bitmap bitmap,Rect bounds){}
-  private final int width,height;
+  private final int width,height,overviewSample;
+  private final Bitmap overview;
   private final LinkedHashMap<Key,Tile> cache=new LinkedHashMap<>(16,.75f,true);
   private final Set<Key> pending=new HashSet<>(),dirtyKeys=new HashSet<>();
   private final ExecutorService worker=Executors.newSingleThreadExecutor();
@@ -18,8 +19,12 @@ final class NativeTileDisplay implements CanvasTileDisplay {
   private final Paint paint=new Paint(Paint.FILTER_BITMAP_FLAG);
   private Runnable redraw;
   private long generation;
-  private boolean closed;
-  NativeTileDisplay(int width,int height){this.width=width;this.height=height;}
+  private boolean closed,overviewPending;
+  NativeTileDisplay(int width,int height,Bitmap overview){
+    this.width=width;this.height=height;this.overview=overview;
+    overviewSample=Math.max((width+overview.getWidth()-1)/overview.getWidth(),(height+overview.getHeight()-1)/overview.getHeight());
+    paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC));
+  }
   void redraw(Runnable action){redraw=action;}
   private int sample(float scale){int result=1;while(result<128 && scale*result<.5f)result*=2;return result;}
   private Tile create(Key key){
@@ -36,17 +41,7 @@ final class NativeTileDisplay implements CanvasTileDisplay {
     Tile old=cache.put(key,tile);if(old!=null)old.bitmap.recycle();
     while(cache.size()>CAPACITY){Iterator<Map.Entry<Key,Tile>> it=cache.entrySet().iterator();Tile discarded=it.next().getValue();it.remove();discarded.bitmap.recycle();}
   }
-  public void warm(float scale){
-    int chosen=sample(scale);warmLevel(chosen);
-    if(chosen>1 && (long)width*height<=16000000){int finer=chosen/2;
-      if(count(chosen)+count(finer)<=CAPACITY)warmLevel(finer);
-    }
-  }
-  private long count(int sample){int span=sample*SIDE;return (long)((width+span-1)/span)*((height+span-1)/span);}
-  private void warmLevel(int sample){
-    if(count(sample)>CAPACITY)return;int span=sample*SIDE;
-    for(int y=0;y<height;y+=span)for(int x=0;x<width;x+=span){Key key=new Key(sample,x/span,y/span);put(key,create(key));}
-  }
+  public void warm(float scale){ /* The prepared overview already covers the entire document. */ }
   private void request(Key key){
     if(closed || !pending.add(key))return;long version=generation;
     worker.execute(()->{
@@ -64,21 +59,20 @@ final class NativeTileDisplay implements CanvasTileDisplay {
     if(closed)return;int chosen=sample(scale),span=chosen*SIDE;Rect clip=canvas.getClipBounds();
     int left=Math.max(0,clip.left),top=Math.max(0,clip.top),right=Math.min(width,clip.right),bottom=Math.min(height,clip.bottom);
     paint.setFilterBitmap(scale<1);
-    for(int y=top/span;y*span<bottom;y++)for(int x=left/span;x*span<right;x++){
+    // SRC inside an isolated layer avoids double alpha at overlapping gutters.
+    int layer=canvas.saveLayer(null,null);
+    canvas.drawBitmap(overview,null,new Rect(0,0,overview.getWidth()*overviewSample,overview.getHeight()*overviewSample),paint);
+    if(chosen<overviewSample)for(int y=top/span;y*span<bottom;y++)for(int x=left/span;x*span<right;x++){
       Key key=new Key(chosen,x,y);Tile tile=cache.get(key);
-      Rect cell=new Rect(x*span,y*span,Math.min((x+1)*span,width),Math.min((y+1)*span,height));
-      canvas.save();canvas.clipRect(cell);
       if(tile!=null){canvas.drawBitmap(tile.bitmap,null,tile.bounds,paint);if(dirtyKeys.contains(key))request(key);}
-      else {
-        for(var entry:cache.entrySet())if(entry.getKey().sample>chosen && Rect.intersects(cell,entry.getValue().bounds))
-          canvas.drawBitmap(entry.getValue().bitmap,null,entry.getValue().bounds,paint);
-        request(key);
-      }
-      canvas.restore();
+      else request(key);
     }
+    canvas.restoreToCount(layer);
   }
+
   public void invalidate(int left,int top,int w,int h){
     generation++;Rect dirty=new Rect(left,top,left+w,top+h);
+    if((long)w*h<=1048576)updateOverview(dirty);else requestOverview();
     // Existing textures are updated in bounded sample cells by the stroke refresh path.
     for(var entry:cache.entrySet()){
       Tile tile=entry.getValue();if(!Rect.intersects(dirty,tile.bounds))continue;
@@ -91,6 +85,27 @@ final class NativeTileDisplay implements CanvasTileDisplay {
       int[] pixels=DrawingView.nativeSampleRegion(tile.bounds.left+x*sample,tile.bounds.top+y*sample,sample,columns,rows);
       if(pixels!=null && pixels.length==columns*rows)tile.bitmap.setPixels(pixels,0,columns,x,y,columns,rows);
     }
+  }
+  private void updateOverview(Rect dirty){
+    int x=Math.max(0,dirty.left/overviewSample),y=Math.max(0,dirty.top/overviewSample);
+    int right=Math.min(overview.getWidth(),(dirty.right+overviewSample-1)/overviewSample);
+    int bottom=Math.min(overview.getHeight(),(dirty.bottom+overviewSample-1)/overviewSample);
+    int w=right-x,h=bottom-y;if(w<=0||h<=0)return;
+    int[] pixels=DrawingView.nativeSampleRegion(x*overviewSample,y*overviewSample,overviewSample,w,h);
+    if(pixels!=null && pixels.length==w*h)overview.setPixels(pixels,0,w,x,y,w,h);
+  }
+  private void requestOverview(){
+    if(closed || overviewPending)return;overviewPending=true;long version=generation;
+    int w=overview.getWidth(),h=overview.getHeight();
+    worker.execute(()->{
+      int[] pixels=null;try{pixels=DrawingView.nativeSampleRegion(0,0,overviewSample,w,h);}catch(RuntimeException|OutOfMemoryError ignored){}
+      final int[] completed=pixels;
+      ui.post(()->{
+        overviewPending=false;if(closed)return;
+        if(version!=generation){requestOverview();return;}
+        if(completed!=null && completed.length==w*h){overview.setPixels(completed,0,w,0,0,w,h);if(redraw!=null)redraw.run();}
+      });
+    });
   }
   public void clear(){closed=true;generation++;worker.shutdownNow();for(Tile tile:cache.values())tile.bitmap.recycle();cache.clear();}
 }

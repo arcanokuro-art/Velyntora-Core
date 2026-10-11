@@ -38,7 +38,7 @@ final class PngStripeImporter {
     int compression=in.readUnsignedByte(),filter=in.readUnsignedByte(),interlace=in.readUnsignedByte();in.readInt();
     if(depth!=8 || (type!=2 && type!=6) || compression!=0 || filter!=0 || interlace!=0)return false;
     if(width<=0 || height<=0 || width>1048576)throw new IOException("Dimensiones PNG no compatibles");
-    if(plan==null && !CanvasLimits.accepts(width,height))throw new IOException("El límite es 7.000 × 7.000 px");
+    if(plan==null && !CanvasLimits.accepts(width,height))throw new IOException("El límite es 6.000 × 6.000 px");
     if(plan!=null && (width!=plan.sourceWidth || height!=plan.sourceHeight))throw new IOException("La imagen cambió durante la importación");
     boolean reduced=plan!=null && plan.reduced();
     int outputWidth=reduced?plan.width:width,outputHeight=reduced?plan.height:height;

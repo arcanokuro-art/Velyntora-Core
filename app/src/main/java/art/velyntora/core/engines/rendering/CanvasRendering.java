@@ -18,7 +18,7 @@ final class CanvasRendering {
     Frame(Bitmap bitmap,float scale){this(bitmap,bitmap.getWidth(),bitmap.getHeight(),scale);}
     Frame(Bitmap bitmap,int width,int height,float scale){
       this.bitmap=bitmap;this.width=width;this.height=height;
-      display=bitmap.getWidth()==width && bitmap.getHeight()==height?new TileDisplay(bitmap):new NativeTileDisplay(width,height);
+      display=bitmap.getWidth()==width && bitmap.getHeight()==height?new TileDisplay(bitmap):new NativeTileDisplay(width,height,bitmap);
       try{display.warm(scale);}catch(RuntimeException|OutOfMemoryError error){display.clear();throw error;}
     }
     void dispose(){display.clear();bitmap.recycle();}
@@ -46,7 +46,7 @@ final class CanvasRendering {
   void drawPixels(Canvas canvas){
     if(display==null){
       display=host.readBitmap().getWidth()==host.readCanvasWidth() && host.readBitmap().getHeight()==host.readCanvasHeight()
-          ?new TileDisplay(host.readBitmap()):new NativeTileDisplay(host.readCanvasWidth(),host.readCanvasHeight());
+          ?new TileDisplay(host.readBitmap()):new NativeTileDisplay(host.readCanvasWidth(),host.readCanvasHeight(),host.readBitmap());
       if(display instanceof NativeTileDisplay tiled)tiled.redraw(host::invalidate);
     }
     display.draw(canvas,(float)host.readViewport().scale);

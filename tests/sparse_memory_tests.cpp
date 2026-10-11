@@ -59,9 +59,9 @@ int main(){
  assert(static_cast<const tiles::LayerPixels&>(originalStreamed)[0]==0xff000000);
  for(std::size_t at=0;at<streamed.size();at+=123457)
    assert(static_cast<const tiles::LayerPixels&>(originalStreamed)[at]==(0xff000000u|std::uint32_t(at)));
- LayerDocument huge(7000,7000);huge.addLayer("Vacía");assert(huge.mergeDown());
+ LayerDocument huge(6000,6000);huge.addLayer("Vacía");assert(huge.mergeDown());
  assert(huge.layer(0).pixels.allocatedPixels()==0);
- auto cropped=huge.cropped(0,0,6000,6000);assert(cropped.layer(0).pixels.allocatedPixels()==0);
- auto scaled=huge.resized(6500,6500,true,true,4);assert(scaled.layer(0).pixels.allocatedPixels()==0);
+ auto cropped=huge.cropped(0,0,5000,5000);assert(cropped.layer(0).pixels.allocatedPixels()==0);
+ auto scaled=huge.resized(5500,5500,true,true,4);assert(scaled.layer(0).pixels.allocatedPixels()==0);
  std::cout<<"Sparse layers, COW snapshots, canvas copies and regional opacity passed\n";
 }

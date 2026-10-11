@@ -37,7 +37,7 @@ int main(){
  assert(Java_art_velyntora_core_DrawingView_nativeCropDocument(nullptr,nullptr,10,10,40,30));
  assert(layers->width()==40&&canvas->height()==30);
  assert(Java_art_velyntora_core_DrawingView_nativeUndo(nullptr,nullptr));assert(layers->width()==240);
- assert(!Java_art_velyntora_core_DrawingView_nativeResizeDocument(nullptr,nullptr,7001,7000,true));
+ assert(!Java_art_velyntora_core_DrawingView_nativeResizeDocument(nullptr,nullptr,6001,6000,true));
  assert(layers->width()==240);
 
  assert(Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,4000,1000));
@@ -60,19 +60,22 @@ int main(){
  assert(Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,3840,2160));
  assert(Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,4000,4000));
  assert(canvas->pixels().size()==16000000);
- assert(Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,7000,7000));
- assert(canvas->pixels().size()==49000000 && canvas->pixels().allocatedPixels()==0);
- assert(!Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,7001,1));
- assert(layers->width()==7000&&layers->height()==7000);
+ assert(Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,6000,6000));
+ assert(canvas->pixels().size()==36000000 && canvas->pixels().allocatedPixels()==0);
+ assert(!Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,6001,1));
+ assert(layers->width()==6000&&layers->height()==6000);
  assert(Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,32,32));
- assert(Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,7000,7000));
+ assert(Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,6000,6000));
  auto initial=canvas->pixels();
  for(int i=0;i<140;++i){
    Java_art_velyntora_core_DrawingView_nativeBeginEdit(nullptr,nullptr);
    Java_art_velyntora_core_DrawingView_nativeStroke(nullptr,nullptr,32,32,32,32,2,0xff000000u|i);
  }
+ assert(Java_art_velyntora_core_DrawingView_nativeHistoryAvailability(nullptr,nullptr)==1);
  auto final=canvas->pixels();assert(undoStack.size()==140);
  for(int i=0;i<140;++i)assert(Java_art_velyntora_core_DrawingView_nativeUndo(nullptr,nullptr));
+ assert(Java_art_velyntora_core_DrawingView_nativeHistoryAvailability(nullptr,nullptr)==2);
+ assert(!Java_art_velyntora_core_DrawingView_nativeUndo(nullptr,nullptr));
  assert(canvas->pixels()==initial && undoStack.empty());
  assert(!Java_art_velyntora_core_DrawingView_nativeUndo(nullptr,nullptr));
  for(int i=0;i<140;++i)assert(Java_art_velyntora_core_DrawingView_nativeRedo(nullptr,nullptr));

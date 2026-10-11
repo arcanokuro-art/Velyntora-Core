@@ -31,9 +31,10 @@ final class HistoryActions {
     DrawingView drawing=host.readDrawing();
     if(host.readProjectProgress()!=null)return;
     if(drawing.curve!=null) {drawing.undo();host.refreshLayerPanel();return;}
+    if((DrawingView.nativeHistoryAvailability()&1)==0)return;
     drawing.finishOpacityStroke();drawing.canceledCurve=null;drawing.curveHistory.clear();
     int tag=DrawingView.nativeCurveTag();
-    LayerWorkQueue.run(host,DrawingView::nativeUndo,true,()->{
+    LayerWorkQueue.run(host,DrawingView::nativeUndo,true,"Deshaciendo…","No se pudo deshacer el cambio",()->{
       drawing.deselect();
       CurveSnapshot saved=drawing.savedCurves.get(tag);
       if(saved!=null) {
@@ -53,8 +54,9 @@ final class HistoryActions {
     if(drawing.canceledCurve!=null || drawing.curve!=null) {
       drawing.redo();host.refreshLayerPanel();return;
     }
+    if((DrawingView.nativeHistoryAvailability()&2)==0)return;
     drawing.finishOpacityStroke();
-    LayerWorkQueue.run(host,DrawingView::nativeRedo,true,()->{
+    LayerWorkQueue.run(host,DrawingView::nativeRedo,true,"Rehaciendo…","No se pudo rehacer el cambio",()->{
       drawing.deselect();drawing.viewportChanged();
     });
   }

@@ -80,7 +80,7 @@ jobs:
         run: |
           javac -d build/java-tests app/src/main/java/art/velyntora/core/document/dimensions/CanvasLimits.java app/src/main/java/art/velyntora/core/document/dimensions/DocumentDimensions.java tests/DocumentDimensionsTests.java
           java -cp build/java-tests art.velyntora.core.DocumentDimensionsTests
-      - name: Proportional import sizing and 7000px boundary
+      - name: Proportional import sizing and 6000px boundary
         run: |
           javac -d build/java-tests app/src/main/java/art/velyntora/core/document/dimensions/CanvasLimits.java app/src/main/java/art/velyntora/core/document/importing/ImageImportSize.java tests/ImageImportSizeTests.java
           java -cp build/java-tests art.velyntora.core.ImageImportSizeTests

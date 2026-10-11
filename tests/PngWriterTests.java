@@ -10,11 +10,11 @@ public final class PngWriterTests{
   BufferedImage image=ImageIO.read(new ByteArrayInputStream(out.toByteArray()));
   for(int y=0;y<2;y++)for(int x=0;x<3;x++)if(image.getRGB(x,y)!=colors[y*3+x])throw new AssertionError("RGBA mismatch");
   out.reset();int[] rows={0};
-  PngWriter.write(out,7000,7000,(y,row)->{java.util.Arrays.fill(row,0xff123456);rows[0]++;});
-  if(rows[0]!=7000 || out.size()>5000000)throw new AssertionError("Unbounded PNG output");
+  PngWriter.write(out,6000,6000,(y,row)->{java.util.Arrays.fill(row,0xff123456);rows[0]++;});
+  if(rows[0]!=6000 || out.size()>5000000)throw new AssertionError("Unbounded PNG output");
   try(javax.imageio.stream.ImageInputStream input=ImageIO.createImageInputStream(new ByteArrayInputStream(out.toByteArray()))){
-   ImageReader reader=ImageIO.getImageReaders(input).next();try{reader.setInput(input);if(reader.getWidth(0)!=7000 || reader.getHeight(0)!=7000)throw new AssertionError("Wrong dimensions");}finally{reader.dispose();}
+   ImageReader reader=ImageIO.getImageReaders(input).next();try{reader.setInput(input);if(reader.getWidth(0)!=6000 || reader.getHeight(0)!=6000)throw new AssertionError("Wrong dimensions");}finally{reader.dispose();}
   }
-  System.out.println("PNG RGBA round-trip and 7000x7000 streaming dimensions passed");
+  System.out.println("PNG RGBA round-trip and 6000x6000 streaming dimensions passed");
  }
 }

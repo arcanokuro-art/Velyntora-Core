@@ -6,16 +6,21 @@ import java.util.function.BooleanSupplier;
 /** Serial UI entry point: native composition and display preparation run on a worker. */
 final class LayerWorkQueue {
   static void run(MainActivity host, BooleanSupplier operation, boolean redraw, Runnable completed) {
+    run(host,operation,redraw,"Actualizando capas…","No se pudo completar la operación de capa",completed);
+  }
+  static void run(MainActivity host, BooleanSupplier operation, boolean redraw,String message,String failure,Runnable completed) {
     if (host.readProjectProgress() != null) return;
     DrawingView drawing = host.readDrawing();
     drawing.confirmCurve();
     drawing.finishOpacityStroke();
     ProgressDialog progress = new ProgressDialog(host);
-    progress.setMessage("Actualizando capas…");
+    progress.setMessage(message);
     progress.setCancelable(false);
     host.writeProjectProgress(progress);
     drawing.setEnabled(false);
-    progress.show();
+    android.os.Handler ui=new android.os.Handler(android.os.Looper.getMainLooper());
+    Runnable showProgress=()->{if(host.readProjectProgress()==progress && !host.isDestroyed())progress.show();};
+    ui.postDelayed(showProgress,250);
     float scale = (float)drawing.readViewport().scale;
     new Thread(() -> {
       boolean result = false;
@@ -36,9 +41,9 @@ final class LayerWorkQueue {
           }
           if (frame != null) drawing.installCanvasFrame(frame);
           else {drawing.viewportChanged();}
-          if (!success) host.message("No se pudo completar la operación de capa");
+          if (!success) host.message(failure);
         } finally {
-          progress.dismiss();
+          ui.removeCallbacks(showProgress);progress.dismiss();
           host.writeProjectProgress(null);
           drawing.setEnabled(true);
           if (!host.isDestroyed()) { host.refreshLayerPanel(); host.updateStatus(); }

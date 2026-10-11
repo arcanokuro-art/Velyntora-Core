@@ -227,6 +227,8 @@ public final class DrawingView extends View {
   }
   static native boolean nativeFillSelectionWorker(int x,int y,int color,float opacity,byte[] selection);
 
+  static native int nativeHistoryAvailability();
+
   static native boolean nativeUndo();
 
   static native boolean nativeRedo();
