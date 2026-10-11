@@ -17,14 +17,14 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: 517855ac8da2037f45a011dacd637e8a27195e15
+      VERIFIED_SHA: 21d5e116fa5dd311adf593f630f043260d1d66a0
       RELEASE_TAG: v0.1.0-6000px-paged-preview
     steps:
       - uses: actions/checkout@v4
       - name: Require exact experimental source checks
         run: |
           set -euo pipefail
-          for run_id in 38175958496 38175958494 38175958475 38175958509; do
+          for run_id in 38176328043 38176328025 38176328032 38176328040; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "codex/large-canvas-12000"' run.json
@@ -39,7 +39,7 @@ jobs:
       - name: Download verified APK
         run: |
           set -euo pipefail
-          gh run download 38175958496 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 38176328043 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
           cp apk/*.apk Velyntora-Core-6000px-Experimental.apk
           sha256sum Velyntora-Core-6000px-Experimental.apk > Velyntora-Core-6000px-Experimental.apk.sha256
@@ -55,7 +55,7 @@ jobs:
           Durante zoom y rotación, los bloques detallados de la zona visible se publican como un conjunto. La vista usa una resolución completa, sin mezclar bloques borrosos y nítidos. Al alejar reutiliza detalle más fino ya cargado y agrupa las solicitudes para no acumular trabajo de gestos anteriores. Se conservan límites de memoria y preparación fuera del hilo de interfaz.
           Comprobaciones: límites, importación proporcional y EXIF, cancelación, importación PNG/JPEG, 140 pasos nativos de historial, caché fría a diferentes zooms y rotaciones, bordes de bloques opacos y transparentes, trazos continuos y deshacer/rehacer sobre una imagen grande. Android se verifica con texto normal y grande.
           Los resultados del emulador no garantizan la fluidez ni ausencia de artefactos en todas las GPU. Versión experimental para comprobar los puntos claros y los bloqueos vistos en el dispositivo físico. Formatos especiales, máscaras densas y Remove AI mantienen requisitos mayores de memoria.
-          APK debug del commit 517855ac8da2037f45a011dacd637e8a27195e15, publicado sólo tras aprobar núcleo, almacenamiento, compilación y Android. SHA256 adjunta.
+          APK debug del commit 21d5e116fa5dd311adf593f630f043260d1d66a0, publicado sólo tras aprobar núcleo, almacenamiento, compilación y Android. SHA256 adjunta.
           NOTES
           # The release tag points at this publishing commit. The APK remains pinned to VERIFIED_SHA.
           # Reject any application-code difference between the verified build and this tag.
