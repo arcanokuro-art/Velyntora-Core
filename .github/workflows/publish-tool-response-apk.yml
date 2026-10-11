@@ -8,7 +8,7 @@ permissions:
   contents: write
   actions: read
 concurrency:
-  group: publish-layer-buttons
+  group: publish-brush-variants
   cancel-in-progress: false
 jobs:
   publish:
@@ -17,14 +17,14 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: ed4a04700d02b295c25f7c8c99dc3f16585427fe
-      RELEASE_TAG: v0.1.0-layer-buttons-preview
+      VERIFIED_SHA: 438e6b3ae6d20e5733ae953860fe97119d5894fb
+      RELEASE_TAG: v0.1.0-brush-variants-preview
     steps:
       - name: Wait for the exact source build and tests
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 38103083147 38103083179 38103083207; do
+          for run_id in 38107404611 38107404676 38107404624; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "main"' run.json
@@ -40,21 +40,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 38103083147 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 38107404611 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
-          cp apk/*.apk Velyntora-Core-Capas.apk
-          sha256sum Velyntora-Core-Capas.apk > Velyntora-Core-Capas.apk.sha256
+          cp apk/*.apk Velyntora-Core-Pinceles.apk
+          sha256sum Velyntora-Core-Pinceles.apk > Velyntora-Core-Pinceles.apk.sha256
       - name: Publish the updated APK
         shell: bash
         run: |
           set -euo pipefail
           cat > notes.md <<'NOTES'
-          Reacomoda únicamente las seis acciones inferiores del panel de capas en dos filas centradas de tres botones. Cada botón mantiene 48 × 48 dp, con separación uniforme de 8 dp y margen alrededor.
-          Primera fila: añadir, eliminar y duplicar. Segunda fila: combinar con la inferior, subir y bajar. Conserva las funciones, estados habilitados y deshabilitados, dimensiones exteriores del panel y filas de capas. Las herramientas de dibujo permanecen intactas.
-          Verificación Android de márgenes, separación, superficies táctiles y acciones dentro del panel, con fuentes normal y ampliada; capturas visuales del panel.
-          APK debug del commit ed4a04700d02b295c25f7c8c99dc3f16585427fe, publicado únicamente tras aprobar compilación, núcleo y Android. SHA256 adjunta.
+          Pinceles organizados en tools/brush/classic, antialiased y selector, con un módulo que recuerda la variante elegida.
+          El pincel clásico conserva el algoritmo original. El nuevo pincel con bordes suavizados usa cobertura subpíxel; respeta anchura de 1–300 px, opacidad, presión, dureza, punta cuadrada, selección y deshacer/rehacer.
+          Al pulsar el icono Pincel se abre el desplegable para elegir una variante. Mantiene una sola herramienta en la barra, con arquitectura preparada para más pinceles por carpetas.
+          Pruebas nativas de bordes, cobertura, anchuras y máscara; pruebas Android del desplegable, persistencia, trazos, opacidad e historial con fuentes normal y ampliada y capturas de comparación.
+          APK debug del commit 438e6b3ae6d20e5733ae953860fe97119d5894fb, publicado únicamente tras aprobar compilación, núcleo y Android. SHA256 adjunta.
           NOTES
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "${{ github.sha }}" --title "Velyntora Core — botones de capas" --notes-file notes.md --prerelease
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "${{ github.sha }}" --title "Velyntora Core — pinceles modulares" --notes-file notes.md --prerelease
           fi
-          gh release upload "$RELEASE_TAG" Velyntora-Core-Capas.apk Velyntora-Core-Capas.apk.sha256 --repo "$GH_REPO" --clobber
+          gh release upload "$RELEASE_TAG" Velyntora-Core-Pinceles.apk Velyntora-Core-Pinceles.apk.sha256 --repo "$GH_REPO" --clobber
