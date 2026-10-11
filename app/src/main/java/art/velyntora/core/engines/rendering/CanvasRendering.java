@@ -11,38 +11,42 @@ import android.view.View;
 /** Owns engines/rendering behavior; the host is the workspace composition facade. */
 final class CanvasRendering {
   private final DrawingView host;
-  private TileDisplay display;
+  private CanvasTileDisplay display;
   CanvasRendering(DrawingView host) { this.host = host; }
   static final class Frame {
-    final Bitmap bitmap;final TileDisplay display;
-    Frame(Bitmap bitmap,float scale){this.bitmap=bitmap;display=new TileDisplay(bitmap);try{display.warm(scale);}catch(RuntimeException|OutOfMemoryError error){display.clear();throw error;}}
+    final Bitmap bitmap;final CanvasTileDisplay display;final int width,height;
+    Frame(Bitmap bitmap,float scale){this(bitmap,bitmap.getWidth(),bitmap.getHeight(),scale);}
+    Frame(Bitmap bitmap,int width,int height,float scale){
+      this.bitmap=bitmap;this.width=width;this.height=height;
+      display=bitmap.getWidth()==width && bitmap.getHeight()==height?new TileDisplay(bitmap):new NativeTileDisplay(width,height);
+      try{display.warm(scale);}catch(RuntimeException|OutOfMemoryError error){display.clear();throw error;}
+    }
     void dispose(){display.clear();bitmap.recycle();}
   }
   static Frame prepareFrame(float fitScale){
-    int width=DrawingView.nativeWidth(),height=DrawingView.nativeHeight();
-    Bitmap bitmap=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
-    try{
-      int rows=Math.max(1,262144/width);
-      for(int y=0;y<height;y+=rows){
-        int count=Math.min(rows,height-y);int[] pixels=DrawingView.nativeRegionPixels(0,y,width,count);
-        if(pixels==null || pixels.length!=(long)width*count)throw new IllegalStateException("Incomplete frame");
-        bitmap.setPixels(pixels,0,width,0,y,width,count);
-      }
-      return new Frame(bitmap,fitScale);
-    }catch(RuntimeException|OutOfMemoryError error){bitmap.recycle();throw error;}
+    int width=DrawingView.nativeWidth(),height=DrawingView.nativeHeight(),sample=1;
+    while((long)((width+sample-1)/sample)*((height+sample-1)/sample)>1048576)sample*=2;
+    int w=(width+sample-1)/sample,h=(height+sample-1)/sample;
+    int[] pixels=DrawingView.nativeSampleRegion(0,0,sample,w,h);
+    if(pixels==null || pixels.length!=w*h)throw new IllegalStateException("Incomplete frame");
+    Bitmap bitmap=Bitmap.createBitmap(pixels,w,h,Bitmap.Config.ARGB_8888);
+    try{return new Frame(bitmap,width,height,fitScale);}catch(RuntimeException|OutOfMemoryError error){bitmap.recycle();throw error;}
   }
   void installFrame(Frame frame){
     host.removeCallbacks(host.readStrokeRefresh());host.writeStrokeRefreshPending(false);
     if(display!=null)display.clear();
     Bitmap old=host.readBitmap();host.writeBitmap(frame.bitmap);display=frame.display;
-    host.writeCanvasWidth(frame.bitmap.getWidth());host.writeCanvasHeight(frame.bitmap.getHeight());
-    host.readViewport().documentSize(frame.bitmap.getWidth(),frame.bitmap.getHeight());
+    host.writeCanvasWidth(frame.width);host.writeCanvasHeight(frame.height);
+    host.readViewport().documentSize(frame.width,frame.height);
+    if(display instanceof NativeTileDisplay tiled)tiled.redraw(host::invalidate);
     old.recycle();host.writeDirtyLeft(host.writeDirtyTop(Integer.MAX_VALUE));host.writeDirtyRight(host.writeDirtyBottom(0));
     host.invalidate();if(host.readCanvasChangedListener()!=null)host.readCanvasChangedListener().run();host.viewportChanged();
   }
   void drawPixels(Canvas canvas){
-    if(display==null || display.source!=host.readBitmap()){
-      if(display!=null)display.clear();display=new TileDisplay(host.readBitmap());
+    if(display==null){
+      display=host.readBitmap().getWidth()==host.readCanvasWidth() && host.readBitmap().getHeight()==host.readCanvasHeight()
+          ?new TileDisplay(host.readBitmap()):new NativeTileDisplay(host.readCanvasWidth(),host.readCanvasHeight());
+      if(display instanceof NativeTileDisplay tiled)tiled.redraw(host::invalidate);
     }
     display.draw(canvas,(float)host.readViewport().scale);
   }
@@ -58,7 +62,7 @@ final class CanvasRendering {
   void refreshStrokePixels() {
     int w=host.readDirtyRight()-host.readDirtyLeft(),h=host.readDirtyBottom()-host.readDirtyTop();
     if(w>0 && h>0) {
-      int[] pixels=host.nativeRegionPixels(host.readDirtyLeft(),host.readDirtyTop(),w,h);
+      int[] pixels=display instanceof NativeTileDisplay?null:host.nativeRegionPixels(host.readDirtyLeft(),host.readDirtyTop(),w,h);
       if(pixels!=null && pixels.length==w*h)
         host.readBitmap().setPixels(pixels,0,w,host.readDirtyLeft(),host.readDirtyTop(),w,h);
       if(display!=null)display.invalidate(host.readDirtyLeft(),host.readDirtyTop(),w,h);
@@ -92,26 +96,20 @@ final class CanvasRendering {
   }
 
   void refreshPixels() {
-    if(display!=null)display.clear();
-    int width = host.nativeWidth(), height = host.nativeHeight();
-    if (width <= 0 || height <= 0) return;
-    if (width != host.readCanvasWidth() || height != host.readCanvasHeight()) {
-      Bitmap replacement = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-      host.readBitmap().recycle();
-      host.writeBitmap(replacement);
-      host.writeCanvasWidth(width);
-      host.writeCanvasHeight(height);
-      host.readViewport().documentSize(width, height);
+    int width=host.nativeWidth(),height=host.nativeHeight();if(width<=0 || height<=0)return;
+    if((long)width*height>1048576){
+      if(width==host.readCanvasWidth() && height==host.readCanvasHeight() && display instanceof NativeTileDisplay){
+        display.invalidate(0,0,width,height);host.invalidate();return;
+      }
+      Frame frame=prepareFrame((float)host.readViewport().scale);installFrame(frame);return;
     }
-    // Bounded stripes avoid a document-sized Java array and native flattened copy.
-    int rows = Math.max(1, 262144 / width);
-    for (int y=0; y<height; y+=rows) {
-      int count=Math.min(rows,height-y);
-      int[] pixels=host.nativeRegionPixels(0,y,width,count);
-      if(pixels==null || pixels.length!=(long)width*count) return;
-      host.readBitmap().setPixels(pixels,0,width,0,y,width,count);
+    if(display!=null)display.clear();display=null;
+    if(width!=host.readBitmap().getWidth() || height!=host.readBitmap().getHeight()){
+      Bitmap next=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);host.readBitmap().recycle();host.writeBitmap(next);
     }
-    host.invalidate();
+    host.writeCanvasWidth(width);host.writeCanvasHeight(height);host.readViewport().documentSize(width,height);
+    int[] pixels=host.nativeRegionPixels(0,0,width,height);
+    if(pixels!=null)host.readBitmap().setPixels(pixels,0,width,0,0,width,height);host.invalidate();
   }
 
   void onDraw(Canvas canvas) {

@@ -341,7 +341,8 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
     mixed.strokeStyled(.5f, .5f, .5f, .5f, .5f, static_cast<std::uint32_t>(color), opacity, 1, true,
                        false);
     auto filled = *canvas;
-    filled.fill(x, y, mixed.pixels()[0], mask.empty() ? nullptr : &mask);
+    if(canvas->pixels().isUniform() && mask.empty())filled.clear(mixed.pixels()[0]);
+    else filled.fill(x, y, mixed.pixels()[0], mask.empty() ? nullptr : &mask);
     if (filled.pixels() == canvas->pixels()) return JNI_FALSE;
     checkpoint();
     canvas->setPixels(filled.pixels());
@@ -352,3 +353,7 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
   }
 }
 
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeFillSelectionWorker(
+    JNIEnv* env,jclass cls,jint x,jint y,jint color,jfloat opacity,jbyteArray selection){
+  return Java_art_velyntora_core_DrawingView_nativeFillSelection(env,cls,x,y,color,opacity,selection);
+}

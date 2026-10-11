@@ -199,7 +199,9 @@ final class DocumentStorage {
       host.message("Espera a que termine la operación actual");
       return;
     }
-    Bitmap image = host.readDrawing().snapshot();
+    final int documentWidth=DrawingView.nativeWidth(),documentHeight=DrawingView.nativeHeight();
+    final boolean streaming=request!=host.readSAVE_JPEG() && request!=host.readSAVE_WEBP() && request!=host.readSAVE_ICO();
+    host.readDrawing().confirmCurve();
     android.app.ProgressDialog progress = new android.app.ProgressDialog(host);
     progress.setMessage("Exportando imagen…");
     progress.setCancelable(false);
@@ -209,18 +211,24 @@ final class DocumentStorage {
     new Thread(
             () -> {
               boolean success = false;
+              Bitmap[] snapshot={null};
               try (OutputStream output = host.getContentResolver().openOutputStream(uri, "wt")) {
                 if (output == null) throw new java.io.IOException("No output");
                 java.io.BufferedOutputStream buffered = new java.io.BufferedOutputStream(output);
-                RasterFileWriter.RowSource rows =
-                    (y, row) ->
-                        image.getPixels(row, 0, image.getWidth(), 0, y, image.getWidth(), 1);
+                final Bitmap image=streaming?null:CanvasDocument.nativeSnapshot();snapshot[0]=image;
+                final int width=streaming?documentWidth:image.getWidth(),height=streaming?documentHeight:image.getHeight();
+                RasterFileWriter.RowSource rows = (y,row)->{
+                  if(streaming){int[] source=DrawingView.nativeRegionPixels(0,y,width,1);
+                    if(source==null || source.length!=width)throw new IllegalStateException("Fila incompleta");
+                    System.arraycopy(source,0,row,0,width);
+                  }else image.getPixels(row,0,width,0,y,width,1);
+                };
                 if (request == host.readSAVE_TIFF())
-                  TiffWriter.write(buffered, image.getWidth(), image.getHeight(), rows);
+                  TiffWriter.write(buffered, width, height, rows);
                 else if (request == host.readSAVE_GIF())
-                  GifWriter.write(buffered, image.getWidth(), image.getHeight(), rows);
+                  GifWriter.write(buffered, width, height, rows);
                 else if (request == host.readSAVE_PPM())
-                  PpmCodec.write(buffered, image.getWidth(), image.getHeight(), rows);
+                  PpmCodec.write(buffered, width, height, rows);
                 else if (request == host.readSAVE_ICO()) {
                   double scale =
                       Math.min(1.0, 256.0 / Math.max(image.getWidth(), image.getHeight()));
@@ -235,7 +243,8 @@ final class DocumentStorage {
                   }
                 } else if (request == host.readSAVE_BMP() || request == host.readSAVE_TGA())
                   RasterFileWriter.write(
-                      buffered, image.getWidth(), image.getHeight(), request == host.readSAVE_TGA(), rows);
+                      buffered, width, height, request == host.readSAVE_TGA(), rows);
+                else if(request==host.readSAVE_PNG())PngWriter.write(buffered,width,height,rows);
                 else {
                   Bitmap encoded = image;
                   try {
@@ -263,10 +272,10 @@ final class DocumentStorage {
                 }
                 buffered.flush();
                 success = true;
-              } catch (Exception e) {
+              } catch (Exception | OutOfMemoryError e) {
                 success = false;
               } finally {
-                image.recycle();
+                if(snapshot[0]!=null)snapshot[0].recycle();
               }
               final boolean ok = success;
               host.runOnUiThread(
@@ -469,28 +478,15 @@ final class DocumentStorage {
     new Thread(() -> {
       String name = host.fileName(uri);
       CanvasRendering.Frame prepared = null;
-      Bitmap image = null;
       try {
-        image = host.decodeImage(uri);
-        if (!image.isMutable()) {
-          Bitmap mutable = image.copy(Bitmap.Config.ARGB_8888, true);
-          image.recycle(); image = mutable;
-        }
-        int width = image.getWidth(), height = image.getHeight();
-        float scale = Math.min(viewWidth / (float)width, viewHeight / (float)height) * .9f;
-        // Prepare display resources before changing the native document.
-        prepared = new CanvasRendering.Frame(image, scale);
-        image = null;
-        int[] pixels = new int[width * height];
-        prepared.bitmap.getPixels(pixels, 0, width, 0, 0, width, height);
-        if (!DrawingView.nativeLoadBitmap(width, height, pixels)) {
-          prepared.dispose(); prepared = null;
-        }
+        RegionImageImporter.load(host,uri);
+        int width=DrawingView.nativeWidth(),height=DrawingView.nativeHeight();
+        float scale=Math.min(viewWidth/(float)width,viewHeight/(float)height)*.9f;
+        prepared=CanvasRendering.prepareFrame(scale);
+        DrawingView.nativeAcceptImageImport();
       } catch (Exception | OutOfMemoryError error) {
-        if (prepared != null) prepared.dispose();
-        prepared = null;
-      } finally {
-        if (image != null) image.recycle();
+        if(prepared!=null)prepared.dispose();prepared=null;
+        DrawingView.nativeCancelImageImport();
       }
       final CanvasRendering.Frame frame = prepared;
       host.runOnUiThread(() -> {

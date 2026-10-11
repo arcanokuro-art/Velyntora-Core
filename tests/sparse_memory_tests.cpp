@@ -1,6 +1,7 @@
 #include "velyntora/Canvas.hpp"
 #include "velyntora/LayerDocument.hpp"
 #include "../core/document/tiles/StrokeTiles.hpp"
+#include <array>
 #include <cassert>
 #include <iostream>
 int main(){
@@ -38,11 +39,29 @@ int main(){
  Canvas assigned(1,1);assigned=copied;
  assigned.strokeStyled(260,260,280,270,3,0xffffffff,.8,1,false,false);
  assert(assigned.pixels()!=copied.pixels());
- std::vector<std::uint32_t> large(16000000,0xffffffff);
+ tiles::LayerPixels large(100000000,0xffffffff);
  tiles::StrokeTiles stroke;stroke.begin(large);
  assert(stroke.allocatedBlocks()==0);
  stroke.coverage(70000)=.5f;large[70000]=0;
  assert(stroke.base(70000)==0xffffffff && stroke.allocatedBlocks()==1);
  stroke.end();assert(stroke.size()==0 && stroke.allocatedBlocks()==0);
+ // Stream a full 100 megapixel layer through the bounded page cache.
+ tiles::LayerPixels streamed(100000000,0);
+ std::array<std::uint32_t,4096> row{};
+ for(std::size_t at=0;at<streamed.size();at+=row.size()){
+   auto n=std::min(row.size(),streamed.size()-at);
+   for(std::size_t j=0;j<n;++j)row[j]=0xff000000u|std::uint32_t(at+j);
+   streamed.writeSpan(at,n,row.data());
+   assert(pages::cache().bytes<=pages::PageCache::budget);
+ }
+ auto originalStreamed=streamed;
+ streamed[0]=0xffabcdef;
+ assert(static_cast<const tiles::LayerPixels&>(originalStreamed)[0]==0xff000000);
+ for(std::size_t at=0;at<streamed.size();at+=123457)
+   assert(static_cast<const tiles::LayerPixels&>(originalStreamed)[at]==(0xff000000u|std::uint32_t(at)));
+ LayerDocument huge(10000,10000);huge.addLayer("Vacía");assert(huge.mergeDown());
+ assert(huge.layer(0).pixels.allocatedPixels()==0);
+ auto cropped=huge.cropped(0,0,9000,9000);assert(cropped.layer(0).pixels.allocatedPixels()==0);
+ auto scaled=huge.resized(8000,8000,true,true,4);assert(scaled.layer(0).pixels.allocatedPixels()==0);
  std::cout<<"Sparse layers, COW snapshots, canvas copies and regional opacity passed\n";
 }

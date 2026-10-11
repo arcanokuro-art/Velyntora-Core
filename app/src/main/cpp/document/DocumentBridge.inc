@@ -200,3 +200,41 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
   }
 }
 
+
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeBeginImageImport(JNIEnv*,jclass,jint w,jint h){
+  std::lock_guard<std::mutex> lock(guard);
+  if(!velyntora::limits::accepts(w,h))return JNI_FALSE;
+  try {importing=std::make_unique<velyntora::LayerDocument>(w,h);return JNI_TRUE;}catch(...){return JNI_FALSE;}
+}
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeImageImportRegion(JNIEnv* env,jclass,jint x,jint y,jint w,jint h,jintArray source){
+  std::lock_guard<std::mutex> lock(guard);
+  if(!importing || !source || x<0 || y<0 || w<=0 || h<=0 || x>importing->width()-w || y>importing->height()-h
+      || std::int64_t(w)*h>2097152 || env->GetArrayLength(source)!=std::int64_t(w)*h)return JNI_FALSE;
+  try{
+    std::vector<std::uint32_t> row(w);
+    for(int i=0;i<h;++i){env->GetIntArrayRegion(source,i*w,w,reinterpret_cast<jint*>(row.data()));if(env->ExceptionCheck())return JNI_FALSE;
+      importing->writeActiveSpan(std::size_t(y+i)*importing->width()+x,w,row.data());}
+    return JNI_TRUE;
+  }catch(...){return JNI_FALSE;}
+}
+extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeFinishImageImport(JNIEnv*,jclass){
+  std::lock_guard<std::mutex> lock(guard);if(!importing)return JNI_FALSE;
+  try {
+    auto next=std::make_unique<velyntora::Canvas>(importing->width(),importing->height());next->setPixels(importing->layer(0).pixels);
+    auto previous=std::make_unique<ImportPrevious>();
+    previous->canvas=std::move(canvas);previous->layers=std::move(layers);previous->undo=std::move(undoStack);previous->redo=std::move(redoStack);
+    previous->archive=std::move(historyArchive);previous->tag=curveTag;previous->revision=revision;importPrevious=std::move(previous);
+    layers=std::move(importing);canvas=std::move(next);resetHistory();return JNI_TRUE;
+  }catch(...){return JNI_FALSE;}
+}
+extern "C" JNIEXPORT void JNICALL Java_art_velyntora_core_DrawingView_nativeCancelImageImport(JNIEnv*,jclass){
+  std::lock_guard<std::mutex> lock(guard);importing.reset();
+  if(importPrevious){canvas=std::move(importPrevious->canvas);layers=std::move(importPrevious->layers);
+    undoStack=std::move(importPrevious->undo);redoStack=std::move(importPrevious->redo);historyArchive=std::move(importPrevious->archive);
+    curveTag=importPrevious->tag;revision=importPrevious->revision;importPrevious.reset();}
+  velyntora::pages::cache().discardUnused();
+}
+
+extern "C" JNIEXPORT void JNICALL Java_art_velyntora_core_DrawingView_nativeAcceptImageImport(JNIEnv*,jclass){
+  std::lock_guard<std::mutex> lock(guard);importPrevious.reset();velyntora::pages::cache().discardUnused();
+}

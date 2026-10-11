@@ -10,6 +10,13 @@ class DrawingView {
  static native void nativeBeginSampled(int x,int y);
  static native void nativeSampledStroke(boolean clone,int ox,int oy,int replacement,int tolerance,float x0,float y0,float x1,float y1,float radius,float opacity,float hardness);
  static native boolean nativeCreate(int w,int h);
+ static native boolean nativeBeginImageImport(int w,int h);
+ static native boolean nativeImageImportRegion(int x,int y,int w,int h,int[] pixels);
+ static native boolean nativeFinishImageImport();
+ static native void nativeAcceptImageImport();
+ static native void nativeCancelImageImport();
+ static native int nativeWidth();
+ static native int nativeHeight();
  static native void nativeBeginEdit();
  static native boolean nativeFillSelection(int x,int y,int color,float opacity,byte[] selection);
  static native boolean nativeResizeDocumentOptions(int w,int h,boolean scale,boolean bilinear,int anchor);

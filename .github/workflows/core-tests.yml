@@ -97,6 +97,10 @@ jobs:
           javac -d build/java-tests app/src/main/java/art/velyntora/core/document/dimensions/CanvasLimits.java app/src/main/java/art/velyntora/core/formats/shared/RasterFileWriter.java tests/RasterFileWriterTests.java app/src/main/java/art/velyntora/core/formats/tga/TgaReader.java tests/TgaReaderTests.java
           java -cp build/java-tests art.velyntora.core.RasterFileWriterTests
           java -cp build/java-tests art.velyntora.core.TgaReaderTests
+      - name: Original-resolution streaming PNG export
+        run: |
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/document/dimensions/CanvasLimits.java app/src/main/java/art/velyntora/core/formats/shared/RasterFileWriter.java app/src/main/java/art/velyntora/core/formats/png/PngWriter.java tests/PngWriterTests.java
+          java -cp build/java-tests art.velyntora.core.PngWriterTests
       - name: PPM file interchange tests
         run: |
           javac -d build/java-tests app/src/main/java/art/velyntora/core/document/dimensions/CanvasLimits.java app/src/main/java/art/velyntora/core/components/layers/blending/*/*.java app/src/main/java/art/velyntora/core/document/project/VlyProjectStream.java app/src/main/java/art/velyntora/core/document/openraster/OpenRasterArchive.java app/src/main/java/art/velyntora/core/formats/shared/RasterFileWriter.java app/src/main/java/art/velyntora/core/formats/ppm/PpmCodec.java tests/PpmCodecTests.java
@@ -133,3 +137,7 @@ jobs:
           g++ -shared -fPIC -std=c++20 -Icore/include -I"$JAVA_HOME/include" -I"$JAVA_HOME/include/linux" app/src/main/cpp/native_bridge.cpp core/src/Canvas.cpp tools/shared/native/Raster.cpp tools/brush/classic/native/Raster.cpp tools/brush/antialiased/native/Raster.cpp tools/rectangle/native/Raster.cpp tools/ellipse/native/Raster.cpp tools/bucket/native/Raster.cpp core/document/LayerDocument.cpp core/document/ProjectIO.cpp core/effects/PixelEffects.cpp tools/move_pixels/native/SelectionTransform.cpp core/effects/ColorAdjustments.cpp core/effects/BlurEffects.cpp core/effects/DistortionEffects.cpp core/effects/ArtisticEffects.cpp core/effects/RenderEffects.cpp core/effects/UtilityEffects.cpp core/effects/ObjectEffects.cpp -o build/libvelyntora_host.so
           javac -d build/java-tests app/src/main/java/art/velyntora/core/document/dimensions/CanvasLimits.java tests/NativeRasterTests.java
           java -Djava.library.path=build -cp build/java-tests art.velyntora.core.NativeRasterTests
+      - name: Original-resolution PNG import and transactional rollback
+        run: |
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/document/dimensions/CanvasLimits.java app/src/main/java/art/velyntora/core/formats/shared/RasterFileWriter.java app/src/main/java/art/velyntora/core/formats/png/PngWriter.java app/src/main/java/art/velyntora/core/formats/metadata/ExifOrientation.java app/src/main/java/art/velyntora/core/document/importing/ImageImportStripe.java app/src/main/java/art/velyntora/core/document/importing/PngStripeImporter.java tests/NativeRasterTests.java tests/PngImportTests.java
+          java -Xmx96m -Djava.library.path=build -cp build/java-tests art.velyntora.core.PngImportTests

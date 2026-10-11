@@ -20,7 +20,7 @@ public final class PpmCodecTests {
   Random random=new Random(15);int[] pixels=new int[17*13],expected=new int[pixels.length];for(int i=0;i<pixels.length;i++){pixels[i]=random.nextInt();int alpha=pixels[i]>>>24;expected[i]=0xff000000;for(int shift=0;shift<=16;shift+=8)expected[i]|=(((pixels[i]>>>shift&255)*alpha+255*(255-alpha)+127)/255)<<shift;}
   binary.reset();PpmCodec.write(binary,17,13,(y,row)->System.arraycopy(pixels,y*17,row,0,17));byte[] encoded=binary.toByteArray();check(Arrays.equals(read(encoded).pixels,expected),"roundtrip white alpha composition");
   try(OutputStream output=new FileOutputStream(args.length==0?"/tmp/velyntora-test.ppm":args[0])){output.write(encoded);}
-  for(String malformed:new String[]{"P3 0 1 255","P3 8193 1 255","P3 1 1 0","P3 1 1 65536","P3 1 1 2 3 0 0","P3 1 1 255 0 0","P3 1 1 255 0 0 0 0","P3 99999999999 1 255","P6 1 1 255","P6 1 1 255\nxx","P6 1 1 255\nxxxx"})rejected(ascii(malformed));
+  for(String malformed:new String[]{"P3 0 1 255","P3 10001 1 255","P3 1 1 0","P3 1 1 65536","P3 1 1 2 3 0 0","P3 1 1 255 0 0","P3 1 1 255 0 0 0 0","P3 99999999999 1 255","P6 1 1 255","P6 1 1 255\nxx","P6 1 1 255\nxxxx"})rejected(ascii(malformed));
   System.out.println("PPM P3/P6 comments, scaling, binary boundaries, 16-bit, alpha composition and invalid-input tests passed");
  }
 }

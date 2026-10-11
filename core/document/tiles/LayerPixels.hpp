@@ -6,17 +6,13 @@
 #include <memory>
 #include <vector>
 #include <stdexcept>
-#include "../history/HistoryFile.hpp"
+#include "../pages/PixelPage.hpp"
 
 namespace velyntora::tiles {
 // Sparse copy-on-write blocks keep blank layers and unchanged history cheap.
 class LayerPixels {
   static constexpr std::size_t blockSize=4096;
-  struct Block : std::vector<std::uint32_t> {
-    using std::vector<std::uint32_t>::vector;
-    mutable std::weak_ptr<history::HistoryFile> archive;
-    mutable std::uint64_t offset=0;
-  };
+  using Block=pages::PixelPage;
   std::size_t size_=0;
   std::uint32_t background_=0;
   std::map<std::size_t,std::shared_ptr<Block>> blocks_;
@@ -32,21 +28,34 @@ class LayerPixels {
       auto block=std::make_shared<Block>(std::min(blockSize,size_-key*blockSize),background_);
       (*block)[i%blockSize]=value;blocks_.emplace(key,std::move(block));
     } else {
-      if(!found->second.unique()) found->second=std::make_shared<Block>(*found->second);
-      found->second->archive.reset();
+      if(found->second.use_count()>(found->second->listed?2:1)) found->second=std::make_shared<Block>(*found->second);
+      found->second->changed();
       (*found->second)[i%blockSize]=value;
     }
   }
  public:
   LayerPixels()=default;
+  explicit LayerPixels(std::size_t size):size_(size){}
+  void resize(std::size_t size,std::uint32_t color=0){size_=size;background_=color;blocks_.clear();}
+  void assign(std::size_t size,std::uint32_t color){resize(size,color);}
+  void clear(){resize(0);}
+  bool empty()const noexcept{return size_==0;}
+  void swap(LayerPixels& other)noexcept{std::swap(size_,other.size_);std::swap(background_,other.background_);blocks_.swap(other.blocks_);}
+  std::uint32_t& mutablePixel(std::size_t i){
+    auto key=i/blockSize;auto found=blocks_.find(key);
+    if(found==blocks_.end())found=blocks_.emplace(key,std::make_shared<Block>(std::min(blockSize,size_-key*blockSize),background_)).first;
+    else if(found->second.use_count()>(found->second->listed?2:1))found->second=std::make_shared<Block>(*found->second);
+    found->second->changed();return (*found->second)[i%blockSize];
+  }
   LayerPixels(const std::vector<std::uint32_t>& pixels):size_(pixels.size()),
       background_(pixels.empty()?0:pixels[0]) {
     for(std::size_t offset=0;offset<size_;offset+=blockSize) {
       auto first=pixels.begin()+offset,last=first+std::min(blockSize,size_-offset);
       if(std::all_of(first,last,[this](std::uint32_t value){return value==background_;}))continue;
-      blocks_.emplace(offset/blockSize,std::make_shared<Block>(first,last));
+      auto block=std::make_shared<Block>(first,last);blocks_.emplace(offset/blockSize,block);block->ensure();
     }
   }
+  LayerPixels(std::initializer_list<std::uint32_t> pixels):LayerPixels(std::vector<std::uint32_t>(pixels)){}
   LayerPixels(std::size_t size,std::uint32_t background):size_(size),background_(background) {}
   std::size_t size() const noexcept {return size_;}
   bool isUniform() const noexcept {return blocks_.empty();}
@@ -76,7 +85,7 @@ class LayerPixels {
     for(const auto& entry:saved.blocks) {
       if(entry.key>= (saved.size+blockSize-1)/blockSize)throw std::runtime_error("History block");
       auto block=std::make_shared<Block>(std::min<std::uint64_t>(blockSize,saved.size-entry.key*blockSize));
-      file->read(entry.offset,block->data(),block->size()*sizeof(std::uint32_t));
+      block->values.clear();block->values.shrink_to_fit();block->backing=file;block->backingOffset=entry.offset;
       block->archive=file;block->offset=entry.offset;
       result.blocks_.emplace(entry.key,std::move(block));
     }
@@ -88,14 +97,14 @@ class LayerPixels {
     Reference& operator=(std::uint32_t value) {owner->put(index,value);return *this;}
     Reference& operator=(const Reference& value) {return *this=std::uint32_t(value);}
   };
-  Reference operator[](std::size_t i) {return {this,i};}
+  std::uint32_t& operator[](std::size_t i) {return mutablePixel(i);}
   std::uint32_t operator[](std::size_t i) const {return get(i);}
   template<bool Constant> struct Iterator {
     using Owner=std::conditional_t<Constant,const LayerPixels,LayerPixels>;
     using iterator_category=std::random_access_iterator_tag;
     using value_type=std::uint32_t;
     using difference_type=std::ptrdiff_t;
-    using reference=std::conditional_t<Constant,std::uint32_t,Reference>;
+    using reference=std::conditional_t<Constant,std::uint32_t,std::uint32_t&>;
     using pointer=void;
     Owner* owner;difference_type index;
     reference operator*() const {return (*owner)[std::size_t(index)];}
@@ -143,6 +152,21 @@ class LayerPixels {
       output+=length;offset+=length;count-=length;
     }
   }
+  void writeSpan(std::size_t offset,std::size_t count,const std::uint32_t* input){
+    if(offset>size_ || count>size_-offset)throw std::out_of_range("Pixel span");
+    while(count){
+      auto key=offset/blockSize,inBlock=offset%blockSize,length=std::min(count,blockSize-inBlock);
+      auto found=blocks_.find(key);
+      if(found==blocks_.end()){
+        if(std::all_of(input,input+length,[this](std::uint32_t value){return value==background_;})){
+          offset+=length;input+=length;count-=length;continue;
+        }
+        found=blocks_.emplace(key,std::make_shared<Block>(std::min(blockSize,size_-key*blockSize),background_)).first;
+      }else if(found->second.use_count()>(found->second->listed?2:1))found->second=std::make_shared<Block>(*found->second);
+      found->second->changed();std::copy_n(input,length,found->second->begin()+inBlock);
+      offset+=length;input+=length;count-=length;
+    }
+  }
   LayerPixels& operator=(const std::vector<std::uint32_t>& pixels) {
     if(pixels.size()!=size_) {
       LayerPixels replacement(pixels);*this=std::move(replacement);return *this;
@@ -159,13 +183,29 @@ class LayerPixels {
       bool uniform=std::all_of(first,last,[this](std::uint32_t value){return value==background_;});
       if(uniform){replacement.erase(offset/blockSize);continue;}
       if(found!=blocks_.end() && std::equal(first,last,found->second->begin()))continue;
-      replacement[offset/blockSize]=std::make_shared<Block>(first,last);
+      replacement[offset/blockSize]=std::make_shared<Block>(first,last);replacement[offset/blockSize]->ensure();
     }
     blocks_=std::move(replacement);return *this;
   }
   friend bool operator==(const LayerPixels& a,const LayerPixels& b) {
     if(a.size_!=b.size_)return false;
-    for(std::size_t i=0;i<a.size_;++i)if(a.get(i)!=b.get(i))return false;
+    auto sameBlock=[&](std::size_t key){
+      auto ai=a.blocks_.find(key),bi=b.blocks_.find(key);
+      if(ai==a.blocks_.end() && bi==b.blocks_.end())return a.background_==b.background_;
+      if(ai!=a.blocks_.end() && bi!=b.blocks_.end()){
+        if(ai->second==bi->second)return true;
+        return std::equal(ai->second->begin(),ai->second->end(),bi->second->begin());
+      }
+      const auto& block=ai==a.blocks_.end()?bi->second:ai->second;
+      auto color=ai==a.blocks_.end()?a.background_:b.background_;
+      return std::all_of(block->begin(),block->end(),[color](std::uint32_t value){return value==color;});
+    };
+    if(a.background_!=b.background_){
+      for(std::size_t key=0;key<(a.size_+blockSize-1)/blockSize;key++)if(!sameBlock(key))return false;
+    }else{
+      for(const auto& [key,block]:a.blocks_)if(!sameBlock(key))return false;
+      for(const auto& [key,block]:b.blocks_)if(!a.blocks_.contains(key) && !sameBlock(key))return false;
+    }
     return true;
   }
   friend bool operator==(const LayerPixels& a,const std::vector<std::uint32_t>& b) {

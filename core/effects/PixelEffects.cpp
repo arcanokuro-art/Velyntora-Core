@@ -1,3 +1,5 @@
+#include "../document/pages/PagedValues.hpp"
+#include "../document/tiles/LayerPixels.hpp"
 #include "velyntora/PixelEffects.hpp"
 
 #include <algorithm>
@@ -29,7 +31,7 @@ std::uint32_t color(const Sum& sum, int count) {
   return result;
 }
 }  // namespace
-std::vector<std::uint32_t> pixelEffect(const std::vector<std::uint32_t>& src, int w, int h,
+tiles::LayerPixels pixelEffect(const tiles::LayerPixels& src, int w, int h,
                                        int kind, int amount) {
   if (w <= 0 || h <= 0 || std::int64_t(w) * h != std::int64_t(src.size()) || kind < 0 || kind > 6 ||
       amount < 1 || amount > 100)
@@ -37,13 +39,13 @@ std::vector<std::uint32_t> pixelEffect(const std::vector<std::uint32_t>& src, in
   auto out = src;
   if (kind == 0) {
     int radius = std::min(amount, 64), count = radius * 2 + 1;
-    std::vector<Sample> horizontal(src.size());
+    pages::PagedValues<Sample> horizontal(src.size());
     for (int y = 0; y < h; ++y) {
       Sum sum{};
       for (int x = -radius; x <= radius; ++x)
         add(sum, sample(src[std::size_t(y) * w + std::clamp(x, 0, w - 1)]), 1);
       for (int x = 0; x < w; ++x) {
-        auto& pixel = horizontal[std::size_t(y) * w + x];
+        auto pixel = horizontal[std::size_t(y) * w + x];
         for (int c = 0; c < 4; ++c) pixel[c] = std::uint16_t((sum[c] + count / 2) / count);
         add(sum, sample(src[std::size_t(y) * w + std::clamp(x - radius, 0, w - 1)]), -1);
         add(sum, sample(src[std::size_t(y) * w + std::clamp(x + radius + 1, 0, w - 1)]), 1);

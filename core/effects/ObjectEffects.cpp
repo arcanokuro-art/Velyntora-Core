@@ -1,3 +1,5 @@
+#include "../document/pages/PagedValues.hpp"
+#include "../document/tiles/LayerPixels.hpp"
 #include "velyntora/ObjectEffects.hpp"
 
 #include <algorithm>
@@ -35,16 +37,16 @@ void transform(const std::vector<float>& input, std::vector<float>& output, int 
     output[q] = float(delta * delta + input[positions[k]]);
   }
 }
-std::vector<float> distances(const std::vector<std::uint32_t>& src, int w, int h, int threshold,
+pages::PagedValues<float> distances(const tiles::LayerPixels& src, int w, int h, int threshold,
                              bool toOpaque) {
-  std::vector<float> distance(src.size());
+  pages::PagedValues<float> distance(src.size());
   for (std::size_t i = 0; i < src.size(); i++)
     distance[i] = ((int(src[i] >> 24) > threshold) == toOpaque) ? 0 : 1000000000.f;
   std::vector<float> input(std::max(w, h)), output(input.size());
   for (int y = 0; y < h; y++) {
-    std::copy_n(distance.begin() + std::size_t(y) * w, w, input.begin());
+    distance.readSpan(std::size_t(y)*w,w,input.data());
     transform(input, output, w);
-    std::copy_n(output.begin(), w, distance.begin() + std::size_t(y) * w);
+    distance.writeSpan(std::size_t(y)*w,w,output.data());
   }
   for (int x = 0; x < w; x++) {
     for (int y = 0; y < h; y++) input[y] = distance[std::size_t(y) * w + x];
@@ -66,7 +68,7 @@ std::uint32_t over(std::uint32_t top, std::uint32_t bottom) {
   return out;
 }
 }  // namespace
-std::vector<std::uint32_t> objectEffect(const std::vector<std::uint32_t>& src, int w, int h,
+tiles::LayerPixels objectEffect(const tiles::LayerPixels& src, int w, int h,
                                         int kind, int amount, int tolerance, std::uint32_t color,
                                         bool option, const std::vector<std::uint8_t>* selection) {
   if (w < 1 || h < 1 || std::int64_t(w) * h != std::int64_t(src.size()) || kind < 0 || kind > 2 ||
@@ -113,7 +115,7 @@ std::vector<std::uint32_t> objectEffect(const std::vector<std::uint32_t>& src, i
     return out;
   }
   if (amount == 0) return src;
-  auto distance = distances(src, w, h, tolerance, kind == 2);
+  const auto distance = distances(src, w, h, tolerance, kind == 2);
   for (int y = 0; y < h; y++)
     for (int x = 0; x < w; x++) {
       auto pos = std::size_t(y) * w + x;

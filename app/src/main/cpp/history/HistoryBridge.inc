@@ -52,5 +52,5 @@ extern "C" JNIEXPORT void JNICALL Java_art_velyntora_core_DrawingView_nativeHist
   std::lock_guard<std::mutex> lock(guard);
   const char* value=env->GetStringUTFChars(directory,nullptr);
   if(!value)return;
-  historyDirectory=value;env->ReleaseStringUTFChars(directory,value);
+  historyDirectory=value;velyntora::pages::configure(historyDirectory);env->ReleaseStringUTFChars(directory,value);
 }

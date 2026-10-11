@@ -1,3 +1,4 @@
+#include "../document/tiles/LayerPixels.hpp"
 #include "velyntora/ColorAdjustments.hpp"
 
 #include <algorithm>
@@ -18,7 +19,7 @@ std::array<int, 256> levelsMap(const ChannelLevels& p) {
   }
   return map;
 }
-std::vector<std::uint32_t> remap(const std::vector<std::uint32_t>& pixels,
+tiles::LayerPixels remap(const tiles::LayerPixels& pixels,
                                  const std::array<std::array<int, 256>, 3>& maps) {
   auto out = pixels;
   for (auto& pixel : out) {
@@ -29,7 +30,7 @@ std::vector<std::uint32_t> remap(const std::vector<std::uint32_t>& pixels,
   return out;
 }
 }  // namespace
-std::vector<std::uint32_t> brightnessContrast(const std::vector<std::uint32_t>& pixels,
+tiles::LayerPixels brightnessContrast(const tiles::LayerPixels& pixels,
                                               int brightness, int contrast) {
   if (brightness < -100 || brightness > 100 || contrast < -100 || contrast > 100)
     throw std::invalid_argument("Invalid brightness/contrast");
@@ -39,7 +40,7 @@ std::vector<std::uint32_t> brightnessContrast(const std::vector<std::uint32_t>& 
     map[i] = clamp(int(std::lround(factor * (i - 128) + 128 + brightness * 2.55)));
   return remap(pixels, {map, map, map});
 }
-std::vector<std::uint32_t> basicColor(const std::vector<std::uint32_t>& pixels, int kind) {
+tiles::LayerPixels basicColor(const tiles::LayerPixels& pixels, int kind) {
   if (kind < 0 || kind > 2) throw std::invalid_argument("Invalid basic adjustment");
   auto out = pixels;
   for (auto& p : out) {
@@ -63,7 +64,7 @@ std::vector<std::uint32_t> basicColor(const std::vector<std::uint32_t>& pixels, 
   }
   return out;
 }
-std::vector<std::uint32_t> applyCurve(const std::vector<std::uint32_t>& pixels,
+tiles::LayerPixels applyCurve(const tiles::LayerPixels& pixels,
                                       const std::array<int, 256>& curve, int channel) {
   if (channel < 0 || channel > 4) throw std::invalid_argument("Invalid curve channel");
   for (auto v : curve)
@@ -97,11 +98,11 @@ std::vector<std::uint32_t> applyCurve(const std::vector<std::uint32_t>& pixels,
   }
   return out;
 }
-std::vector<std::uint32_t> applyLevels(const std::vector<std::uint32_t>& pixels,
+tiles::LayerPixels applyLevels(const tiles::LayerPixels& pixels,
                                        const std::array<ChannelLevels, 3>& levels) {
   return remap(pixels, {levelsMap(levels[0]), levelsMap(levels[1]), levelsMap(levels[2])});
 }
-std::vector<std::uint32_t> autoLevels(const std::vector<std::uint32_t>& pixels, int clip,
+tiles::LayerPixels autoLevels(const tiles::LayerPixels& pixels, int clip,
                                       const std::vector<std::uint8_t>* selection) {
   if (selection && selection->size() != pixels.size())
     throw std::invalid_argument("Invalid levels selection");
@@ -135,7 +136,7 @@ std::vector<std::uint32_t> autoLevels(const std::vector<std::uint32_t>& pixels, 
   }
   return remap(pixels, maps);
 }
-std::vector<std::uint32_t> posterizeRgb(const std::vector<std::uint32_t>& pixels,
+tiles::LayerPixels posterizeRgb(const tiles::LayerPixels& pixels,
                                         const std::array<int, 3>& levels) {
   std::array<std::array<int, 256>, 3> maps{};
   for (int c = 0; c < 3; ++c) {
@@ -148,7 +149,7 @@ std::vector<std::uint32_t> posterizeRgb(const std::vector<std::uint32_t>& pixels
   }
   return remap(pixels, maps);
 }
-std::vector<std::uint32_t> hueSaturation(const std::vector<std::uint32_t>& pixels, int hue,
+tiles::LayerPixels hueSaturation(const tiles::LayerPixels& pixels, int hue,
                                          int saturation, int lightness) {
   if (hue < -180 || hue > 180 || saturation < 0 || saturation > 200 || lightness < -100 ||
       lightness > 100)

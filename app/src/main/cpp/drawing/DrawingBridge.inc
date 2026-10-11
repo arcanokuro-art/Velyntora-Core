@@ -32,8 +32,8 @@ extern "C" JNIEXPORT jint JNICALL Java_art_velyntora_core_DrawingView_nativePick
                                                                                       jint y) {
   std::lock_guard<std::mutex> lock(guard);
   if (!layers || x < 0 || y < 0 || x >= layers->width() || y >= layers->height()) return 0;
-  const auto pixels = layers->flatten();
-  return static_cast<jint>(pixels[static_cast<std::size_t>(y) * layers->width() + x]);
+  const auto pixels=layers->flattenRegion(x,y,1,1);
+  return static_cast<jint>(pixels[0]);
 }
 extern "C" JNIEXPORT void JNICALL Java_art_velyntora_core_DrawingView_nativeStyledStroke(
     JNIEnv*, jclass, jfloat x0, jfloat y0, jfloat x1, jfloat y1, jfloat radius, jint color,

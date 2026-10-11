@@ -4,7 +4,15 @@ Java_art_velyntora_core_DrawingView_nativeRemoveSource(JNIEnv* env,jclass) {
  std::lock_guard<std::mutex> lock(guard);
  if(!canvas||!layers)return nullptr;
  jintArray result=env->NewIntArray(static_cast<jsize>(canvas->pixels().size()));
- if(result)env->SetIntArrayRegion(result,0,static_cast<jsize>(canvas->pixels().size()),reinterpret_cast<const jint*>(canvas->pixels().data()));
+ if(result){
+   std::vector<std::uint32_t> block(65536);
+   for(std::size_t offset=0;offset<canvas->pixels().size();offset+=block.size()){
+     auto count=std::min(block.size(),canvas->pixels().size()-offset);
+     canvas->pixels().readSpan(offset,count,block.data());
+     env->SetIntArrayRegion(result,offset,count,reinterpret_cast<const jint*>(block.data()));
+     if(env->ExceptionCheck())return nullptr;
+   }
+ }
  return result;
 }
 extern "C" JNIEXPORT jboolean JNICALL

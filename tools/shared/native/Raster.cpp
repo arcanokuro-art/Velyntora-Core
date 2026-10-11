@@ -5,7 +5,7 @@
 
 #include "velyntora/Canvas.hpp"
 namespace velyntora {
-void Canvas::sampledStroke(const std::vector<std::uint32_t>& source, bool clone, int ox, int oy,
+void Canvas::sampledStroke(const tiles::LayerPixels& source, bool clone, int ox, int oy,
                            std::uint32_t target, std::uint32_t replacement, int tolerance, float x0,
                            float y0, float x1, float y1, float radius, float opacity,
                            float hardness, const std::vector<std::uint8_t>* mask) {

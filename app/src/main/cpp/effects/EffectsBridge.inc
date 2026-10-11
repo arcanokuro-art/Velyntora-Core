@@ -819,7 +819,7 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
     std::vector<int> v(n);
     env->GetIntArrayRegion(values, 0, n, v.data());
     if (env->ExceptionCheck()) return JNI_FALSE;
-    std::vector<std::uint32_t> pixels;
+    velyntora::tiles::LayerPixels pixels;
     if (kind == 0 && n == 257) {
       std::array<int, 256> curve;
       std::copy_n(v.begin(), 256, curve.begin());

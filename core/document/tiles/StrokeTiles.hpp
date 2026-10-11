@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <map>
 #include <vector>
+#include "LayerPixels.hpp"
 
 namespace velyntora::tiles {
 // Preserve a stroke's original pixels only where the stroke actually touches.
@@ -13,7 +14,7 @@ class StrokeTiles {
     std::vector<std::uint32_t> base;
     std::vector<float> coverage;
   };
-  const std::vector<std::uint32_t>* source_ = nullptr;
+  const LayerPixels* source_ = nullptr;
   std::map<std::size_t,Block> blocks_;
   Block& block(std::size_t index) {
     auto key=index/blockSize;
@@ -21,16 +22,16 @@ class StrokeTiles {
     if(it!=blocks_.end()) return it->second;
     auto start=key*blockSize;
     auto count=std::min(blockSize,source_->size()-start);
-    Block value{{source_->begin()+start,source_->begin()+start+count},
-                std::vector<float>(count,0.f)};
+    Block value{std::vector<std::uint32_t>(count),std::vector<float>(count,0.f)};
+    source_->readSpan(start,count,value.base.data());
     return blocks_.emplace(key,std::move(value)).first->second;
   }
  public:
-  void begin(const std::vector<std::uint32_t>& pixels) {
+  void begin(const LayerPixels& pixels) {
     end();source_=&pixels;
   }
   void end() noexcept { blocks_.clear();source_=nullptr; }
-  void rebind(const std::vector<std::uint32_t>& pixels) noexcept {
+  void rebind(const LayerPixels& pixels) noexcept {
     if (source_) source_=&pixels;
   }
   std::size_t size() const noexcept {return source_?source_->size():0;}

@@ -1,3 +1,4 @@
+#include "../document/tiles/LayerPixels.hpp"
 #include "velyntora/ArtisticEffects.hpp"
 
 #include <algorithm>
@@ -15,7 +16,7 @@ int luminance(std::uint32_t p) {
 int mix(int old, int value, int strength) {
   return std::clamp((old * (100 - strength) + value * strength + 50) / 100, 0, 255);
 }
-std::vector<std::uint32_t> neighborhood(const std::vector<std::uint32_t>& src, int w, int h,
+std::vector<std::uint32_t> neighborhood(const tiles::LayerPixels& src, int w, int h,
                                         int kind, int strength, int radius) {
   auto out = src;
   for (int y = 0; y < h; y++) {
@@ -75,7 +76,7 @@ std::vector<std::uint32_t> neighborhood(const std::vector<std::uint32_t>& src, i
 }
 
 }  // namespace
-std::vector<std::uint32_t> artisticEffect(const std::vector<std::uint32_t>& src, int w, int h,
+tiles::LayerPixels artisticEffect(const tiles::LayerPixels& src, int w, int h,
                                           int kind, int strength, int radius, int threshold) {
   if (w < 1 || h < 1 || std::int64_t(w) * h != std::int64_t(src.size()) || kind < 0 || kind > 6 ||
       strength < 0 || strength > 100 || radius < 1 || radius > 16 || threshold < 0 ||
@@ -85,7 +86,7 @@ std::vector<std::uint32_t> artisticEffect(const std::vector<std::uint32_t>& src,
   if (strength == 0 && kind != 5) return src;
   if (kind == 0 || kind == 5) return neighborhood(src, w, h, kind, strength, radius);
   auto out = src;
-  std::vector<std::uint32_t> blurred;
+  tiles::LayerPixels blurred;
   if (kind == 1 || kind == 3 || kind == 4) blurred = blurEffect(src, w, h, 0, radius, 0, 50, 50);
   for (int y = 0; y < h; y++)
     for (int x = 0; x < w; x++) {

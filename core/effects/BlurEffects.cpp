@@ -1,3 +1,5 @@
+#include "../document/pages/PagedValues.hpp"
+#include "../document/tiles/LayerPixels.hpp"
 #include "velyntora/BlurEffects.hpp"
 
 #include <algorithm>
@@ -22,7 +24,7 @@ std::uint32_t pack(const Sample& p) {
     result |= std::uint32_t(std::clamp(int(std::lround(p[c] / p[0])), 0, 255)) << (24 - c * 8);
   return result;
 }
-Sample bilinear(const std::vector<std::uint32_t>& pixels, int w, int h, double x, double y) {
+Sample bilinear(const tiles::LayerPixels& pixels, int w, int h, double x, double y) {
   x = std::clamp(x, 0., double(w - 1));
   y = std::clamp(y, 0., double(h - 1));
   int ix = int(x), iy = int(y);
@@ -36,7 +38,7 @@ Sample bilinear(const std::vector<std::uint32_t>& pixels, int w, int h, double x
   return sum;
 }
 }  // namespace
-std::vector<std::uint32_t> blurEffect(const std::vector<std::uint32_t>& src, int w, int h, int kind,
+tiles::LayerPixels blurEffect(const tiles::LayerPixels& src, int w, int h, int kind,
                                       int amount, int angle, int cx, int cy) {
   if (w < 1 || h < 1 || std::int64_t(w) * h != std::int64_t(src.size()) || kind < 0 || kind > 3 ||
       amount < 0 || amount > 100 || (kind == 0 && amount > 32) || (kind == 2 && amount > 45) ||
@@ -54,7 +56,7 @@ std::vector<std::uint32_t> blurEffect(const std::vector<std::uint32_t>& src, int
       total += value;
     }
     for (auto& value : weights) value /= total;
-    std::vector<std::array<float, 4>> horizontal(src.size());
+    pages::PagedValues<std::array<float,4>> horizontal(src.size());
     for (int y = 0; y < h; y++)
       for (int x = 0; x < w; x++) {
         Sample sum{};
@@ -67,7 +69,7 @@ std::vector<std::uint32_t> blurEffect(const std::vector<std::uint32_t>& src, int
       for (int x = 0; x < w; x++) {
         Sample sum{};
         for (int dy = -radius; dy <= radius; dy++) {
-          auto& p = horizontal[std::size_t(std::clamp(y + dy, 0, h - 1)) * w + x];
+          auto p = static_cast<std::array<float,4>>(horizontal[std::size_t(std::clamp(y + dy, 0, h - 1)) * w + x]);
           for (int c = 0; c < 4; c++) sum[c] += p[c] * weights[dy + radius];
         }
         out[std::size_t(y) * w + x] = pack(sum);

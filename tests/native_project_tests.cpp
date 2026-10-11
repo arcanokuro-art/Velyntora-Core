@@ -37,7 +37,7 @@ int main(){
  assert(Java_art_velyntora_core_DrawingView_nativeCropDocument(nullptr,nullptr,10,10,40,30));
  assert(layers->width()==40&&canvas->height()==30);
  assert(Java_art_velyntora_core_DrawingView_nativeUndo(nullptr,nullptr));assert(layers->width()==240);
- assert(!Java_art_velyntora_core_DrawingView_nativeResizeDocument(nullptr,nullptr,10000,10000,true));
+ assert(!Java_art_velyntora_core_DrawingView_nativeResizeDocument(nullptr,nullptr,10001,10000,true));
  assert(layers->width()==240);
 
  assert(Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,4000,1000));
@@ -60,11 +60,12 @@ int main(){
  assert(Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,3840,2160));
  assert(Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,4000,4000));
  assert(canvas->pixels().size()==16000000);
- assert(!Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,4001,4000));
- assert(!Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,8193,1));
- assert(layers->width()==4000&&layers->height()==4000);
+ assert(Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,10000,10000));
+ assert(canvas->pixels().size()==100000000 && canvas->pixels().allocatedPixels()==0);
+ assert(!Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,10001,1));
+ assert(layers->width()==10000&&layers->height()==10000);
  assert(Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,32,32));
- assert(Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,64,64));
+ assert(Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,10000,10000));
  auto initial=canvas->pixels();
  for(int i=0;i<140;++i){
    Java_art_velyntora_core_DrawingView_nativeBeginEdit(nullptr,nullptr);

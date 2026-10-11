@@ -1,3 +1,4 @@
+#include "../document/tiles/LayerPixels.hpp"
 #include "velyntora/UtilityEffects.hpp"
 
 #include <algorithm>
@@ -18,7 +19,7 @@ Sample unpack(std::uint32_t p) {
   double a = p >> 24;
   return {a, c(p, 16) * a, c(p, 8) * a, c(p, 0) * a};
 }
-Sample sample(const std::vector<std::uint32_t>& src, int w, int h, double x, double y) {
+Sample sample(const tiles::LayerPixels& src, int w, int h, double x, double y) {
   x = std::clamp(x, 0., double(w - 1));
   y = std::clamp(y, 0., double(h - 1));
   int ix = int(x), iy = int(y);
@@ -59,7 +60,7 @@ double noise(double x, double y, int seed) {
              fy;
 }
 }  // namespace
-std::vector<std::uint32_t> utilityEffect(const std::vector<std::uint32_t>& src, int w, int h,
+tiles::LayerPixels utilityEffect(const tiles::LayerPixels& src, int w, int h,
                                          int kind, int amount, int size, int parameter) {
   if (w < 1 || h < 1 || std::int64_t(w) * h != std::int64_t(src.size()) || kind < 0 || kind > 7 ||
       amount < 0 || amount > 100 || size < 1 || size > 128 ||

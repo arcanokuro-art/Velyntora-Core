@@ -1,8 +1,9 @@
 #pragma once
 #include <cstdint>
 #include <vector>
+#include "../../document/tiles/LayerPixels.hpp"
 namespace velyntora {
-std::vector<std::uint32_t> transformSelection(const std::vector<std::uint32_t>& source, int width,
+tiles::LayerPixels transformSelection(const tiles::LayerPixels& source, int width,
                                               int height, int left, int top, int selectionWidth,
                                               int selectionHeight,
                                               const std::vector<std::uint8_t>& mask, double degrees,

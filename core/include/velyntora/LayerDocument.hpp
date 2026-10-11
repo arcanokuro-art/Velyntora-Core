@@ -43,6 +43,9 @@ class LayerDocument {
   bool duplicateActive();
   bool mergeDown();
   void replaceActivePixels(const std::vector<std::uint32_t>& pixels);
+  void replaceActivePixels(const tiles::LayerPixels& pixels);
+  void replaceActivePixels(std::initializer_list<std::uint32_t> pixels){replaceActivePixels(std::vector<std::uint32_t>(pixels));}
+  void writeActiveSpan(std::size_t offset,std::size_t count,const std::uint32_t* input){layers_[active_].pixels.writeSpan(offset,count,input);}
   std::vector<std::uint32_t> flatten() const;
   void replaceActiveRegion(const std::vector<std::uint32_t>& pixels, int x, int y, int w, int h);
   std::vector<std::uint32_t> flattenRegion(int x, int y, int w, int h) const;

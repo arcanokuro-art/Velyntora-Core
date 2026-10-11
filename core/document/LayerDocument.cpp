@@ -10,7 +10,7 @@
 
 namespace velyntora {
 LayerDocument::LayerDocument(int w, int h) : width_(w), height_(h) {
-  if (w <= 0 || h <= 0 || static_cast<std::uint64_t>(w) * h > velyntora::limits::maxDocumentPixels)
+  if (!velyntora::limits::accepts(w,h))
     throw std::invalid_argument("Invalid dimensions");
   layers_.push_back({"Fondo",
                      tiles::LayerPixels(static_cast<std::size_t>(w) * h, 0xFFFFFFFFu), true,
@@ -31,6 +31,11 @@ LayerDocument LayerDocument::resized(int w, int h, bool scalePixels, bool biline
   for (const auto& layer : layers_) {
     Layer output{layer.name, tiles::LayerPixels(std::size_t(w) * h, 0u), layer.visible,
                  layer.opacity, layer.blendMode};
+    if (layer.pixels.isUniform() && (scalePixels || layer.pixels.background()==0)) {
+      output.pixels.resize(std::size_t(w)*h,layer.pixels.background());
+      result.layers_.push_back(std::move(output));
+      continue;
+    }
     for (int y = 0; y < h; ++y)
       for (int x = 0; x < w; ++x) {
         if (scalePixels && bilinear) {
@@ -78,9 +83,14 @@ LayerDocument LayerDocument::cropped(int left, int top, int w, int h) const {
   for (const auto& layer : layers_) {
     Layer output{layer.name, tiles::LayerPixels(std::size_t(w) * h,0u), layer.visible,
                  layer.opacity, layer.blendMode};
-    for (int y = 0; y < h; ++y)
-      std::copy_n(layer.pixels.begin() + std::size_t(y + top) * width_ + left, w,
-                  output.pixels.begin() + std::size_t(y) * w);
+    if (layer.pixels.isUniform()) output.pixels.resize(std::size_t(w)*h,layer.pixels.background());
+    else {
+      std::vector<std::uint32_t> row(w);
+      for(int y=0;y<h;++y){
+        layer.pixels.readSpan(std::size_t(y+top)*width_+left,w,row.data());
+        output.pixels.writeSpan(std::size_t(y)*w,w,row.data());
+      }
+    }
     result.layers_.push_back(std::move(output));
   }
   result.active_ = active_;
@@ -132,6 +142,10 @@ bool LayerDocument::setOpacity(std::size_t index, float opacity) {
   layers_[index].opacity = opacity;
   return true;
 }
+void LayerDocument::replaceActivePixels(const tiles::LayerPixels& pixels){
+  if(pixels.size()!=std::size_t(width_)*height_)throw std::invalid_argument("Layer dimensions");
+  layers_[active_].pixels=pixels;
+}
 void LayerDocument::replaceActivePixels(const std::vector<std::uint32_t>& pixels) {
   if (pixels.size() != layers_[active_].pixels.size())
     throw std::invalid_argument("Pixel count mismatch");
@@ -151,7 +165,7 @@ std::vector<std::uint32_t> LayerDocument::flatten() const {
       std::size_t count=std::min(source.size(),result.size()-offset);
       layer.pixels.readSpan(offset,count,source.data());
       for(std::size_t i=0;i<count;i++)
-        result[offset+i]=blending::composite(source[i],result[offset+i],layer.opacity,layer.blendMode);
+        result[offset+i]=(layer.opacity==1 && layer.blendMode==0 && (source[i]>>24)==255)?source[i]:blending::composite(source[i],result[offset+i],layer.opacity,layer.blendMode);
     }
   }
   return result;
@@ -182,7 +196,7 @@ std::vector<std::uint32_t> LayerDocument::flattenRegion(int x, int y, int w, int
       layer.pixels.readSpan(std::size_t(y+row)*width_+x,w,source.data());
       std::size_t offset=std::size_t(row)*w;
       for(int col=0;col<w;col++)
-        result[offset+col]=blending::composite(source[col],result[offset+col],layer.opacity,layer.blendMode);
+        result[offset+col]=(layer.opacity==1 && layer.blendMode==0 && (source[col]>>24)==255)?source[col]:blending::composite(source[col],result[offset+col],layer.opacity,layer.blendMode);
     }
   }
   return result;
@@ -192,6 +206,24 @@ std::vector<std::uint32_t> LayerDocument::flattenRegion(int x, int y, int w, int
 namespace velyntora {
 bool LayerDocument::setBlendMode(std::size_t i,int mode){if(i>=layers_.size()||mode<0||mode>15)return false;layers_[i].blendMode=mode;return true;}
 bool LayerDocument::duplicateActive(){Layer copy=layers_[active_];copy.name+=" copia";layers_.insert(layers_.begin()+active_+1,std::move(copy));++active_;return true;}
-bool LayerDocument::mergeDown(){if(active_==0)return false;auto& upper=layers_[active_];auto& lower=layers_[active_-1];
- for(std::size_t i=0;i<lower.pixels.size();i++){auto dst=blending::composite(lower.pixels[i],0,lower.visible?lower.opacity:0,0);lower.pixels[i]=blending::composite(upper.pixels[i],dst,upper.visible?upper.opacity:0,upper.blendMode);}lower.opacity=1;lower.visible=true;lower.blendMode=0;layers_.erase(layers_.begin()+active_);--active_;return true;}
+bool LayerDocument::mergeDown(){
+ if(active_==0)return false;
+ auto& upper=layers_[active_];auto& lower=layers_[active_-1];
+ const float lo=lower.visible?lower.opacity:0,up=upper.visible?upper.opacity:0;
+ auto combine=[&](std::uint32_t a,std::uint32_t b){return blending::composite(a,blending::composite(b,0,lo,0),up,upper.blendMode);};
+ if(lower.pixels.isUniform() && upper.pixels.isUniform()){
+   auto color=combine(upper.pixels.background(),lower.pixels.background());
+   lower.pixels.resize(lower.pixels.size(),color);
+ }else {
+   std::array<std::uint32_t,4096> bottom{},top{};
+   for(std::size_t at=0;at<lower.pixels.size();at+=bottom.size()){
+     auto n=std::min(bottom.size(),lower.pixels.size()-at);
+     lower.pixels.readSpan(at,n,bottom.data());upper.pixels.readSpan(at,n,top.data());
+     for(std::size_t i=0;i<n;++i)bottom[i]=combine(top[i],bottom[i]);
+     lower.pixels.writeSpan(at,n,bottom.data());
+   }
+ }
+ lower.opacity=1;lower.visible=true;lower.blendMode=0;
+ layers_.erase(layers_.begin()+active_);--active_;return true;
+}
 }

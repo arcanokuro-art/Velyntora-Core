@@ -120,6 +120,12 @@ public final class DrawingView extends View {
   }
 
   static native boolean nativeCreate(int w, int h);
+  static native boolean nativeBeginImageImport(int w,int h);
+  static native boolean nativeImageImportRegion(int x,int y,int w,int h,int[] pixels);
+  static native boolean nativeFinishImageImport();
+  static native void nativeCancelImageImport();
+  static native void nativeAcceptImageImport();
+  static native int[] nativeSampleRegion(int x,int y,int sample,int width,int height);
 
   static native void nativeHistoryDirectory(String directory);
   static native void nativeBeginEdit();
@@ -209,8 +215,17 @@ public final class DrawingView extends View {
 
   static native void nativeShape(int kind, int x0, int y0, int x1, int y1, int color);
 
-  static native boolean nativeFillSelection(
-      int x, int y, int color, float opacity, byte[] selection);
+  private static java.lang.ref.WeakReference<DrawingView> fillHost=new java.lang.ref.WeakReference<>(null);
+  static boolean nativeFillSelection(int x,int y,int color,float opacity,byte[] selection){
+    DrawingView drawing=fillHost.get();
+    if(drawing!=null && (long)drawing.documentWidth()*drawing.documentHeight()>1048576
+        && drawing.getContext() instanceof MainActivity activity){
+      drawing.post(()->LayerWorkQueue.run(activity,()->nativeFillSelectionWorker(x,y,color,opacity,selection),true,null));
+      return true;
+    }
+    return nativeFillSelectionWorker(x,y,color,opacity,selection);
+  }
+  static native boolean nativeFillSelectionWorker(int x,int y,int color,float opacity,byte[] selection);
 
   static native boolean nativeUndo();
 
@@ -626,6 +641,13 @@ public final class DrawingView extends View {
   int wandTolerance = 0;
   final android.graphics.Path wandBoundary = new android.graphics.Path();
 
+  int readWandTolerance(){return wandTolerance;}
+  void installWandRegion(android.graphics.Region region){
+    freeRegion.set(region);freePath.reset();wandBoundary.reset();
+    selectionTool=MAGIC_WAND;android.graphics.Rect bounds=region.getBounds();
+    selectionLeft=bounds.left;selectionTop=bounds.top;selectionRight=bounds.right;selectionBottom=bounds.bottom;
+    hasSelection=!region.isEmpty();if(hasSelection)wandBoundary.set(region.getBoundaryPath());invalidate();
+  }
   public void setWandTolerance(int value) {
     wandTolerance = Math.max(0, Math.min(255, value));
   }
@@ -652,6 +674,7 @@ public final class DrawingView extends View {
 
   public DrawingView(Context context) {
     super(context);
+    fillHost=new java.lang.ref.WeakReference<>(this);
     nativeHistoryDirectory(context.getCacheDir().getAbsolutePath());
     opacityPreferences();
     brushOpacity = toolOpacities.get(tool) / 100f;

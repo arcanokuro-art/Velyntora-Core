@@ -18,7 +18,7 @@ std::uint32_t over(std::uint32_t src, std::uint32_t dst) {
   return out;
 }
 }  // namespace
-std::vector<std::uint32_t> transformSelection(const std::vector<std::uint32_t>& src, int w, int h,
+tiles::LayerPixels transformSelection(const tiles::LayerPixels& src, int w, int h,
                                               int left, int top, int sw, int sh,
                                               const std::vector<std::uint8_t>& mask, double degrees,
                                               double sx, double sy) {

@@ -81,7 +81,8 @@ final class CanvasSelection {
   }
 
   void selectMatchingRegion(int sx, int sy) {
-    MagicWandTool.selectMatchingRegion(host, sx, sy);
+    if((long)host.documentWidth()*host.documentHeight()>1048576)PagedWand.run(host,sx,sy);
+    else MagicWandTool.selectMatchingRegion(host,sx,sy);
   }
 
   void translateSelectionMask(int dx, int dy) {

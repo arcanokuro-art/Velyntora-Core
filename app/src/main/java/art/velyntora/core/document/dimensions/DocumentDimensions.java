@@ -8,14 +8,14 @@ final class DocumentDimensions {
 
   DocumentDimensions(int w, int h) {
     if (!CanvasLimits.accepts(w,h))
-      throw new IllegalArgumentException("Usa hasta 8192 px por lado y 16 millones de píxeles");
+      throw new IllegalArgumentException("Usa hasta 10000 px por lado y 100 millones de píxeles");
     width = w;
     height = h;
   }
 
   private static int rounded(double value) {
     if (!Double.isFinite(value) || value < 0.5 || value >= CanvasLimits.MAX_SIDE + .5)
-      throw new IllegalArgumentException("La dimensión calculada debe estar entre 1 y 8192 px");
+      throw new IllegalArgumentException("La dimensión calculada debe estar entre 1 y 10000 px");
     return (int) Math.round(value);
   }
 

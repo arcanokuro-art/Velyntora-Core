@@ -130,6 +130,18 @@ final class CanvasDocument {
   Bitmap snapshot() {
     if (host.readStrokeRefreshPending()) host.refresh();
     host.confirmCurve();
-    return host.readBitmap().copy(Bitmap.Config.ARGB_8888, false);
+    return nativeSnapshot();
+  }
+  static Bitmap nativeSnapshot(){
+    int width=DrawingView.nativeWidth(),height=DrawingView.nativeHeight();
+    Bitmap result=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
+    try{
+      int rows=Math.max(1,Math.min(128,1048576/width));
+      for(int y=0;y<height;y+=rows){int n=Math.min(rows,height-y);
+        int[] pixels=DrawingView.nativeRegionPixels(0,y,width,n);
+        result.setPixels(pixels,0,width,0,y,width,n);
+      }
+      return result;
+    }catch(RuntimeException|OutOfMemoryError error){result.recycle();throw error;}
   }
 }

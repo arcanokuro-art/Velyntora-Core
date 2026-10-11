@@ -4,7 +4,7 @@ import android.graphics.*;
 import java.util.*;
 
 /** Independent GPU textures: an edited tile does not re-upload the full document. */
-final class TileDisplay {
+final class TileDisplay implements CanvasTileDisplay {
   static final int SIDE=256, CAPACITY=128;
   final Bitmap source;
   private final LinkedHashMap<Key,Tile> cache=new LinkedHashMap<>(16,.75f,true);
@@ -48,7 +48,7 @@ final class TileDisplay {
     }
     return generated;
   }
-  void warm(float scale){
+  public void warm(float scale){
     int chosen=sample(scale);
     warmLevel(chosen);
     if(chosen>1){
@@ -66,7 +66,7 @@ final class TileDisplay {
     for(int y=0;y<source.getHeight();y+=span)
       for(int x=0;x<source.getWidth();x+=span)tile(new Key(sample,x/span,y/span));
   }
-  void draw(Canvas canvas,float scale){
+  public void draw(Canvas canvas,float scale){
     Rect clip=canvas.getClipBounds();int sample=sample(scale),span=sample*SIDE;
     int left=Math.max(0,clip.left),top=Math.max(0,clip.top);
     int right=Math.min(source.getWidth(),clip.right),bottom=Math.min(source.getHeight(),clip.bottom);
@@ -79,7 +79,7 @@ final class TileDisplay {
       canvas.drawBitmap(tile.bitmap,null,tile.bounds,paint);canvas.restore();
     }
   }
-  void invalidate(int left,int top,int width,int height){
+  public void invalidate(int left,int top,int width,int height){
     for(Tile tile:cache.values()){
       int l=Math.max(left,tile.bounds.left),t=Math.max(top,tile.bounds.top);
       int r=Math.min(left+width,tile.bounds.right),b=Math.min(top+height,tile.bounds.bottom);
@@ -89,5 +89,5 @@ final class TileDisplay {
       if(tile.dirty.isEmpty())tile.dirty.set(changed);else tile.dirty.union(changed);
     }
   }
-  void clear(){for(Tile t:cache.values())t.bitmap.recycle();cache.clear();}
+  public void clear(){for(Tile t:cache.values())t.bitmap.recycle();cache.clear();}
 }

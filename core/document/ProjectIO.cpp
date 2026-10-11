@@ -25,7 +25,7 @@ std::uint32_t get(const ProjectRead& read) {
   return value;
 }
 void dimensions(std::uint32_t w, std::uint32_t h, std::uint32_t count) {
-  if (w == 0 || h == 0 || w > 16000000 || h > 16000000 || count == 0 || count > maxLayers ||
+  if (w == 0 || h == 0 || !limits::accepts(w,h) || count == 0 || count > maxLayers ||
       std::uint64_t(w) * h > maxPixels / count)
     throw std::invalid_argument("Project exceeds document limits");
 }
@@ -49,9 +49,10 @@ void writeProject(const LayerDocument& doc, const ProjectWrite& write) {
     put(write,layer.blendMode);
     for (std::size_t offset = 0; offset < layer.pixels.size(); offset += block.size() / 4) {
       auto count = std::min(block.size() / 4, layer.pixels.size() - offset);
+      std::array<std::uint32_t,1024> decoded{};layer.pixels.readSpan(offset,count,decoded.data());
       for (std::size_t p = 0; p < count; ++p)
         for (int b = 0; b < 4; ++b)
-          block[p * 4 + b] = static_cast<unsigned char>(layer.pixels[offset + p] >> (8 * b));
+          block[p * 4 + b] = static_cast<unsigned char>(decoded[p] >> (8 * b));
       write(block.data(), count * 4);
     }
   }
@@ -69,7 +70,7 @@ LayerDocument readProject(const ProjectRead& read, int requiredWidth, int requir
       (requiredHeight && h != std::uint32_t(requiredHeight)))
     throw std::invalid_argument("Invalid project dimensions or active layer");
   LayerDocument doc(w, h);
-  std::vector<std::uint32_t> pixels(std::size_t(w) * h);
+  tiles::LayerPixels pixels(std::size_t(w)*h,0);
   std::array<unsigned char, 4096> block{};
   for (std::uint32_t i = 0; i < count; ++i) {
     auto size = get(read);
@@ -93,11 +94,14 @@ LayerDocument readProject(const ProjectRead& read, int requiredWidth, int requir
     for (std::size_t offset = 0; offset < pixels.size(); offset += block.size() / 4) {
       auto n = std::min(block.size() / 4, pixels.size() - offset);
       read(block.data(), n * 4);
+      std::vector<std::uint32_t> decoded(n);
       for (std::size_t p = 0; p < n; ++p) {
         std::uint32_t pixel = 0;
         for (int b = 0; b < 4; ++b) pixel |= std::uint32_t(block[p * 4 + b]) << (8 * b);
-        pixels[offset + p] = pixel;
+        decoded[p] = pixel;
       }
+      if(offset==0)pixels.resize(std::size_t(w)*h,decoded[0]);
+      pixels.writeSpan(offset,n,decoded.data());
     }
     doc.replaceActivePixels(pixels);
   }

@@ -1,3 +1,4 @@
+#include "../document/tiles/LayerPixels.hpp"
 #include "velyntora/RenderEffects.hpp"
 
 #include <algorithm>
@@ -37,13 +38,13 @@ std::uint32_t color(std::uint32_t a, std::uint32_t b, double t) {
   return value;
 }
 }  // namespace
-std::vector<std::uint32_t> renderEffect(int w, int h, int kind, int scale, int detail,
+tiles::LayerPixels renderEffect(int w, int h, int kind, int scale, int detail,
                                         std::uint32_t seed, std::uint32_t first,
                                         std::uint32_t second) {
   if (w < 1 || h < 1 || w > 8192 || h > 8192 || std::int64_t(w) * h > 4000000 || kind < 0 ||
       kind > 4 || scale < 1 || scale > 512 || detail < 1 || detail > 128)
     throw std::invalid_argument("Invalid render parameters");
-  std::vector<std::uint32_t> out(std::size_t(w) * h);
+  tiles::LayerPixels out(std::size_t(w) * h);
   for (int y = 0; y < h; y++)
     for (int x = 0; x < w; x++) {
       double value = 0;

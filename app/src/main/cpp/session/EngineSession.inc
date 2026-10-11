@@ -28,6 +28,7 @@ namespace {
 std::mutex guard;
 std::unique_ptr<velyntora::Canvas> canvas;
 std::unique_ptr<velyntora::LayerDocument> layers;
+std::unique_ptr<velyntora::LayerDocument> importing;
 int curveTag = 0;
 std::uint64_t revision = 0, nextRevision = 0;
 std::string historyDirectory;
@@ -40,6 +41,14 @@ struct Snapshot {
   std::uint64_t revision = 0;
 };
 std::vector<Snapshot> undoStack, redoStack;
+struct ImportPrevious {
+  std::unique_ptr<velyntora::Canvas> canvas;
+  std::unique_ptr<velyntora::LayerDocument> layers;
+  std::vector<Snapshot> undo,redo;
+  std::shared_ptr<velyntora::history::HistoryArchive> archive;
+  int tag;std::uint64_t revision;
+};
+std::unique_ptr<ImportPrevious> importPrevious;
 Snapshot captureSnapshot() {
   Snapshot result;result.curveTag=curveTag;result.revision=revision;
   if(historyArchive) {
@@ -50,9 +59,9 @@ Snapshot captureSnapshot() {
   result.fallback=std::make_shared<velyntora::LayerDocument>(*layers);return result;
 }
 std::vector<std::uint8_t> brushMask, effectMask;
-std::vector<std::uint32_t> sampledSource;
+velyntora::tiles::LayerPixels sampledSource;
 std::uint32_t sampledTarget;
-void applyEffectSelection(std::vector<std::uint32_t>& pixels) {
+void applyEffectSelection(velyntora::tiles::LayerPixels& pixels) {
   if (effectMask.empty()) return;
   if (effectMask.size() != pixels.size()) {
     pixels = canvas->pixels();
@@ -82,8 +91,7 @@ void storeStrokeRegion(float x0,float y0,float x1,float y1,float radius) {
   int right=int(std::clamp(std::ceil(std::max(x0,x1)+radius),0.f,float(canvas->width())));
   int bottom=int(std::clamp(std::ceil(std::max(y0,y1)+radius),0.f,float(canvas->height())));
   curveTag=0;
-  if(right>left && bottom>top)
-    layers->replaceActiveRegion(canvas->pixels(),left,top,right-left,bottom-top);
+  if(right>left && bottom>top)layers->replaceActivePixels(canvas->pixels());
 }
 void loadActive() {
   if (layers && canvas) canvas->setPixels(layers->layer(layers->activeIndex()).pixels);
@@ -96,6 +104,7 @@ void resetHistory() {
   redoStack.clear();
   brushMask.clear();
   historyArchive.reset();
+  velyntora::pages::cache().discardUnused();
   if(!historyDirectory.empty())try {
     historyArchive=std::make_shared<velyntora::history::HistoryArchive>(historyDirectory);
     // Import already runs on a worker. Archive its baseline there, before the first stroke.

@@ -1,3 +1,4 @@
+#include "../document/tiles/LayerPixels.hpp"
 #include "velyntora/DistortionEffects.hpp"
 
 #include <algorithm>
@@ -7,7 +8,7 @@
 #include <stdexcept>
 namespace velyntora {
 namespace {
-std::uint32_t sample(const std::vector<std::uint32_t>& src, int w, int h, double x, double y) {
+std::uint32_t sample(const tiles::LayerPixels& src, int w, int h, double x, double y) {
   x = std::clamp(x, 0., double(w - 1));
   y = std::clamp(y, 0., double(h - 1));
   int ix = int(x), iy = int(y);
@@ -28,7 +29,7 @@ std::uint32_t sample(const std::vector<std::uint32_t>& src, int w, int h, double
   return result;
 }
 }  // namespace
-std::vector<std::uint32_t> distortionEffect(const std::vector<std::uint32_t>& src, int w, int h,
+tiles::LayerPixels distortionEffect(const tiles::LayerPixels& src, int w, int h,
                                             int kind, int amount, int size, int angle, int cx,
                                             int cy) {
   if (w < 1 || h < 1 || std::int64_t(w) * h != std::int64_t(src.size()) || kind < 0 || kind > 4 ||
