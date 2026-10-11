@@ -40,7 +40,13 @@ public final class NativeRenderingDeviceTests {
           sharp.display.draw(a,.49f);
           e.drawBitmap(source,null,new Rect(2600,2600,3400,3400),new Paint(Paint.FILTER_BITMAP_FLAG));
           int[] ap=new int[128*128],ep=new int[ap.length];output.getPixels(ap,0,128,0,0,128,128);reference.getPixels(ep,0,128,0,0,128,128);
-          assertArrayEquals("Zoom-out discarded existing sharp detail",ep,ap);
+          // Rotated filtered tiles and a monolithic bitmap can round each color
+          // channel differently by one or two levels; coarse resampling differs far more.
+          for(int i=0;i<ap.length;i++){
+            assertEquals("Zoom-out alpha at "+i,ep[i]>>>24,ap[i]>>>24);
+            for(int shift:new int[]{0,8,16})assertTrue("Zoom-out lost detail at "+i+", channel "+shift,
+                Math.abs(((ep[i]>>>shift)&255)-((ap[i]>>>shift)&255))<=2);
+          }
         });
       }finally{inst.runOnMainSync(sharp::dispose);source.recycle();output.recycle();reference.recycle();}
     }finally{inst.runOnMainSync(()->{host.readDrawing().newDocument(64,64);host.finish();});}
