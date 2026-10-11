@@ -42,6 +42,24 @@ final class NativeTileDisplay implements CanvasTileDisplay {
     while(cache.size()>CAPACITY){Iterator<Map.Entry<Key,Tile>> it=cache.entrySet().iterator();Tile discarded=it.next().getValue();it.remove();discarded.bitmap.recycle();}
   }
   public void warm(float scale){ /* The prepared overview already covers the entire document. */ }
+  /** Worker-only preparation before this display is published to the UI. */
+  void warmVisible(float scale,Rect visible){
+    int chosen=sample(scale);
+    int left=Math.max(0,visible.left),top=Math.max(0,visible.top);
+    int right=Math.min(width,visible.right),bottom=Math.min(height,visible.bottom);
+    if(left>=right || top>=bottom)return;
+    while(chosen<overviewSample){
+      int span=chosen*SIDE;
+      long count=(long)((right-1)/span-left/span+1)*((bottom-1)/span-top/span+1);
+      if(count<=CAPACITY)break;
+      chosen*=2;
+    }
+    if(chosen>=overviewSample)return;
+    int span=chosen*SIDE;
+    for(int y=top/span;y*span<bottom;y++)for(int x=left/span;x*span<right;x++){
+      Key key=new Key(chosen,x,y);put(key,create(key));
+    }
+  }
   private void request(Key key){
     if(closed || !pending.add(key))return;long version=generation;
     worker.execute(()->{
@@ -62,6 +80,14 @@ final class NativeTileDisplay implements CanvasTileDisplay {
     // SRC inside an isolated layer avoids double alpha at overlapping gutters.
     int layer=canvas.saveLayer(null,null);
     canvas.drawBitmap(overview,null,new Rect(0,0,overview.getWidth()*overviewSample,overview.getHeight()*overviewSample),paint);
+    // Retain prepared coarser detail on unusually wide/rotated viewports.
+    for(int coarse=overviewSample/2;coarse>chosen;coarse/=2){
+      int coarseSpan=coarse*SIDE;
+      for(int y=top/coarseSpan;y*coarseSpan<bottom;y++)for(int x=left/coarseSpan;x*coarseSpan<right;x++){
+        Tile tile=cache.get(new Key(coarse,x,y));
+        if(tile!=null)canvas.drawBitmap(tile.bitmap,null,tile.bounds,paint);
+      }
+    }
     if(chosen<overviewSample)for(int y=top/span;y*span<bottom;y++)for(int x=left/span;x*span<right;x++){
       Key key=new Key(chosen,x,y);Tile tile=cache.get(key);
       if(tile!=null){canvas.drawBitmap(tile.bitmap,null,tile.bounds,paint);if(dirtyKeys.contains(key))request(key);}

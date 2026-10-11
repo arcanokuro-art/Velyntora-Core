@@ -8,6 +8,32 @@ import org.junit.Test;
 
 /** Cold native tile caches must never expose artificial checkerboard gaps. */
 public final class NativeRenderingDeviceTests {
+  @Test public void preparedHistoryFrameIsSharpOnItsFirstDraw() throws Exception {
+    Instrumentation inst=InstrumentationRegistry.getInstrumentation();
+    MainActivity host=(MainActivity)inst.startActivitySync(new Intent(inst.getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+    try {
+      inst.runOnMainSync(()->{
+        assertTrue(host.readDrawing().newDocument(6000,6000));
+        DrawingView.nativeBeginEdit();DrawingView.nativeStroke(2960,2960,3040,3040,1,0xff112233);
+      });
+      // Preparation, including detailed blocks, runs off the UI just like history operations.
+      for(int step=0;step<3;step++){
+        if(step==1)assertTrue(DrawingView.nativeUndo());
+        if(step==2)assertTrue(DrawingView.nativeRedo());
+        CanvasRendering.Frame frame=CanvasRendering.prepareFrame(4f,new Rect(2920,2920,3080,3080));
+        Bitmap actual=Bitmap.createBitmap(256,256,Bitmap.Config.ARGB_8888);
+        Bitmap expected=Bitmap.createBitmap(256,256,Bitmap.Config.ARGB_8888);
+        Bitmap source=Bitmap.createBitmap(DrawingView.nativeSampleRegion(2920,2920,1,160,160),160,160,Bitmap.Config.ARGB_8888);
+        try {
+          Canvas a=new Canvas(actual),e=new Canvas(expected);
+          for(Canvas c:new Canvas[]{a,e}){c.translate(128,128);c.rotate(-8);c.scale(4,4);c.translate(-3000,-3000);}
+          frame.display.draw(a,4f);
+          e.drawBitmap(source,2920,2920,new Paint());
+          for(int y=0;y<256;y++)for(int x=0;x<256;x++)assertEquals("Coarse history flash, step "+step,expected.getPixel(x,y),actual.getPixel(x,y));
+        }finally{frame.dispose();actual.recycle();expected.recycle();source.recycle();}
+      }
+    }finally{inst.runOnMainSync(()->{host.readDrawing().newDocument(64,64);host.finish();});}
+  }
   @Test public void largeColdCacheCoversZoomAndRotationAndHistoryBoundaries() throws Exception {
     Instrumentation inst=InstrumentationRegistry.getInstrumentation();
     MainActivity host=(MainActivity)inst.startActivitySync(new Intent(inst.getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));

@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -32,6 +33,23 @@ final class CanvasRendering {
     Bitmap bitmap=Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888);
     bitmap.setPixels(pixels,0,w,0,0,w,h);
     try{return new Frame(bitmap,width,height,fitScale);}catch(RuntimeException|OutOfMemoryError error){bitmap.recycle();throw error;}
+  }
+  /** Capture on the UI thread before a worker changes the document. */
+  static Rect visibleBounds(DrawingView drawing){
+    Viewport viewport=drawing.readViewport();
+    double left=Double.POSITIVE_INFINITY,top=left,right=Double.NEGATIVE_INFINITY,bottom=right;
+    for(int y:new int[]{0,drawing.getHeight()})for(int x:new int[]{0,drawing.getWidth()}){
+      double dx=viewport.documentX(x,y),dy=viewport.documentY(x,y);
+      left=Math.min(left,dx);top=Math.min(top,dy);right=Math.max(right,dx);bottom=Math.max(bottom,dy);
+    }
+    return new Rect((int)Math.floor(left)-2,(int)Math.floor(top)-2,(int)Math.ceil(right)+2,(int)Math.ceil(bottom)+2);
+  }
+  static Frame prepareFrame(float scale,Rect visible){
+    Frame frame=prepareFrame(scale);
+    try{
+      if(frame.display instanceof NativeTileDisplay tiled)tiled.warmVisible(scale,visible);
+      return frame;
+    }catch(RuntimeException|OutOfMemoryError error){frame.dispose();throw error;}
   }
   void installFrame(Frame frame){
     host.removeCallbacks(host.readStrokeRefresh());host.writeStrokeRefreshPending(false);

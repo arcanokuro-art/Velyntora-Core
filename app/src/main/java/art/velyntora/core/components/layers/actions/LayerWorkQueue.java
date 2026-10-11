@@ -22,12 +22,13 @@ final class LayerWorkQueue {
     Runnable showProgress=()->{if(host.readProjectProgress()==progress && !host.isDestroyed())progress.show();};
     ui.postDelayed(showProgress,250);
     float scale = (float)drawing.readViewport().scale;
+    android.graphics.Rect visible=CanvasRendering.visibleBounds(drawing);
     new Thread(() -> {
       boolean result = false;
       CanvasRendering.Frame prepared = null;
       try {
         result = operation.getAsBoolean();
-        if (result && redraw) prepared = CanvasRendering.prepareFrame(scale);
+        if (result && redraw) prepared = CanvasRendering.prepareFrame(scale,visible);
       } catch (RuntimeException | OutOfMemoryError error) {
         result = false;
       }
