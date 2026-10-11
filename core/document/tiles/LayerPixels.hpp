@@ -64,13 +64,19 @@ class LayerPixels {
     Iterator& operator++(){++index;return *this;}
     Iterator operator++(int){auto old=*this;++*this;return old;}
     Iterator& operator--(){--index;return *this;}
+    Iterator operator--(int){auto old=*this;--*this;return old;}
     Iterator& operator+=(difference_type n){index+=n;return *this;}
     Iterator& operator-=(difference_type n){index-=n;return *this;}
     Iterator operator+(difference_type n)const {return {owner,index+n};}
     Iterator operator-(difference_type n)const {return {owner,index-n};}
     difference_type operator-(Iterator other)const{return index-other.index;}
     bool operator==(Iterator other)const{return owner==other.owner&&index==other.index;}
+    bool operator!=(Iterator other)const{return !(*this==other);}
     bool operator<(Iterator other)const{return index<other.index;}
+    bool operator>(Iterator other)const{return index>other.index;}
+    bool operator<=(Iterator other)const{return index<=other.index;}
+    bool operator>=(Iterator other)const{return index>=other.index;}
+    friend Iterator operator+(difference_type n,Iterator value){return value+n;}
   };
   Iterator<false> begin(){return {this,0};}
   Iterator<false> end(){return {this,std::ptrdiff_t(size_)};}
