@@ -2,7 +2,7 @@ package art.velyntora.core;
 
 import java.util.ArrayDeque;
 
-/** Bounded history of completed handle drags, independent of pixel history. */
+/** Session history of completed handle drags, independent of pixel history. */
 final class CurveHistory {
   private final ArrayDeque<CurveDraft> undo = new ArrayDeque<>(), redo = new ArrayDeque<>();
 
@@ -16,7 +16,6 @@ final class CurveHistory {
         || after == null
         || before.sameGeometry(after)) return;
     undo.addLast(before.copy());
-    if (undo.size() > 100) undo.removeFirst();
     redo.clear();
   }
 

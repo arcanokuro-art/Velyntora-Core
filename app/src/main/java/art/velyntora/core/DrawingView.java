@@ -121,6 +121,7 @@ public final class DrawingView extends View {
 
   static native boolean nativeCreate(int w, int h);
 
+  static native void nativeHistoryDirectory(String directory);
   static native void nativeBeginEdit();
 
   static native boolean nativeClear();
@@ -651,6 +652,7 @@ public final class DrawingView extends View {
 
   public DrawingView(Context context) {
     super(context);
+    nativeHistoryDirectory(context.getCacheDir().getAbsolutePath());
     opacityPreferences();
     brushOpacity = toolOpacities.get(tool) / 100f;
     setContentDescription(

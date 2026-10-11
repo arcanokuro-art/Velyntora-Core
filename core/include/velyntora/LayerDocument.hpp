@@ -23,6 +23,12 @@ class LayerDocument {
   std::size_t layerCount() const noexcept { return layers_.size(); }
   std::size_t activeIndex() const noexcept { return active_; }
   const Layer& layer(std::size_t index) const { return layers_.at(index); }
+  void restoreLayers(std::vector<Layer> layers,std::size_t active) {
+    if(layers.empty() || active>=layers.size())throw std::invalid_argument("History layers");
+    for(const auto& layer:layers)if(layer.pixels.size()!=std::size_t(width_)*height_)
+      throw std::invalid_argument("History dimensions");
+    layers_=std::move(layers);active_=active;
+  }
   bool renameLayer(std::size_t index, const std::string& name);
   LayerDocument resized(int width, int height, bool scalePixels, bool bilinear = false,
                         int anchor = 0) const;

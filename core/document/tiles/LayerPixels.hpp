@@ -6,12 +6,17 @@
 #include <memory>
 #include <vector>
 #include <stdexcept>
+#include "../history/HistoryFile.hpp"
 
 namespace velyntora::tiles {
 // Sparse copy-on-write blocks keep blank layers and unchanged history cheap.
 class LayerPixels {
   static constexpr std::size_t blockSize=4096;
-  using Block=std::vector<std::uint32_t>;
+  struct Block : std::vector<std::uint32_t> {
+    using std::vector<std::uint32_t>::vector;
+    mutable std::weak_ptr<history::HistoryFile> archive;
+    mutable std::uint64_t offset=0;
+  };
   std::size_t size_=0;
   std::uint32_t background_=0;
   std::map<std::size_t,std::shared_ptr<Block>> blocks_;
@@ -28,6 +33,7 @@ class LayerPixels {
       (*block)[i%blockSize]=value;blocks_.emplace(key,std::move(block));
     } else {
       if(!found->second.unique()) found->second=std::make_shared<Block>(*found->second);
+      found->second->archive.reset();
       (*found->second)[i%blockSize]=value;
     }
   }
@@ -47,6 +53,34 @@ class LayerPixels {
   std::uint32_t background() const noexcept {return background_;}
   std::size_t allocatedPixels() const noexcept {
     std::size_t count=0;for(const auto& [key,block]:blocks_) if(block)count+=block->size();return count;
+  }
+  struct ArchivedBlock {std::uint64_t key,offset;};
+  struct Archived {
+    std::uint64_t size;std::uint32_t background;
+    std::vector<ArchivedBlock> blocks;
+  };
+  Archived archive(const std::shared_ptr<history::HistoryFile>& file) const {
+    Archived result{size_,background_,{}};
+    result.blocks.reserve(blocks_.size());
+    for(const auto& [key,block]:blocks_) {
+      if(block->archive.lock()!=file) {
+        block->offset=file->append(block->data(),block->size()*sizeof(std::uint32_t));
+        block->archive=file;
+      }
+      result.blocks.push_back({key,block->offset});
+    }
+    return result;
+  }
+  static LayerPixels restore(const Archived& saved,const std::shared_ptr<history::HistoryFile>& file) {
+    LayerPixels result(saved.size,saved.background);
+    for(const auto& entry:saved.blocks) {
+      if(entry.key>= (saved.size+blockSize-1)/blockSize)throw std::runtime_error("History block");
+      auto block=std::make_shared<Block>(std::min(blockSize,saved.size-entry.key*blockSize));
+      file->read(entry.offset,block->data(),block->size()*sizeof(std::uint32_t));
+      block->archive=file;block->offset=entry.offset;
+      result.blocks_.emplace(entry.key,std::move(block));
+    }
+    return result;
   }
   struct Reference {
     LayerPixels* owner;std::size_t index;

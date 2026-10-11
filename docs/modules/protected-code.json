@@ -19,7 +19,7 @@
     "tools/filled_triangle/FilledTriangleIcon.java": "a617f457b08edd1e20e13f40a3112e38ad658b702eefe149db28bdea9f3b75f4",
     "tools/line_curve/README.md": "9463c67c1c85dd7c882c9eaadf391321c9d0915a4f0f611043106f77caca5c67",
     "tools/line_curve/CurveSnapshot.java": "a65477b5e8b749fa74db62688fd7f05da7e05f89ee4dafc879f9ba6136f16582",
-    "tools/line_curve/CurveHistory.java": "2a8e0935e671a6ef0cd11cdd42c7a1fbd108bd6353f47f70cd453291f6446483",
+    "tools/line_curve/CurveHistory.java": "1b7781e7ae35f9faf7c12471ecd5c2a94f4a3052205a2c7144f2c0b26bec3fe6",
     "tools/line_curve/LineCurveIcon.java": "fc1f6f871d87acf37dc526eceb08fb160818920a902414f2a2626ac6b5d73fd1",
     "tools/line_curve/CurveDraft.java": "3153114f8b0721948565566358cbe87624bc1a9c0bc6026b951e61f78a2c6c0b",
     "tools/line_curve/LineCurveTool.java": "2ff433f53f7920756691dac471adfcaf81de8f422aec39a8c7e63fc0898f1a9a",
@@ -103,8 +103,8 @@
     "nativeStroke": "a281cd0fd1857909376f1d2a30860d0d581920945eb601ac1790285214b8f330",
     "nativeShape": "99908a909c4202ce41abc94aa06588500dfc0eaf9418c29b6b26843c04a24b4c",
     "nativeFill": "bd0369b7581a3828eec50f51958ef953ae3341cc788c718c4ba7ea6e5307822d",
-    "nativeUndo": "3d08ec2a0134b8ee0c8a43bf9cc3729a49c766661317652ae5e1e04d3ba713b9",
-    "nativeRedo": "87b3f552a8d14ffe577da0ed1888640d0c65fd6731b6b921036cd0ccbdafb2cb",
+    "nativeUndo": "1199dad438b25435912967da2f532d56c86dfab813f320d180dd552d034d73ee",
+    "nativeRedo": "a5dc4232438af971c3e2144d2493e5f9aa8e21dc8c3092fe08df3c92ce7a03ac",
     "nativePixels": "16b64143bfbad69a7c80aa68bf1c507445e1d8093e2c4da9ff3d40fcfeaa6924",
     "nativeRegionPixels": "8e4336df9c199fe185d40cf2e3d4c17f819ff77be6e3e4a34c9d721e5e642c8d",
     "nativeMovePixels": "0d9a111b04a488cd54cdf0cc2c1127b7cb8a8ca98e96248b88765736b5afbfe5",
@@ -182,7 +182,7 @@
     "nativeSampledStroke": "a3bbb83c53bc264869d0107ef58d6876bb9e598c4e716f778ed78bc05bec644a",
     "nativeCurveTag": "373ba74aebd256459a7fe0128430b511b53dec1c1acaab25f6e508542ca5879b",
     "nativeMarkCurve": "e2585444a20f7b262db9163a2993d9b540fbc0b97c007aee09e3959dfdbed725",
-    "nativeRevision": "956b369d91ba1eb7662ece86b410b8cdb05491713545621b0d15c74e36a707b7",
+    "nativeRevision": "5933a1e08e270ef7ff02a2f73019ff8ccf00fc22c495b17cba92393dcc0804c3",
     "nativeFillSelection": "b6af46583ea8a68b2d24353929bd5ab02f5a04de07e727a5eb10a4f0e08244c9",
     "nativeLayerName": "a2fd021cfcfd1f7fedf00e1008f4eebbe6dba2eab97b11b405b50233bcf076fd",
     "nativeRenameLayer": "c29758e1a1f09a4a52e1e8b4f45acad2aa012eec09bd3abd80dcb8f17f6af278",
@@ -194,7 +194,8 @@
     "nativeRemoveCommit": "6689179514f508855d078e7691b10400dc4ec7b33f4028d17e8ba780c2468908",
     "nativeBeginOpacityStroke": "3e65d9ddea846449d1348f43e0d6084b13b26fb5a54603331d1f41b50dae6ed4",
     "nativeEndOpacityStroke": "f6305769269dc1a99b5c1e3e5d04ff3007ed6e4bb1f667e92df4e945651432e8",
-    "nativeAntialiasedStroke": "e5795df2468780163fa23c8a8f16b9289f6097be0c8975340cf26c67752f5550"
+    "nativeAntialiasedStroke": "e5795df2468780163fa23c8a8f16b9289f6097be0c8975340cf26c67752f5550",
+    "nativeHistoryDirectory": "9deba0742e1a5c2d22210bcb3cc4ef7b79b0099944deb436c66bfe219b2561ab"
   },
-  "session": "51b8218aac4a504553fd3604535324de7fb14654f490194700c1f7a7394e8aaa"
+  "session": "51801c6f639c335dbb9c75334842bab8fe6cb0819484f07192516a75b46958ad"
 }

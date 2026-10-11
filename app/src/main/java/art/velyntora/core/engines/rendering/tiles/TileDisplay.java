@@ -10,7 +10,19 @@ final class TileDisplay {
   private final LinkedHashMap<Key,Tile> cache=new LinkedHashMap<>(16,.75f,true);
   private final Paint paint=new Paint();
   private record Key(int sample,int x,int y) {}
-  private record Tile(Bitmap bitmap,Rect bounds) {}
+  private static final class Tile {
+    final Bitmap bitmap;final Rect bounds;final int sample;
+    final Rect dirty=new Rect();
+    Tile(Bitmap bitmap,Rect bounds,int sample){this.bitmap=bitmap;this.bounds=bounds;this.sample=sample;dirty.set(0,0,bitmap.getWidth(),bitmap.getHeight());}
+  }
+  private final BitmapSampler sampler=new BitmapSampler();
+  long createdTiles;
+  long sampledPixels(){return sampler.pixelsRead;}
+  private void update(Tile tile){
+    if(tile.dirty.isEmpty())return;
+    sampler.update(source,tile.bitmap,tile.bounds,tile.sample,tile.dirty);
+    tile.dirty.setEmpty();
+  }
   TileDisplay(Bitmap source){this.source=source;}
   private int sample(float scale){
     int sample=1;
@@ -18,17 +30,17 @@ final class TileDisplay {
     return sample;
   }
   private Tile tile(Key key){
-    Tile found=cache.get(key);if(found!=null)return found;
+    Tile found=cache.get(key);if(found!=null){update(found);return found;}
     int span=SIDE*key.sample,left=key.x*span,top=key.y*span;
     int right=Math.min(left+span+key.sample,source.getWidth()),bottom=Math.min(top+span+key.sample,source.getHeight());
     left=Math.max(0,left-key.sample);top=Math.max(0,top-key.sample);
     int width=right-left,height=bottom-top;
     Bitmap result=Bitmap.createBitmap((width+key.sample-1)/key.sample,
         (height+key.sample-1)/key.sample,Bitmap.Config.ARGB_8888);
-    Paint resample=new Paint();resample.setFilterBitmap(key.sample>1);
-    new Canvas(result).drawBitmap(source,new Rect(left,top,left+width,top+height),
-        new Rect(0,0,result.getWidth(),result.getHeight()),resample);
-    Tile generated=new Tile(result,new Rect(left,top,right,bottom));
+    Tile generated=new Tile(result,new Rect(left,top,left+result.getWidth()*key.sample,
+        top+result.getHeight()*key.sample),key.sample);
+    try{update(generated);}catch(RuntimeException|OutOfMemoryError error){result.recycle();throw error;}
+    createdTiles++;
     cache.put(key,generated);
     while(cache.size()>CAPACITY){
       Iterator<Map.Entry<Key,Tile>> it=cache.entrySet().iterator();
@@ -37,7 +49,18 @@ final class TileDisplay {
     return generated;
   }
   void warm(float scale){
-    int sample=sample(scale),span=sample*SIDE;
+    int chosen=sample(scale);
+    warmLevel(chosen);
+    if(chosen>1){
+      int finer=chosen/2,span=finer*SIDE;
+      long count=(long)((source.getWidth()+span-1)/span)*((source.getHeight()+span-1)/span);
+      int chosenSpan=chosen*SIDE;
+      long coarse=(long)((source.getWidth()+chosenSpan-1)/chosenSpan)*((source.getHeight()+chosenSpan-1)/chosenSpan);
+      if(count+coarse<=CAPACITY)warmLevel(finer);
+    }
+  }
+  private void warmLevel(int sample){
+    int span=sample*SIDE;
     long count=(long)((source.getWidth()+span-1)/span)*((source.getHeight()+span-1)/span);
     if(count>CAPACITY)return;
     for(int y=0;y<source.getHeight();y+=span)
@@ -57,12 +80,13 @@ final class TileDisplay {
     }
   }
   void invalidate(int left,int top,int width,int height){
-    Iterator<Map.Entry<Key,Tile>> it=cache.entrySet().iterator();
-    while(it.hasNext()){
-      Map.Entry<Key,Tile> e=it.next();Key k=e.getKey();int span=SIDE*k.sample;
-      if(k.x*span-k.sample<left+width && (k.x+1)*span+k.sample>left && k.y*span-k.sample<top+height && (k.y+1)*span+k.sample>top){
-        it.remove();e.getValue().bitmap.recycle();
-      }
+    for(Tile tile:cache.values()){
+      int l=Math.max(left,tile.bounds.left),t=Math.max(top,tile.bounds.top);
+      int r=Math.min(left+width,tile.bounds.right),b=Math.min(top+height,tile.bounds.bottom);
+      if(l>=r||t>=b)continue;
+      Rect changed=new Rect((l-tile.bounds.left)/tile.sample,(t-tile.bounds.top)/tile.sample,
+          (r-tile.bounds.left+tile.sample-1)/tile.sample,(b-tile.bounds.top+tile.sample-1)/tile.sample);
+      if(tile.dirty.isEmpty())tile.dirty.set(changed);else tile.dirty.union(changed);
     }
   }
   void clear(){for(Tile t:cache.values())t.bitmap.recycle();cache.clear();}

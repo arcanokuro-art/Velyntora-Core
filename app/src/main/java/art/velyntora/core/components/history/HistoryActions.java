@@ -28,12 +28,34 @@ final class HistoryActions {
   HistoryActions(MainActivity host) { this.host = host; }
 
   void undo() {
-    host.readDrawing().undo();
-    host.refreshLayerPanel();
+    DrawingView drawing=host.readDrawing();
+    if(host.readProjectProgress()!=null)return;
+    if(drawing.curve!=null) {drawing.undo();host.refreshLayerPanel();return;}
+    drawing.finishOpacityStroke();drawing.canceledCurve=null;drawing.curveHistory.clear();
+    int tag=DrawingView.nativeCurveTag();
+    LayerWorkQueue.run(host,DrawingView::nativeUndo,true,()->{
+      drawing.deselect();
+      CurveSnapshot saved=drawing.savedCurves.get(tag);
+      if(saved!=null) {
+        drawing.curve=saved.geometry.copy();drawing.color=saved.color;
+        drawing.setBrushRadius(saved.radius);drawing.setTool(DrawingView.LINE);
+        drawing.setToolOpacityPercent(Math.round(saved.opacity*100));
+        drawing.curveHistory.clear();drawing.canceledCurve=null;saved.selection.restore(drawing);
+        if(drawing.pickedColorListener!=null)drawing.pickedColorListener.accept(drawing.color);
+      }
+      drawing.viewportChanged();
+    });
   }
 
   void redo() {
-    host.readDrawing().redo();
-    host.refreshLayerPanel();
+    DrawingView drawing=host.readDrawing();
+    if(host.readProjectProgress()!=null)return;
+    if(drawing.canceledCurve!=null || drawing.curve!=null) {
+      drawing.redo();host.refreshLayerPanel();return;
+    }
+    drawing.finishOpacityStroke();
+    LayerWorkQueue.run(host,DrawingView::nativeRedo,true,()->{
+      drawing.deselect();drawing.viewportChanged();
+    });
   }
 }

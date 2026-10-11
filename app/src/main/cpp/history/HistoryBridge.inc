@@ -7,23 +7,27 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
                                                                                      jclass) {
   std::lock_guard<std::mutex> lock(guard);
   if (!canvas || undoStack.empty()) return JNI_FALSE;
-  if (redoStack.size() == limit) redoStack.erase(redoStack.begin());
-  redoStack.push_back({*layers, curveTag, revision});
+  try {
+  redoStack.reserve(redoStack.size()+1);
+  auto previous=captureSnapshot();
   restore(undoStack.back());
+  redoStack.push_back(std::move(previous));
   undoStack.pop_back();
-  trimHistory();
   return JNI_TRUE;
+  } catch(const std::exception&) {return JNI_FALSE;}
 }
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeRedo(JNIEnv*,
                                                                                      jclass) {
   std::lock_guard<std::mutex> lock(guard);
   if (!canvas || redoStack.empty()) return JNI_FALSE;
-  if (undoStack.size() == limit) undoStack.erase(undoStack.begin());
-  undoStack.push_back({*layers, curveTag, revision});
+  try {
+  undoStack.reserve(undoStack.size()+1);
+  auto previous=captureSnapshot();
   restore(redoStack.back());
+  undoStack.push_back(std::move(previous));
   redoStack.pop_back();
-  trimHistory();
   return JNI_TRUE;
+  } catch(const std::exception&) {return JNI_FALSE;}
 }
 extern "C" JNIEXPORT jint JNICALL Java_art_velyntora_core_DrawingView_nativeCurveTag(JNIEnv*,
                                                                                      jclass) {
@@ -43,3 +47,10 @@ extern "C" JNIEXPORT jlong JNICALL Java_art_velyntora_core_DrawingView_nativeRev
   return static_cast<jlong>(revision);
 }
 
+
+extern "C" JNIEXPORT void JNICALL Java_art_velyntora_core_DrawingView_nativeHistoryDirectory(JNIEnv* env,jclass,jstring directory) {
+  std::lock_guard<std::mutex> lock(guard);
+  const char* value=env->GetStringUTFChars(directory,nullptr);
+  if(!value)return;
+  historyDirectory=value;env->ReleaseStringUTFChars(directory,value);
+}

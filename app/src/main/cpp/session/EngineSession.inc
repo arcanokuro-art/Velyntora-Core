@@ -1,4 +1,5 @@
 #include <jni.h>
+#include "../../../../../core/document/history/HistoryArchive.hpp"
 #include <unistd.h>
 
 #include <algorithm>
@@ -29,12 +30,25 @@ std::unique_ptr<velyntora::Canvas> canvas;
 std::unique_ptr<velyntora::LayerDocument> layers;
 int curveTag = 0;
 std::uint64_t revision = 0, nextRevision = 0;
+std::string historyDirectory;
+std::shared_ptr<velyntora::history::HistoryArchive> historyArchive;
 struct Snapshot {
-  velyntora::LayerDocument layers;
+  std::shared_ptr<velyntora::history::HistoryArchive> archive;
+  velyntora::history::HistoryArchive::Entry entry{};
+  std::shared_ptr<velyntora::LayerDocument> fallback;
   int curveTag = 0;
   std::uint64_t revision = 0;
 };
 std::vector<Snapshot> undoStack, redoStack;
+Snapshot captureSnapshot() {
+  Snapshot result;result.curveTag=curveTag;result.revision=revision;
+  if(historyArchive) {
+    try {result.entry=historyArchive->capture(*layers);result.archive=historyArchive;return result;}
+    catch(const std::exception&) {historyArchive.reset();}
+  }
+  // A storage failure must never silently discard a user's undo steps.
+  result.fallback=std::make_shared<velyntora::LayerDocument>(*layers);return result;
+}
 std::vector<std::uint8_t> brushMask, effectMask;
 std::vector<std::uint32_t> sampledSource;
 std::uint32_t sampledTarget;
@@ -47,42 +61,12 @@ void applyEffectSelection(std::vector<std::uint32_t>& pixels) {
   for (std::size_t i = 0; i < pixels.size(); i++)
     if (!effectMask[i]) pixels[i] = canvas->pixels()[i];
 }
-constexpr std::size_t limit = 15;
-// Cap history memory across both stacks to avoid exhausting Android heap
-// when many full-resolution layers are present.
-constexpr std::size_t historyBudget = 96ULL * 1024 * 1024;
-std::size_t snapshotBytes(const Snapshot& snapshot) {
-  std::size_t total = 0;
-  for (std::size_t i = 0; i < snapshot.layers.layerCount(); ++i)
-    total += snapshot.layers.layer(i).pixels.allocatedPixels() * sizeof(std::uint32_t);
-  return total;
-}
-std::size_t historyBytes() {
-  std::size_t total = 0;
-  for (const auto& s : undoStack) total += snapshotBytes(s);
-  for (const auto& s : redoStack) total += snapshotBytes(s);
-  return total;
-}
-void trimHistory() {
-  while (undoStack.size() > limit) undoStack.erase(undoStack.begin());
-  while (redoStack.size() > limit) redoStack.erase(redoStack.begin());
-  while (historyBytes() > historyBudget) {
-    if (!undoStack.empty())
-      undoStack.erase(undoStack.begin());
-    else if (!redoStack.empty())
-      redoStack.erase(redoStack.begin());
-    else
-      break;
-  }
-}
-
 void checkpoint() {
   if (!canvas) return;
-  undoStack.push_back({*layers, curveTag, revision});
+  undoStack.push_back(captureSnapshot());
   redoStack.clear();
   revision = ++nextRevision;
   curveTag = 0;
-  trimHistory();
 }
 void storeActive() {
   curveTag = 0;
@@ -111,9 +95,17 @@ void resetHistory() {
   undoStack.clear();
   redoStack.clear();
   brushMask.clear();
+  historyArchive.reset();
+  if(!historyDirectory.empty())try {
+    historyArchive=std::make_shared<velyntora::history::HistoryArchive>(historyDirectory);
+    // Import already runs on a worker. Archive its baseline there, before the first stroke.
+    if(layers)historyArchive->capture(*layers);
+  } catch(const std::exception&) {historyArchive.reset();}
 }
 void restore(const Snapshot& snapshot) {
-  auto restored = std::make_unique<velyntora::LayerDocument>(snapshot.layers);
+  auto restored = snapshot.archive
+      ? std::make_unique<velyntora::LayerDocument>(snapshot.archive->restore(snapshot.entry))
+      : std::make_unique<velyntora::LayerDocument>(*snapshot.fallback);
   auto restoredCanvas = std::make_unique<velyntora::Canvas>(restored->width(), restored->height());
   restoredCanvas->setPixels(restored->layer(restored->activeIndex()).pixels);
   layers = std::move(restored);

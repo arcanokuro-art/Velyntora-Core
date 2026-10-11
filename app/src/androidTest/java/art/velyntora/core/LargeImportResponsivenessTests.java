@@ -36,8 +36,9 @@ public final class LargeImportResponsivenessTests {
         }
         assertEquals(0xff123456,DrawingView.nativeRegionPixels(1517,2257,1,1)[0]);
         assertEquals(0xff123456,view.readBitmap().getPixel(1517,2257));
-        host.addLayer();
       });
+      ContinuousFrameProbe.stroke(inst,host);
+      inst.runOnMainSync(host::addLayer);
       waitResponsive(inst,host);
       inst.runOnMainSync(()->{assertEquals(2,host.readDrawing().layerCount());host.toggleLayer();});
       waitResponsive(inst,host);

@@ -16,4 +16,24 @@ public final class TileDisplayDeviceTests {
       assertEquals(source.getPixel(512,516),output.getPixel(512,516));
     } finally {tiles.clear();source.recycle();output.recycle();}
   }
+  @Test public void tinyChangesReuseTexturesAndReadOnlyTheirSampleFootprint() {
+    Bitmap source=Bitmap.createBitmap(3033,4515,Bitmap.Config.ARGB_8888);source.eraseColor(0xffffffff);
+    Bitmap output=Bitmap.createBitmap(640,960,Bitmap.Config.ARGB_8888);TileDisplay tiles=new TileDisplay(source);
+    try {
+      tiles.warm(.2f);Canvas canvas=new Canvas(output);canvas.scale(.2f,.2f);tiles.draw(canvas,.2f);
+      long allocations=tiles.createdTiles;
+      for(int edit=0;edit<40;edit++) {
+        int x=1500+edit,y=2200;
+        source.setPixel(x,y,0xff123456);tiles.invalidate(x,y,1,1);
+        long reads=tiles.sampledPixels(),start=android.os.SystemClock.uptimeMillis();
+        tiles.draw(canvas,.2f);
+        assertEquals("A small edit must reuse its texture",allocations,tiles.createdTiles);
+        assertTrue("A small edit must not sample a whole tile",tiles.sampledPixels()-reads<=64);
+        assertTrue("Cached redraw stalled",android.os.SystemClock.uptimeMillis()-start<100);
+      }
+      long reads=tiles.sampledPixels();Canvas closer=new Canvas(output);closer.scale(.4f,.4f);closer.translate(-1000,-1800);tiles.draw(closer,.4f);
+      assertEquals("Next zoom level was prepared before interaction",allocations,tiles.createdTiles);
+      assertTrue("Zoom must reuse unchanged samples",tiles.sampledPixels()-reads<=1000);
+    } finally {tiles.clear();source.recycle();output.recycle();}
+  }
 }

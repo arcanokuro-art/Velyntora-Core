@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <cstdio>
 int main(){
+ historyDirectory="/tmp";
  assert(Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,800,800));
  assert(Java_art_velyntora_core_DrawingView_nativeAddLayer(nullptr,nullptr));
  Java_art_velyntora_core_DrawingView_nativeBeginEdit(nullptr,nullptr);
@@ -63,4 +64,20 @@ int main(){
  assert(!Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,8193,1));
  assert(layers->width()==4000&&layers->height()==4000);
  assert(Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,32,32));
+ assert(Java_art_velyntora_core_DrawingView_nativeCreate(nullptr,nullptr,64,64));
+ auto initial=canvas->pixels();
+ for(int i=0;i<140;++i){
+   Java_art_velyntora_core_DrawingView_nativeBeginEdit(nullptr,nullptr);
+   Java_art_velyntora_core_DrawingView_nativeStroke(nullptr,nullptr,32,32,32,32,2,0xff000000u|i);
+ }
+ auto final=canvas->pixels();assert(undoStack.size()==140);
+ for(int i=0;i<140;++i)assert(Java_art_velyntora_core_DrawingView_nativeUndo(nullptr,nullptr));
+ assert(canvas->pixels()==initial && undoStack.empty());
+ assert(!Java_art_velyntora_core_DrawingView_nativeUndo(nullptr,nullptr));
+ for(int i=0;i<140;++i)assert(Java_art_velyntora_core_DrawingView_nativeRedo(nullptr,nullptr));
+ assert(canvas->pixels()==final);
+ assert(Java_art_velyntora_core_DrawingView_nativeUndo(nullptr,nullptr));
+ Java_art_velyntora_core_DrawingView_nativeBeginEdit(nullptr,nullptr);
+ Java_art_velyntora_core_DrawingView_nativeStroke(nullptr,nullptr,10,10,10,10,2,0xffabcdef);
+ assert(redoStack.empty() && !Java_art_velyntora_core_DrawingView_nativeRedo(nullptr,nullptr));
 }
