@@ -20,6 +20,10 @@ final class NativeTileDisplay implements CanvasTileDisplay {
   private final Handler ui=new Handler(Looper.getMainLooper());
   private final Paint paint=new Paint(Paint.FILTER_BITMAP_FLAG);
   private Runnable redraw;
+  private Bitmap detail;
+  private Rect detailBounds;
+  private List<Key> detailKeys=List.of();
+  private long revision,detailRevision=-1;
   private long generation;
   private boolean closed,overviewPending;
   NativeTileDisplay(int width,int height,Bitmap overview){
@@ -40,6 +44,7 @@ final class NativeTileDisplay implements CanvasTileDisplay {
     catch(RuntimeException|OutOfMemoryError error){bitmap.recycle();throw error;}
   }
   private void put(Key key,Tile tile){
+    revision++;
     Tile old=cache.put(key,tile);if(old!=null)old.bitmap.recycle();
     while(cache.size()>CAPACITY){Iterator<Map.Entry<Key,Tile>> it=cache.entrySet().iterator();Tile discarded=it.next().getValue();it.remove();discarded.bitmap.recycle();}
   }
@@ -100,6 +105,28 @@ final class NativeTileDisplay implements CanvasTileDisplay {
       });
     });
   }
+  private void compose(List<Key> keys){
+    if(detail!=null && detailRevision==revision && detailKeys.equals(keys))return;
+    Key first=keys.get(0),last=keys.get(keys.size()-1);int span=SIDE*first.sample;
+    Rect bounds=new Rect(first.x*span,first.y*span,Math.min(width,(last.x+1)*span),Math.min(height,(last.y+1)*span));
+    int w=(bounds.width()+first.sample-1)/first.sample,h=(bounds.height()+first.sample-1)/first.sample;
+    Bitmap next=Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888);
+    try{
+      Canvas staging=new Canvas(next);Paint copy=new Paint(0);copy.setFilterBitmap(false);
+      copy.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC));
+      for(Key key:keys){
+        Tile tile=cache.get(key);
+        int left=key.x*span,top=key.y*span;
+        int columns=(Math.min(width,left+span)-left+key.sample-1)/key.sample;
+        int rows=(Math.min(height,top+span)-top+key.sample-1)/key.sample;
+        int sx=(left-tile.bounds.left)/key.sample,sy=(top-tile.bounds.top)/key.sample;
+        int x=(left-bounds.left)/key.sample,y=(top-bounds.top)/key.sample;
+        staging.drawBitmap(tile.bitmap,new Rect(sx,sy,sx+columns,sy+rows),new Rect(x,y,x+columns,y+rows),copy);
+      }
+    }catch(RuntimeException|OutOfMemoryError error){next.recycle();throw error;}
+    if(detail!=null)detail.recycle();detail=next;detailBounds=new Rect(bounds.left,bounds.top,bounds.left+w*first.sample,bounds.top+h*first.sample);
+    detailKeys=List.copyOf(keys);detailRevision=revision;
+  }
   public void draw(Canvas canvas,float scale){
     if(closed)return;
     Rect clip=canvas.getClipBounds();
@@ -118,14 +145,17 @@ final class NativeTileDisplay implements CanvasTileDisplay {
     paint.setFilterBitmap(scale<1);
     int layer=canvas.saveLayer(null,null);
     canvas.drawBitmap(overview,null,new Rect(0,0,overview.getWidth()*overviewSample,overview.getHeight()*overviewSample),paint);
-    if(ready!=null)for(Key key:ready){Tile tile=cache.get(key);canvas.drawBitmap(tile.bitmap,null,tile.bounds,paint);}
+    if(ready!=null){
+      try{compose(ready);canvas.drawBitmap(detail,null,detailBounds,paint);}
+      catch(RuntimeException|OutOfMemoryError ignored){ /* Keep the complete overview if staging cannot allocate. */ }
+    }
     canvas.restoreToCount(layer);
     if(ready!=null && !ready.isEmpty() && ready.get(0).sample<=chosen)desired=ready;
     if(chosen<overviewSample)requestVisible(desired);else wanted=List.of();
   }
 
   public void invalidate(int left,int top,int w,int h){
-    generation++;Rect dirty=new Rect(left,top,left+w,top+h);
+    generation++;revision++;Rect dirty=new Rect(left,top,left+w,top+h);
     if((long)w*h<=1048576)updateOverview(dirty);else requestOverview();
     // Existing textures are updated in bounded sample cells by the stroke refresh path.
     for(var entry:cache.entrySet()){
@@ -161,5 +191,5 @@ final class NativeTileDisplay implements CanvasTileDisplay {
       });
     });
   }
-  public void clear(){closed=true;generation++;worker.shutdownNow();for(Tile tile:cache.values())tile.bitmap.recycle();cache.clear();}
+  public void clear(){closed=true;generation++;worker.shutdownNow();for(Tile tile:cache.values())tile.bitmap.recycle();cache.clear();if(detail!=null){detail.recycle();detail=null;}}
 }
