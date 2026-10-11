@@ -8,7 +8,7 @@ permissions:
   contents: write
   actions: read
 concurrency:
-  group: publish-tool-width
+  group: publish-layer-buttons
   cancel-in-progress: false
 jobs:
   publish:
@@ -17,14 +17,14 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: b395bd450722869cbcec04c4c0da47a63dee6aac
-      RELEASE_TAG: v0.1.0-tool-width-preview
+      VERIFIED_SHA: ed4a04700d02b295c25f7c8c99dc3f16585427fe
+      RELEASE_TAG: v0.1.0-layer-buttons-preview
     steps:
       - name: Wait for the exact source build and tests
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 38101208249 38101208253 38101208256; do
+          for run_id in 38103083147 38103083179 38103083207; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "main"' run.json
@@ -40,22 +40,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 38101208249 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 38103083147 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
-          cp apk/*.apk Velyntora-Core-Anchura.apk
-          sha256sum Velyntora-Core-Anchura.apk > Velyntora-Core-Anchura.apk.sha256
+          cp apk/*.apk Velyntora-Core-Capas.apk
+          sha256sum Velyntora-Core-Capas.apk > Velyntora-Core-Capas.apk.sha256
       - name: Publish the updated APK
         shell: bash
         run: |
           set -euo pipefail
           cat > notes.md <<'NOTES'
-          Ajusta el control común de anchura de pincel a 1–300 px, en pasos de 1 px, incluyendo valores impares. El motor usa radio 0,5–150 px y la etiqueta refleja la anchura real.
-          Pincel, lápiz, borrador, clonar, recolorear, Línea/Curva, formas y forma libre utilizan el rango ampliado. La máscara de Remove AI usa el mismo radio mediante su integración existente; su implementación permanece intacta. El lápiz ahora respeta la anchura seleccionada en lugar de estar fijado a un píxel.
-          Corrige el toque de 1 px cuando cae entre centros de píxeles y amplía el límite interno de clonar/recolorear a 150 px de radio. Al deshacer una curva se sincroniza la anchura restaurada con el control. Se conserva la opacidad independiente.
-          Pruebas de píxeles de 1 y 300 px, bordes del trazo, lápiz, borrador, recolorear, clonar y Deshacer; arrastre y estabilidad de posición del control con el rango completo.
-          APK debug del commit b395bd450722869cbcec04c4c0da47a63dee6aac, publicado únicamente tras aprobar compilación, núcleo y Android con fuentes normal y ampliada. SHA256 adjunta.
+          Reacomoda únicamente las seis acciones inferiores del panel de capas en dos filas centradas de tres botones. Cada botón mantiene 48 × 48 dp, con separación uniforme de 8 dp y margen alrededor.
+          Primera fila: añadir, eliminar y duplicar. Segunda fila: combinar con la inferior, subir y bajar. Conserva las funciones, estados habilitados y deshabilitados, dimensiones exteriores del panel y filas de capas. Las herramientas de dibujo permanecen intactas.
+          Verificación Android de márgenes, separación, superficies táctiles y acciones dentro del panel, con fuentes normal y ampliada; capturas visuales del panel.
+          APK debug del commit ed4a04700d02b295c25f7c8c99dc3f16585427fe, publicado únicamente tras aprobar compilación, núcleo y Android. SHA256 adjunta.
           NOTES
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "${{ github.sha }}" --title "Velyntora Core — anchura de 1 a 300 px" --notes-file notes.md --prerelease
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "${{ github.sha }}" --title "Velyntora Core — botones de capas" --notes-file notes.md --prerelease
           fi
-          gh release upload "$RELEASE_TAG" Velyntora-Core-Anchura.apk Velyntora-Core-Anchura.apk.sha256 --repo "$GH_REPO" --clobber
+          gh release upload "$RELEASE_TAG" Velyntora-Core-Capas.apk Velyntora-Core-Capas.apk.sha256 --repo "$GH_REPO" --clobber
