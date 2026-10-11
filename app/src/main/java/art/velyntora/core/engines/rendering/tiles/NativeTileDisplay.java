@@ -28,7 +28,9 @@ final class NativeTileDisplay implements CanvasTileDisplay {
     int w=(right-left+key.sample-1)/key.sample,h=(bottom-top+key.sample-1)/key.sample;
     int[] pixels=DrawingView.nativeSampleRegion(left,top,key.sample,w,h);
     if(pixels==null || pixels.length!=w*h)throw new IllegalStateException("Incomplete native tile");
-    return new Tile(Bitmap.createBitmap(pixels,w,h,Bitmap.Config.ARGB_8888),new Rect(left,top,left+w*key.sample,top+h*key.sample));
+    Bitmap bitmap=Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888);
+    try{bitmap.setPixels(pixels,0,w,0,0,w,h);return new Tile(bitmap,new Rect(left,top,left+w*key.sample,top+h*key.sample));}
+    catch(RuntimeException|OutOfMemoryError error){bitmap.recycle();throw error;}
   }
   private void put(Key key,Tile tile){
     Tile old=cache.put(key,tile);if(old!=null)old.bitmap.recycle();

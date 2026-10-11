@@ -75,6 +75,7 @@ class LayerPixels {
       if(block->archive.lock()!=file) {
         block->offset=file->append(block->data(),block->size()*sizeof(std::uint32_t));
         block->archive=file;
+        block->backing=file;block->backingOffset=block->offset;
       }
       result.blocks.push_back({key,block->offset});
     }

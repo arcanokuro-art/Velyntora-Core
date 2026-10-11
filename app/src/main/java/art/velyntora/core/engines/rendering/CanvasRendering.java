@@ -29,7 +29,8 @@ final class CanvasRendering {
     int w=(width+sample-1)/sample,h=(height+sample-1)/sample;
     int[] pixels=DrawingView.nativeSampleRegion(0,0,sample,w,h);
     if(pixels==null || pixels.length!=w*h)throw new IllegalStateException("Incomplete frame");
-    Bitmap bitmap=Bitmap.createBitmap(pixels,w,h,Bitmap.Config.ARGB_8888);
+    Bitmap bitmap=Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888);
+    bitmap.setPixels(pixels,0,w,0,0,w,h);
     try{return new Frame(bitmap,width,height,fitScale);}catch(RuntimeException|OutOfMemoryError error){bitmap.recycle();throw error;}
   }
   void installFrame(Frame frame){
