@@ -17,14 +17,14 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: 340d4c61e808628edf99a05439949ff4591ffbfd
-      RELEASE_TAG: v0.1.0-responsive-import-preview
+      VERIFIED_SHA: a8030f58a63568229ab347d13a850be3c2363311
+      RELEASE_TAG: v0.1.0-render-history-preview
     steps:
       - uses: actions/checkout@v4
       - name: Require exact experimental source checks
         run: |
           set -euo pipefail
-          for run_id in 38117542144 38117542262 38117542189 38117542210; do
+          for run_id in 38119313609 38119313624 38119313608 38119313731; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "codex/large-canvas-12000"' run.json
@@ -39,26 +39,26 @@ jobs:
       - name: Download verified APK
         run: |
           set -euo pipefail
-          gh run download 38117542144 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 38119313609 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
-          cp apk/*.apk Velyntora-Core-Importacion-Fluida-Experimental.apk
-          sha256sum Velyntora-Core-Importacion-Fluida-Experimental.apk > Velyntora-Core-Importacion-Fluida-Experimental.apk.sha256
+          cp apk/*.apk Velyntora-Core-Lienzo-Historial-Experimental.apk
+          sha256sum Velyntora-Core-Lienzo-Historial-Experimental.apk > Velyntora-Core-Lienzo-Historial-Experimental.apk.sha256
       - name: Publish experimental prerelease
         run: |
           set -euo pipefail
           cat > notes.md <<'NOTES'
-          Prueba experimental de rendimiento; main y la versión estable permanecen intactas.
-          Decodificación, extracción de píxeles y transferencia JNI de imágenes fuera del hilo de interfaz. El diálogo permanece hasta instalar el documento terminado. Composición y acciones del panel de capas en trabajador serializado. Seleccionar o añadir una capa transparente reutiliza la imagen visible.
-          Importación y actualización de capas por bloques completos, con reutilización de páginas sin cambios y lectura por tramos; evita buscar cada píxel individualmente en el mapa de bloques.
-          Presentación mediante texturas de 256px con caché limitada, niveles según zoom y márgenes contra costuras; los trazos invalidan sólo las texturas afectadas. Motor nativo compilado con optimización O2. Geometría y archivos de herramientas protegidas intactos.
-          Prueba del importador con archivo real de 6067 × 9030, latidos de interfaz durante carga y acciones de capas, trazos repetidos y exactitud de píxeles entre texturas. Regresiones Android con fuentes 1.0 y 1.8.
-          IMPORTANTE: el lienzo activo y el Bitmap de pantalla todavía son completos. El límite del documento continúa en 16 millones de píxeles y 8192 por lado; las imágenes mayores siguen siendo reducidas al importar. Este APK todavía NO implementa apertura o creación de 10000 × 10000 a resolución original. No integrar a main sin revisión del usuario.
-          APK debug del commit 340d4c61e808628edf99a05439949ff4591ffbfd, publicado sólo tras aprobar núcleo, almacenamiento, compilación y Android. SHA256 adjunta.
+          Rama experimental codex/large-canvas-12000; main permanece intacta.
+          El historial nativo deja de cortar pasos por cantidad o presupuesto de RAM. Guarda bloques inmutables de 4096 píxeles y metadatos de documentos en un archivo temporal de la caché de la aplicación. Los bloques sin cambios reutilizan sus registros. Deshacer y rehacer mantienen referencias pequeñas, y el archivo se elimina al terminar la sesión. El espacio disponible del dispositivo es el límite práctico; el historial no persiste al cerrar el proceso.
+          Las acciones del botón deshacer/rehacer preparan el documento y la presentación en un trabajador. Los borradores editables de Línea/Curva conservan su comportamiento, y se elimina su corte a 100 arrastres. Si el almacenamiento falla, se conserva el historial mediante copias compartidas en memoria.
+          Las texturas del lienzo se conservan durante los trazos y se actualizan sólo las celdas afectadas. El muestreo de bloques evita filtrar el Bitmap completo y prepara también el nivel siguiente de zoom cuando cabe en la caché.
+          Pruebas: 150 estados archivados; 140 pasos de deshacer/rehacer por el puente nativo y en Android; inicio exacto, ramificación del historial y datos de capas. Trazos continuos con eventos reales después de importar PNG de 6067 × 9030, medición de tiempos de cuadros, píxeles exactos y reutilización de texturas. Regresiones Android con fuentes 1.0 y 1.8. Los resultados del emulador no garantizan 60 FPS en todos los dispositivos.
+          El lienzo activo y el Bitmap de pantalla todavía son completos. Se mantiene el límite de 16 millones de píxeles y 8192 por lado; las imágenes mayores se reducen al importar. Esta versión todavía no abre 10000 × 10000 a resolución original. No integrar a main sin revisión del usuario.
+          APK debug del commit a8030f58a63568229ab347d13a850be3c2363311, publicado sólo tras aprobar núcleo, almacenamiento, compilación y Android. SHA256 adjunta.
           NOTES
           # The release tag points at this publishing commit. The APK remains pinned to VERIFIED_SHA.
           # Reject any application-code difference between the verified build and this tag.
           gh api "repos/$GH_REPO/compare/$VERIFIED_SHA...$GITHUB_SHA" --jq '.files' | jq -e 'all(.filename == ".github/workflows/publish-large-canvas-preview.yml")'
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Velyntora Core — importación y capas experimental" --notes-file notes.md --prerelease
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Velyntora Core — lienzo e historial experimental" --notes-file notes.md --prerelease
           fi
-          gh release upload "$RELEASE_TAG" Velyntora-Core-Importacion-Fluida-Experimental.apk Velyntora-Core-Importacion-Fluida-Experimental.apk.sha256 --repo "$GH_REPO" --clobber
+          gh release upload "$RELEASE_TAG" Velyntora-Core-Lienzo-Historial-Experimental.apk Velyntora-Core-Lienzo-Historial-Experimental.apk.sha256 --repo "$GH_REPO" --clobber
