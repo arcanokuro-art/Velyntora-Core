@@ -169,7 +169,7 @@ final class LineCurveTool implements DrawingTool {
       if (saved != null) {
         v.curve = saved.geometry.copy();
         v.color = saved.color;
-        v.brushRadius = saved.radius;
+        v.setBrushRadius(saved.radius);
         v.setTool(DrawingView.LINE);
         v.setToolOpacityPercent(Math.round(saved.opacity * 100));
         v.curveHistory.clear();

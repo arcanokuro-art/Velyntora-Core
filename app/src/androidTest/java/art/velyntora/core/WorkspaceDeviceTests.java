@@ -608,7 +608,7 @@ public final class WorkspaceDeviceTests {
 
   private android.widget.SeekBar findBrushWidth(View view) {
     if(view instanceof android.widget.SeekBar &&
-        "Radio del pincel en píxeles".contentEquals(view.getContentDescription()==null ? "" : view.getContentDescription()))
+        "Anchura del pincel en píxeles".contentEquals(view.getContentDescription()==null ? "" : view.getContentDescription()))
       return (android.widget.SeekBar)view;
     if(view instanceof ViewGroup) {
       ViewGroup group=(ViewGroup)view;
@@ -641,7 +641,7 @@ public final class WorkspaceDeviceTests {
       }
       assertTrue("Width slider must consume horizontal drag",slider.getProgress()>before);
       assertEquals(initialScroll,toolbar.getScrollX());
-      assertEquals(slider.getProgress()+1,drawing().brushRadius(),.001f);
+      assertEquals((slider.getProgress()+1)/2f,drawing().brushRadius(),.001f);
     });
   }
 
@@ -650,17 +650,18 @@ public final class WorkspaceDeviceTests {
     instrumentation.runOnMainSync(() -> {
       android.widget.SeekBar slider=findBrushWidth(activity.getWindow().getDecorView());
       assertNotNull(slider);
+      assertEquals(299,slider.getMax());
       ViewGroup row=(ViewGroup)slider.getParent();
       int width=row.getWidth(),height=row.getHeight();
       int left=slider.getLeft(), sliderWidth=slider.getWidth();
-      for(int progress:new int[]{0,3,48,49,98,127,0}) {
+      for(int progress:new int[]{0,1,8,9,98,99,254,255,298,299,0}) {
         slider.setProgress(progress);
         row.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.EXACTLY));
         row.layout(row.getLeft(),row.getTop(),row.getLeft()+width,row.getTop()+height);
         assertEquals("Slider position must stay fixed",left,slider.getLeft());
         assertEquals("Slider track width must stay fixed",sliderWidth,slider.getWidth());
-        assertEquals(progress+1,drawing().brushRadius(),.001f);
+        assertEquals((progress+1)/2f,drawing().brushRadius(),.001f);
       }
     });
   }

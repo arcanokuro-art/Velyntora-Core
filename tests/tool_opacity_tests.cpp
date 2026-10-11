@@ -35,5 +35,16 @@ int main() {
   c.endOpacityStroke();auto before=c.pixels();c.beginOpacityStroke();
   c.strokeStyled(8.5,16.5,40.5,16.5,4,0xff000000,0,1,false,false);
   assert(c.pixels()==before);
+  // Width is diameter: the new endpoints are radius .5 (1 px) and 150 (300 px).
+  Canvas wide(400,400);wide.clear(0);
+  wide.strokeStyled(200,200,200,200,.5,0xff000000,1,1,false,false);
+  assert(wide.pixels()[200*400+200]==0xff000000);
+  assert(wide.pixels()[200*400+201]==0);
+  wide.clear(0);wide.strokeStyled(200.5,200.5,200.5,200.5,150,0xff000000,1,1,false,false);
+  assert(wide.pixels()[200*400+349]==0xff000000);
+  assert(wide.pixels()[200*400+351]==0);
+  auto samples=wide.pixels();wide.clear(0);
+  wide.sampledStroke(samples,true,0,0,0,0,0,200.5,200.5,200.5,200.5,150,1,1);
+  assert(wide.pixels()[200*400+349]==0xff000000);
   std::cout<<"Tool opacity: coverage, separate gestures, alpha, eraser, sampled tools, selection and zero passed\n";
 }

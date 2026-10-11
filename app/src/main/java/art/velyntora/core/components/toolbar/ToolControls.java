@@ -216,7 +216,7 @@ final class ToolControls {
     host.tool(toolGrid, "Elipse", DrawingView.ELLIPSE);
     host.tool(toolGrid, "Pincel", DrawingView.BRUSH);
     host.tool(toolGrid, "Forma libre (contorno cerrado)", DrawingView.FREEFORM);
-    host.tool(toolGrid, "Lápiz (1 píxel)", DrawingView.PENCIL);
+    host.tool(toolGrid, "Lápiz", DrawingView.PENCIL);
     host.tool(
         toolGrid,
         "Tampón de clonar: primer toque fija origen; seleccionar de nuevo para cambiarlo",
@@ -233,7 +233,7 @@ final class ToolControls {
     host.tool(toolGrid, "Redondeado relleno", DrawingView.FILLED_ROUNDED_RECTANGLE);
     host.tool(toolGrid, "Triángulo relleno", DrawingView.FILLED_TRIANGLE);
     host.tool(toolGrid, "Remove AI: pinta el objeto y pulsa Eliminar", DrawingView.REMOVE_AI);
-    TextView brushSizeLabel = host.text("Anchura del pincel: 8 px");
+    TextView brushSizeLabel = host.text("Anchura del pincel: " + Math.round(host.readDrawing().brushRadius() * 2) + " px");
     brushSizeLabel.setSingleLine(true);
     // Reserve the widest value so changing digit counts cannot move the slider.
     int widthLabelSpace = (int) Math.ceil(
@@ -241,9 +241,9 @@ final class ToolControls {
         + brushSizeLabel.getPaddingLeft() + brushSizeLabel.getPaddingRight() + host.dp(8);
     options.addView(brushSizeLabel, new LinearLayout.LayoutParams(widthLabelSpace, -2));
     SeekBar brushSize = new SeekBar(host);
-    brushSize.setContentDescription("Radio del pincel en píxeles");
-    brushSize.setMax(127);
-    brushSize.setProgress(Math.round(host.readDrawing().brushRadius()) - 1);
+    brushSize.setContentDescription("Anchura del pincel en píxeles");
+    brushSize.setMax(299);
+    brushSize.setProgress(Math.round(host.readDrawing().brushRadius() * 2) - 1);
     // The enclosing horizontal toolbar must not steal this slider's drag.
     brushSize.setOnTouchListener((view, event) -> {
       int action = event.getActionMasked();
@@ -259,8 +259,8 @@ final class ToolControls {
           @Override
           public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
             int size = progress + 1;
-            brushSizeLabel.setText("Anchura del pincel: " + size * 2 + " px");
-            host.readDrawing().setBrushRadius(size);
+            brushSizeLabel.setText("Anchura del pincel: " + size + " px");
+            host.readDrawing().setBrushRadius(size / 2f);
           }
 
           @Override
@@ -269,6 +269,11 @@ final class ToolControls {
           @Override
           public void onStopTrackingTouch(SeekBar bar) {}
         });
+    host.readDrawing().brushWidthChanged = () -> {
+      int width = Math.round(host.readDrawing().brushRadius() * 2);
+      brushSize.setProgress(width - 1);
+      brushSizeLabel.setText("Anchura del pincel: " + width + " px");
+    };
     options.addView(brushSize, new LinearLayout.LayoutParams(host.dp(120), host.dp(48)));
     OpacityControls.attach(host, host.readDrawing(), options);
     host.iconButton(options, "Configurar pincel", "settings", host::configureBrush);

@@ -150,6 +150,34 @@ public final class ToolOpacityDeviceTests {
       assertEquals(slider.getProgress(),activity.readDrawing().toolOpacityPercent());
     });
   }
+  @Test public void brushWidthEndpointsApplyToBrushPencilAndSampledTools() {
+    inst.runOnMainSync(()->{
+      DrawingView v=activity.readDrawing();
+      for(int tool:new int[]{DrawingView.BRUSH,DrawingView.PENCIL,DrawingView.RECOLOR,DrawingView.ERASER}) {
+        assertTrue(v.newDocument(400,400));v.setZoomPercent(100);v.setTool(tool);
+        v.setColor(0xffff0000);v.setToolOpacityPercent(100);v.configureBrush(1,1,false,false);
+        int[] source=new int[160000];java.util.Arrays.fill(source,0xff0000ff);
+        assertTrue(DrawingView.nativeImport(source));v.refresh();v.setBrushRadius(150);
+        long t=android.os.SystemClock.uptimeMillis();
+        for(int action:new int[]{MotionEvent.ACTION_DOWN,MotionEvent.ACTION_UP}) {
+          MotionEvent e=MotionEvent.obtain(t,t+10,action,v.getWidth()/2f+.5f,v.getHeight()/2f+.5f,0);
+          try{v.onTouchEvent(e);}finally{e.recycle();}
+        }
+        int[] painted=DrawingView.nativeRemoveSource();
+        assertTrue("300 px must reach 149 pixels from center: "+tool,painted[200*400+349]!=source[200*400+349]);
+        assertEquals("300 px must stop outside its radius: "+tool,source[200*400+351],painted[200*400+351]);
+        v.undo();assertArrayEquals(source,DrawingView.nativeRemoveSource());
+        v.setBrushRadius(.5f);
+        for(int action:new int[]{MotionEvent.ACTION_DOWN,MotionEvent.ACTION_UP}) {
+          MotionEvent e=MotionEvent.obtain(t,t+10,action,v.getWidth()/2f,v.getHeight()/2f,0);
+          try{v.onTouchEvent(e);}finally{e.recycle();}
+        }
+        painted=DrawingView.nativeRemoveSource();assertTrue(painted[200*400+200]!=source[200*400+200]);
+        assertEquals(source[200*400+201],painted[200*400+201]);
+      }
+      v.setBrushRadius(4);
+    });
+  }
   @Test public void toolbarRemembersIndependentValuesAcrossRelayoutAndNewView() {
     inst.runOnMainSync(()->{
       DrawingView v=activity.readDrawing();SeekBar control=slider(activity.getWindow().getDecorView());assertNotNull(control);

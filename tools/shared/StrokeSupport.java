@@ -32,6 +32,6 @@ final class StrokeSupport {
             ? Math.max(.1f, Math.min(1f, event.getPressure()))
             : 1f;
     Tools.controller(v.tool).stroke(v, x0, y0, x1, y1, pressure);
-    v.noteStrokeBounds(x0,y0,x1,y1,v.tool==DrawingView.PENCIL ? 1 : v.brushRadius*pressure);
+    v.noteStrokeBounds(x0,y0,x1,y1,v.brushRadius*(v.tool == DrawingView.PENCIL ? 1 : pressure));
   }
 }

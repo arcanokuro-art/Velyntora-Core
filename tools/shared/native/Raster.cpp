@@ -12,10 +12,14 @@ void Canvas::sampledStroke(const std::vector<std::uint32_t>& source, bool clone,
   if (source.size() != pixels_.size() || (mask && mask->size() != pixels_.size()) ||
       !std::isfinite(x0) || !std::isfinite(y0) || !std::isfinite(x1) || !std::isfinite(y1) ||
       !std::isfinite(radius) || !std::isfinite(opacity) || !std::isfinite(hardness) ||
-      radius <= 0 || radius > 128)
+      radius <= 0 || radius > 150)
     return;
   opacity = std::clamp(opacity, 0.f, 1.f);
   hardness = std::clamp(hardness, 0.f, 1.f);
+  if (radius <= .5f) {
+    x0 = std::floor(x0) + .5f; y0 = std::floor(y0) + .5f;
+    x1 = std::floor(x1) + .5f; y1 = std::floor(y1) + .5f;
+  }
   tolerance = std::clamp(tolerance, 0, 255);
   const int left = static_cast<int>(
                 std::clamp(std::floor(std::min(x0, x1) - radius), 0.f, float(width_))),
@@ -84,6 +88,10 @@ void Canvas::strokeStyled(float x0, float y0, float x1, float y1, float radius, 
   radius = std::min(radius, 2048.f);
   opacity = std::clamp(opacity, 0.f, 1.f);
   hardness = std::clamp(hardness, 0.f, 1.f);
+  if (radius <= .5f) {
+    x0 = std::floor(x0) + .5f; y0 = std::floor(y0) + .5f;
+    x1 = std::floor(x1) + .5f; y1 = std::floor(y1) + .5f;
+  }
   double dx = double(x1) - x0, dy = double(y1) - y0, length2 = dx * dx + dy * dy;
   double l = std::max(0., std::floor(std::min(double(x0), double(x1)) - radius));
   double r = std::min(double(width_ - 1), std::ceil(std::max(double(x0), double(x1)) + radius));

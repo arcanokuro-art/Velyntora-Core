@@ -28,7 +28,7 @@ final class PencilTool implements DrawingTool {
         (float) Math.floor(y0) + .5f,
         (float) Math.floor(x1) + .5f,
         (float) Math.floor(y1) + .5f,
-        .5f,
+        v.brushRadius,
         v.color,
         v.brushOpacity,
         1,

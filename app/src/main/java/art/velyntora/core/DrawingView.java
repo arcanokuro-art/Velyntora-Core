@@ -713,8 +713,13 @@ public final class DrawingView extends View {
     color = value;
   }
 
+  Runnable brushWidthChanged;
   public void setBrushRadius(float radius) {
-    if (Float.isFinite(radius) && radius >= 1f && radius <= 128f) brushRadius = radius;
+    if (Float.isFinite(radius) && radius >= .5f && radius <= 150f && radius != brushRadius) {
+      brushRadius = radius;
+      if (brushWidthChanged != null) brushWidthChanged.run();
+      invalidate();
+    }
   }
 
   public float brushRadius() {
