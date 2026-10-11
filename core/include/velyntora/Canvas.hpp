@@ -15,6 +15,8 @@ class Canvas {
   void strokeStyled(float x0, float y0, float x1, float y1, float radius, std::uint32_t argb,
                     float opacity, float hardness, bool square, bool eraser,
                     const std::vector<std::uint8_t>* mask = nullptr);
+  void strokeAntialiased(float x0,float y0,float x1,float y1,float radius,std::uint32_t argb,
+      float opacity,float hardness,bool square,const std::vector<std::uint8_t>* mask=nullptr);
   void sampledStroke(const std::vector<std::uint32_t>& source, bool clone, int offsetX, int offsetY,
                      std::uint32_t target, std::uint32_t replacement, int tolerance, float x0,
                      float y0, float x1, float y1, float radius, float opacity, float hardness,

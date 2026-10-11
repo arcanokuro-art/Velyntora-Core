@@ -93,7 +93,9 @@ final class ToolControls {
           host.readDrawing().setTool(tool);
           host.readDrawing().setColor(host.readActiveColor());
           host.syncToolState();
-          if (!host.readPanelsInline() && host.readToolScroll() != null) host.readToolScroll().setVisibility(View.GONE);
+          if (tool == DrawingView.BRUSH)
+            BrushSelector.show(iconButton,host.readDrawing(),host::syncToolState);
+          if (tool != DrawingView.BRUSH && !host.readPanelsInline() && host.readToolScroll() != null) host.readToolScroll().setVisibility(View.GONE);
         });
     android.widget.GridLayout.LayoutParams cell = new android.widget.GridLayout.LayoutParams();
     cell.width = host.dp(48);
@@ -113,6 +115,8 @@ final class ToolControls {
     }
     if (host.readSelectedTool() != null && host.readToolLabels().get(active) != null)
       host.readSelectedTool().setText(host.readToolLabels().get(active).split(":", 2)[0]);
+    if (active == DrawingView.BRUSH && host.readSelectedTool() != null)
+      host.readSelectedTool().setText(host.readDrawing().brushes().label());
     if (host.readGradientOptions() != null)
       host.readGradientOptions().setVisibility(active == DrawingView.GRADIENT ? View.VISIBLE : View.GONE);
     if (host.readCurveConfirm() != null)

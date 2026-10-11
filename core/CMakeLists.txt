@@ -14,7 +14,8 @@ add_library(velyntora_engine STATIC
  effects/RenderEffects.cpp
  effects/UtilityEffects.cpp
  src/Canvas.cpp
- ../tools/brush/native/Raster.cpp
+ ../tools/brush/classic/native/Raster.cpp
+ ../tools/brush/antialiased/native/Raster.cpp
  ../tools/bucket/native/Raster.cpp
  ../tools/ellipse/native/Raster.cpp
  ../tools/move_pixels/native/SelectionTransform.cpp

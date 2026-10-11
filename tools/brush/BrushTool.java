@@ -23,16 +23,8 @@ final class BrushTool implements DrawingTool {
   }
 
   public void stroke(DrawingView v, float x0, float y0, float x1, float y1, float pressure) {
-    DrawingView.nativeStyledStroke(
-        x0,
-        y0,
-        x1,
-        y1,
-        v.brushRadius * pressure,
-        v.color,
-        v.brushOpacity,
-        v.brushHardness,
-        v.squareBrush,
-        false);
+    if (v.brushes().isAntialiased())
+      AntialiasedBrush.stroke(v,x0,y0,x1,y1,pressure);
+    else ClassicBrush.stroke(v,x0,y0,x1,y1,pressure);
   }
 }

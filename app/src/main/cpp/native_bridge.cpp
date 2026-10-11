@@ -9,3 +9,5 @@
 #include "effects/EffectsBridge.inc"
 #include "remove_ai/RemoveAiBridge.inc"
 #include "opacity/OpacityBridge.inc"
+
+#include "brush/BrushBridge.inc"

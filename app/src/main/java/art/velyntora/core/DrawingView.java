@@ -507,6 +507,14 @@ public final class DrawingView extends View {
   }
 
   final NavigationTool navigationTool = new NavigationTool(4);
+  private BrushModule brushModule;
+  BrushModule brushes() {
+    if (brushModule == null) brushModule = new BrushModule(this);
+    return brushModule;
+  }
+  static native void nativeAntialiasedStroke(float x0,float y0,float x1,float y1,
+      float radius,int color,float opacity,float hardness,boolean square);
+
   int color = 0xFF202020, tool = BRUSH;
   int gradientMode, secondaryColor = 0xffffffff;
   boolean gradientTransparent = true;

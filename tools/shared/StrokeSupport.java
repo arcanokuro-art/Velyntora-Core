@@ -21,7 +21,7 @@ final class StrokeSupport {
       }
       DrawingView.nativeSetBrushSelection(mask);
       if (!DrawingView.nativeBeginOpacityStroke(
-          v.brushOpacity < 1 || v.brushHardness < 1 || (v.color >>> 24) < 255 || v.tool == DrawingView.CLONE)) return;
+          (v.tool == DrawingView.BRUSH && v.brushes().isAntialiased()) || v.brushOpacity < 1 || v.brushHardness < 1 || (v.color >>> 24) < 255 || v.tool == DrawingView.CLONE)) return;
       DrawingView.nativeBeginEdit();
       if (v.tool == DrawingView.CLONE || v.tool == DrawingView.RECOLOR)
         DrawingView.nativeBeginSampled((int) v.startX, (int) v.startY);

@@ -62,3 +62,7 @@ El motor compartido permanece en `core/include`, `core/src`, `core/document` y `
 3. Ejecutar Core tests, Android APK y Android device tests. Las pruebas Android comprueban píxeles ampliados, formas/undo, selección frente a movimiento de píxeles, Enter/Ctrl+Z y los 28 iconos, además de ciclo de vida y formatos.
 
 La interfaz de dos columnas aprobada continúa vigente. Remove AI se integra en `tools/remove_ai/` y Core no añade animación.
+
+## Variantes de pincel
+
+`tools/brush/` conserva una sola herramienta y contiene `classic/`, `antialiased/` y `selector/`. Cada pincel tiene su renderer separado; el selector muestra las variantes y recuerda la última elección. El clásico mantiene su algoritmo original; el suavizado añade cobertura subpíxel en los bordes. Las futuras variantes se agregan como carpetas independientes.
