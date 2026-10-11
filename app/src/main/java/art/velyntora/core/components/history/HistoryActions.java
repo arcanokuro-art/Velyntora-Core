@@ -30,13 +30,11 @@ final class HistoryActions {
   private void settled(){
     running=false;
     if(host.isDestroyed()){pending.clear();return;}
-    host.readDrawing().post(()->{
-      if(running || host.readProjectProgress()!=null)return;
-      if(!pending.isEmpty()){
-        boolean redo=pending.removeFirst();if(redo)redo();else undo();
-        if(!running)settled();
-      }
-    });
+    if(!pending.isEmpty()){
+      // Start the next queued request before accepting a newer input event.
+      boolean redo=pending.removeFirst();if(redo)redo();else undo();
+      if(!running)host.readDrawing().post(this::settled);
+    }
   }
   HistoryActions(MainActivity host) { this.host = host; }
 
