@@ -125,7 +125,7 @@ final class ToolControls {
     LinearLayout form = new LinearLayout(host);
     form.setOrientation(LinearLayout.VERTICAL);
     SeekBar opacity = new SeekBar(host), hardness = new SeekBar(host);
-    opacity.setContentDescription("Opacidad de la capa activa");
+    opacity.setContentDescription("Opacidad de la herramienta");
     opacity.setMax(100);
     opacity.setProgress(Math.round(host.readDrawing().brushOpacity() * 100));
     hardness.setMax(100);
@@ -270,6 +270,7 @@ final class ToolControls {
           public void onStopTrackingTouch(SeekBar bar) {}
         });
     options.addView(brushSize, new LinearLayout.LayoutParams(host.dp(120), host.dp(48)));
+    OpacityControls.attach(host, host.readDrawing(), options);
     host.iconButton(options, "Configurar pincel", "settings", host::configureBrush);
     host.writeGradientOptions(host.iconButton(options, "Configurar degradado", "gradient", host::configureGradient));
     host.writeCurveConfirm(host.iconButton(options, "Confirmar Línea/Curva", "confirm", host.readDrawing()::confirmCurve));

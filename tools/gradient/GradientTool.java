@@ -12,6 +12,7 @@ final class GradientTool implements DrawingTool {
   }
 
   public void up(DrawingView v, float x, float y, MotionEvent event) {
+    if (v.brushOpacity <= 0) return;
     int first = (v.color & 0xffffff) | (Math.round((v.color >>> 24) * v.brushOpacity) << 24),
         second =
             v.gradientTransparent

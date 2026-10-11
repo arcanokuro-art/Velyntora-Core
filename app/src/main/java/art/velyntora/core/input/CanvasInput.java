@@ -45,6 +45,7 @@ final class CanvasInput {
 
   void cancelToolGesture() {
     Tools.controller(host.readTool()).cancel(host);
+    host.finishOpacityStroke();
     host.writeDrawing(false);
     host.writeMovingSelection(false);
     host.writeMovingPixels(false);
@@ -94,6 +95,10 @@ final class CanvasInput {
         host.writeStrokeEditing(false);
         host.writeStartX(host.writePreviousX(x));
         host.writeStartY(host.writePreviousY(y));
+        if (host.supportsToolOpacity() && host.toolOpacityPercent() == 0) {
+          host.writeDrawing(false);
+          return true;
+        }
         Tools.controller(host.readTool()).down(host, x, y, event);
         return true;
       case MotionEvent.ACTION_MOVE:
@@ -106,6 +111,7 @@ final class CanvasInput {
         host.getParent().requestDisallowInterceptTouchEvent(false);
         if (host.readDrawing()) {
           Tools.controller(host.readTool()).up(host, x, y, event);
+          host.finishOpacityStroke();
           host.writeDrawing(false);
           if (host.readTool() == DrawingView.REMOVE_AI) host.invalidate();
           else host.refresh();

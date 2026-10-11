@@ -4,6 +4,7 @@ import android.graphics.*;
 
 final class ShapeRaster {
   static void additionalShape(DrawingView v, int kind, float x0, float y0, float x1, float y1) {
+    if (v.brushOpacity <= 0) return;
     float left = Math.min(x0, x1),
         top = Math.min(y0, y1),
         right = Math.max(x0, x1),

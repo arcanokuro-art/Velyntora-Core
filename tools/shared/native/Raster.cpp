@@ -35,8 +35,14 @@ void Canvas::sampledStroke(const std::vector<std::uint32_t>& source, bool clone,
       double d = std::hypot(x + .5 - (x0 + t * dx), y + .5 - (y0 + t * dy)) / radius;
       if (d > 1) continue;
       double weight = opacity * (hardness >= 1 || d <= hardness ? 1 : (1 - d) / (1 - hardness));
+      if (!clone) weight *= (replacement >> 24) / 255.;
       if (weight <= 0) continue;
-      auto old = pixels_[i];
+      bool grouped = strokeBase_.size() == pixels_.size();
+      if (grouped) {
+        if (weight <= strokeCoverage_[i]) continue;
+        strokeCoverage_[i] = float(weight);
+      }
+      auto old = grouped ? strokeBase_[i] : pixels_[i];
       std::uint32_t sample;
       if (clone) {
         auto sx = static_cast<std::int64_t>(x) + ox, sy = static_cast<std::int64_t>(y) + oy;
@@ -96,11 +102,18 @@ void Canvas::strokeStyled(float x0, float y0, float x1, float y1, float radius, 
       double coverage = opacity * (hardness >= 1 || distance <= radius * hardness
                                        ? 1
                                        : (radius - distance) / (radius * (1 - hardness)));
-      auto& dst = pixels_[std::size_t(y) * width_ + x];
-      double da = (dst >> 24) / 255.;
+      auto i = std::size_t(y) * width_ + x;
+      bool grouped = strokeBase_.size() == pixels_.size();
+      if (grouped) {
+        if (coverage <= strokeCoverage_[i]) continue;
+        strokeCoverage_[i] = float(coverage);
+      }
+      auto& dst = pixels_[i];
+      auto old = grouped ? strokeBase_[i] : dst;
+      double da = (old >> 24) / 255.;
       if (eraser) {
         auto alpha = std::uint32_t(std::lround(255 * da * (1 - coverage)));
-        dst = alpha ? (dst & 0x00ffffff) | (alpha << 24) : 0;
+        dst = alpha ? (old & 0x00ffffff) | (alpha << 24) : 0;
         continue;
       }
       double sa = (color >> 24) / 255. * coverage, oa = sa + da * (1 - sa);
@@ -110,7 +123,7 @@ void Canvas::strokeStyled(float x0, float y0, float x1, float y1, float radius, 
         result |=
             std::uint32_t(std::clamp(
                 std::lround(
-                    (((color >> shift) & 255) * sa + ((dst >> shift) & 255) * da * (1 - sa)) / oa),
+                    (((color >> shift) & 255) * sa + ((old >> shift) & 255) * da * (1 - sa)) / oa),
                 0L, 255L))
             << shift;
       dst = result;

@@ -102,6 +102,7 @@ final class LineCurveTool implements DrawingTool {
 
   static boolean confirmCurve(DrawingView v) {
     if (v.curve == null) return false;
+    if (v.brushOpacity <= 0) { cancelCurve(v); return false; }
     Bitmap image = Bitmap.createBitmap(v.canvasWidth, v.canvasHeight, Bitmap.Config.ARGB_8888);
     try {
       Paint style = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -169,8 +170,8 @@ final class LineCurveTool implements DrawingTool {
         v.curve = saved.geometry.copy();
         v.color = saved.color;
         v.brushRadius = saved.radius;
-        v.brushOpacity = saved.opacity;
-        v.tool = DrawingView.LINE;
+        v.setTool(DrawingView.LINE);
+        v.setToolOpacityPercent(Math.round(saved.opacity * 100));
         v.curveHistory.clear();
         v.canceledCurve = null;
         saved.selection.restore(v);

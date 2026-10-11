@@ -311,6 +311,7 @@ public final class DrawingView extends View {
   }
 
   void resetDocumentTools() {
+    finishOpacityStroke();
     cursorX = cursorY = -1;
     cancelCurve();
     savedCurves.clear();
@@ -547,6 +548,34 @@ public final class DrawingView extends View {
       float opacity,
       float hardness);
 
+  private final ToolOpacity toolOpacities = new ToolOpacity();
+  Runnable toolOpacityChanged;
+  private android.content.SharedPreferences opacityPreferences;
+  private android.content.SharedPreferences opacityPreferences() {
+    if (opacityPreferences == null) {
+      opacityPreferences = getContext().getSharedPreferences("tool-opacity", android.content.Context.MODE_PRIVATE);
+      for (int id = 0; id <= REMOVE_AI; id++)
+        if (ToolOpacity.supports(id)) toolOpacities.set(id, opacityPreferences.getInt("tool-" + id, 100));
+    }
+    return opacityPreferences;
+  }
+  public boolean supportsToolOpacity() { return ToolOpacity.supports(tool); }
+  public int toolOpacityPercent() { opacityPreferences(); return toolOpacities.get(tool); }
+  public void setToolOpacityPercent(int value) {
+    opacityPreferences();
+    if (!supportsToolOpacity()) return;
+    toolOpacities.set(tool, value);
+    brushOpacity = toolOpacities.get(tool) / 100f;
+    opacityPreferences.edit().putInt("tool-" + tool, toolOpacities.get(tool)).apply();
+    if (toolOpacityChanged != null) toolOpacityChanged.run();
+    invalidate();
+  }
+  void finishOpacityStroke() {
+    if (strokeEditing) nativeEndOpacityStroke();
+    strokeEditing = false;
+  }
+  static native boolean nativeBeginOpacityStroke(boolean grouped);
+  static native void nativeEndOpacityStroke();
   float brushRadius = 4f, brushOpacity = 1f, brushHardness = 1f;
   boolean squareBrush, pressureBrush = true, strokeEditing;
 
@@ -567,7 +596,7 @@ public final class DrawingView extends View {
   }
 
   public void configureBrush(float opacity, float hardness, boolean square, boolean pressure) {
-    brushOpacity = opacity;
+    if (Float.isFinite(opacity)) setToolOpacityPercent(Math.round(opacity * 100));
     brushHardness = hardness;
     squareBrush = square;
     pressureBrush = pressure;
@@ -614,6 +643,8 @@ public final class DrawingView extends View {
 
   public DrawingView(Context context) {
     super(context);
+    opacityPreferences();
+    brushOpacity = toolOpacities.get(tool) / 100f;
     setContentDescription(
         "Lienzo de dibujo; arrastra para usar la herramienta activa y utiliza dos dedos para"
             + " navegar");
@@ -697,6 +728,7 @@ public final class DrawingView extends View {
   static native boolean nativeRemoveCommit(int[] pixels, byte[] mask, int width, int height, int layer, long revision);
   @Override protected void onDetachedFromWindow() {
     if (removeAiModule != null) { removeAiModule.dispose(); removeAiModule = null; }
+    finishOpacityStroke();
     super.onDetachedFromWindow();
   }
 
@@ -718,7 +750,11 @@ public final class DrawingView extends View {
     }
     if (value == CLONE) cloneOriginReady = false;
     if (tool == REMOVE_AI || value == REMOVE_AI) removeAi().clear();
+    finishOpacityStroke();
     tool = value;
+    opacityPreferences();
+    brushOpacity = toolOpacities.get(tool) / 100f;
+    if (toolOpacityChanged != null) toolOpacityChanged.run();
     if (removeAiControlsChanged != null) removeAiControlsChanged.run();
     // Switching away from a selection tool must not leave a selection
     // permanently active as an accidental overlay on subsequent drawings.
@@ -909,10 +945,12 @@ public final class DrawingView extends View {
   }
 
   public void undo() {
+    finishOpacityStroke();
     LineCurveTool.undo(this);
   }
 
   public void redo() {
+    finishOpacityStroke();
     LineCurveTool.redo(this);
   }
 

@@ -226,6 +226,7 @@ public final class WorkspaceDeviceTests {
           view.setColor(0xffff0000);
           view.configureBrush(.5f, 1, false, false);
           view.setTool(DrawingView.FILLED_RECTANGLE);
+          view.setToolOpacityPercent(50);
           gesture(view, 1, 1, 32, 32, false);
           assertTrue("Painting a shape must preserve selection", view.hasSelection());
           Bitmap image = view.snapshot();
@@ -465,6 +466,7 @@ public final class WorkspaceDeviceTests {
             v.setColor(0xffff0000);
             v.configureBrush(1, 1, false, false);
             v.setTool(tool);
+            v.setToolOpacityPercent(100);
             long revision = v.revision();
             gesture(v, 8, 8, 40, 40, true);
             assertEquals("Canceled shape " + tool, revision, v.revision());
@@ -681,6 +683,7 @@ public final class WorkspaceDeviceTests {
           v.setColor(0xffff0000);
           v.configureBrush(1, 1, false, false);
           v.setTool(DrawingView.FILLED_RECTANGLE);
+          v.setToolOpacityPercent(100);
           gesture(v, 4, 4, 28, 28, false);
           long revision = v.revision();
           v.setTool(DrawingView.MOVE_SELECTION);

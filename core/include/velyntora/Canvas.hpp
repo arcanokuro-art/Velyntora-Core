@@ -9,6 +9,8 @@ class Canvas {
   int height() const noexcept { return height_; }
   const std::vector<std::uint32_t>& pixels() const noexcept { return pixels_; }
   void clear(std::uint32_t argb);
+  void beginOpacityStroke();
+  void endOpacityStroke();
   void stroke(float x0, float y0, float x1, float y1, float radius, std::uint32_t argb);
   void strokeStyled(float x0, float y0, float x1, float y1, float radius, std::uint32_t argb,
                     float opacity, float hardness, bool square, bool eraser,
@@ -27,5 +29,7 @@ class Canvas {
   void pixel(int x, int y, std::uint32_t argb);
   int width_, height_;
   std::vector<std::uint32_t> pixels_;
+  std::vector<std::uint32_t> strokeBase_;
+  std::vector<float> strokeCoverage_;
 };
 }  // namespace velyntora

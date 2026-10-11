@@ -30,7 +30,7 @@ final class PencilTool implements DrawingTool {
         (float) Math.floor(y1) + .5f,
         .5f,
         v.color,
-        1,
+        v.brushOpacity,
         1,
         true,
         false);

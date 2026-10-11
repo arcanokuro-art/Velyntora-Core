@@ -19,7 +19,7 @@ final class TextTool implements DrawingTool {
       boolean bold,
       boolean italic,
       String family) {
-    if (text == null
+    if (v.brushOpacity <= 0 || text == null
         || text.trim().isEmpty()
         || text.length() > 4096
         || x < 0
@@ -28,6 +28,7 @@ final class TextTool implements DrawingTool {
         || y >= v.canvasHeight) return false;
     android.text.TextPaint textPaint = new android.text.TextPaint(Paint.ANTI_ALIAS_FLAG);
     textPaint.setColor(v.color);
+    textPaint.setAlpha(Math.round((v.color >>> 24) * v.brushOpacity));
     textPaint.setTextSize(Math.max(4, Math.min(256, size)));
     textPaint.setTypeface(
         android.graphics.Typeface.create(

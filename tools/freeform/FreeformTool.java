@@ -24,6 +24,7 @@ final class FreeformTool implements DrawingTool {
   }
 
   static void commitFreeform(DrawingView v) {
+    if (v.brushOpacity <= 0) { v.shapePath.reset(); return; }
     Bitmap shape = Bitmap.createBitmap(v.canvasWidth, v.canvasHeight, Bitmap.Config.ARGB_8888);
     try {
       Paint style = new Paint(Paint.ANTI_ALIAS_FLAG);

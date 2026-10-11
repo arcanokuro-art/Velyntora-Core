@@ -58,3 +58,7 @@ add_test(NAME object_tests COMMAND object_tests)
 add_executable(sampled_brush_tests sampled_brush_tests.cpp)
 target_link_libraries(sampled_brush_tests PRIVATE velyntora_engine)
 add_test(NAME sampled_brush_tests COMMAND sampled_brush_tests)
+
+add_executable(tool_opacity_tests tool_opacity_tests.cpp)
+target_link_libraries(tool_opacity_tests PRIVATE velyntora_engine)
+add_test(NAME tool_opacity_tests COMMAND tool_opacity_tests)

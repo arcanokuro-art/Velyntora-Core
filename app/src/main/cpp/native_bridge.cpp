@@ -8,3 +8,4 @@
 #include "layers/LayersBridge.inc"
 #include "effects/EffectsBridge.inc"
 #include "remove_ai/RemoveAiBridge.inc"
+#include "opacity/OpacityBridge.inc"

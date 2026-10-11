@@ -23,6 +23,11 @@ jobs:
           build/layer_blend_tests > build/blend-vectors.txt
           javac -d build/java-tests app/src/main/java/art/velyntora/core/components/layers/blending/*/*.java app/src/main/java/art/velyntora/core/document/project/VlyProjectStream.java app/src/main/java/art/velyntora/core/document/openraster/OpenRasterArchive.java tests/LayerBlendTests.java
           java -cp build/java-tests art.velyntora.core.LayerBlendTests build/blend-vectors.txt
+      - name: Independent tool opacity
+        run: |
+          mkdir -p build/java-tests
+          javac -d build/java-tests app/src/main/java/art/velyntora/core/components/opacity/ToolOpacity.java tests/ToolOpacityTests.java
+          java -cp build/java-tests art.velyntora.core.ToolOpacityTests
       - name: Independent color model
         run: |
           mkdir -p build/java-tests

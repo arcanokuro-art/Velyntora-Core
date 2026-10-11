@@ -6,6 +6,7 @@ import android.view.MotionEvent;
 final class StrokeSupport {
   static void paintStroke(
       DrawingView v, float x0, float y0, float x1, float y1, MotionEvent event) {
+    if (v.brushOpacity <= 0) return;
     if (!v.strokeEditing) {
       byte[] mask = null;
       if (v.hasSelection()) {
@@ -19,6 +20,8 @@ final class StrokeSupport {
             if (v.selectionContains(x, y)) mask[y * v.canvasWidth + x] = 1;
       }
       DrawingView.nativeSetBrushSelection(mask);
+      if (!DrawingView.nativeBeginOpacityStroke(
+          v.brushOpacity < 1 || v.brushHardness < 1 || (v.color >>> 24) < 255 || v.tool == DrawingView.CLONE)) return;
       DrawingView.nativeBeginEdit();
       if (v.tool == DrawingView.CLONE || v.tool == DrawingView.RECOLOR)
         DrawingView.nativeBeginSampled((int) v.startX, (int) v.startY);
