@@ -8,7 +8,7 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
   std::lock_guard<std::mutex> lock(guard);
   if (!canvas || undoStack.empty()) return JNI_FALSE;
   try {
-  redoStack.reserve(redoStack.size()+1);
+  if(redoStack.size()==redoStack.capacity())redoStack.reserve(std::max<std::size_t>(16,redoStack.capacity()*2));
   auto previous=captureSnapshot();
   restore(undoStack.back());
   redoStack.push_back(std::move(previous));
@@ -21,7 +21,7 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
   std::lock_guard<std::mutex> lock(guard);
   if (!canvas || redoStack.empty()) return JNI_FALSE;
   try {
-  undoStack.reserve(undoStack.size()+1);
+  if(undoStack.size()==undoStack.capacity())undoStack.reserve(std::max<std::size_t>(16,undoStack.capacity()*2));
   auto previous=captureSnapshot();
   restore(redoStack.back());
   undoStack.push_back(std::move(previous));
