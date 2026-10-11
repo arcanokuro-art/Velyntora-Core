@@ -28,8 +28,9 @@ public final class NativeRenderingDeviceTests {
           Canvas a=new Canvas(actual),e=new Canvas(expected);
           for(Canvas c:new Canvas[]{a,e}){c.translate(128,128);c.rotate(-8);c.scale(4,4);c.translate(-3000,-3000);}
           frame.display.draw(a,4f);
-          e.drawBitmap(source,2920,2920,new Paint());
-          for(int y=0;y<256;y++)for(int x=0;x<256;x++)assertEquals("Coarse history flash, step "+step,expected.getPixel(x,y),actual.getPixel(x,y));
+          Paint exact=new Paint();exact.setFilterBitmap(false);
+          e.drawBitmap(source,null,new Rect(2920,2920,3080,3080),exact);
+          for(int y=0;y<256;y++)for(int x=0;x<256;x++)assertEquals("Coarse history flash, step "+step+" at "+x+","+y,expected.getPixel(x,y),actual.getPixel(x,y));
         }finally{frame.dispose();actual.recycle();expected.recycle();source.recycle();}
       }
     }finally{inst.runOnMainSync(()->{host.readDrawing().newDocument(64,64);host.finish();});}
