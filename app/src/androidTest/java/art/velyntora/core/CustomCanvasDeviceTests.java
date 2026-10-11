@@ -66,6 +66,23 @@ public final class CustomCanvasDeviceTests {
       assertFalse(v.newDocument(10001,10000));assertFalse(v.newDocument(10001,1));assertEquals(3840,v.documentWidth());
     });
   }
+  @Test public void tenThousandBoundaryKeepsLayersSparseAndUndoExact(){
+    inst.runOnMainSync(()->{
+      DrawingView v=activity.readDrawing();assertTrue(v.newDocument(10000,10000));
+      assertEquals(10000,v.documentWidth());assertEquals(10000,v.documentHeight());
+      assertTrue((long)v.readBitmap().getWidth()*v.readBitmap().getHeight()<=1048576);
+      assertTrue(v.readBitmap().isMutable());
+      for(int i=0;i<31;i++)assertTrue(v.addLayer());
+      assertEquals(32,v.layerCount());assertFalse(v.addLayer());
+      DrawingView.nativeBeginEdit();
+      DrawingView.nativeStyledStroke(5000.5f,5000.5f,5000.5f,5000.5f,4,0xff123456,1,1,false,false);
+      assertEquals(0xff123456,DrawingView.nativeRegionPixels(5000,5000,1,1)[0]);
+      assertTrue(DrawingView.nativeUndo());assertEquals(0xffffffff,DrawingView.nativeRegionPixels(5000,5000,1,1)[0]);
+      assertTrue(DrawingView.nativeRedo());assertEquals(0xff123456,DrawingView.nativeRegionPixels(5000,5000,1,1)[0]);
+      assertFalse(v.newDocument(10001,10000));assertEquals(10000,v.documentWidth());
+      assertTrue(v.newDocument(64,64));
+    });
+  }
   @Test public void repeatedStrokesAndLayersOnLargeImportedDimensions(){
     inst.runOnMainSync(()->{
       DrawingView v=activity.readDrawing();assertTrue(v.newDocument(3034,4515));
