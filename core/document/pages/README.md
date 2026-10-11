@@ -11,7 +11,7 @@ coverage allocates only touched blocks. Effects and transforms use paged output
 and paged intermediate values instead of full-document ARGB/float buffers.
 
 JPEG and generic Android image import decode bounded regions. Noninterlaced RGB
-and RGBA PNG import uses a single inflater stream and bounded stripes. Imported
+and RGBA PNG import without custom color profiles uses a single inflater stream and bounded stripes. PNG color profiles and nonstandard gamma use the Android decoder. Imported
 coordinates and EXIF orientation remain at original resolution. The display uses
 native sampled tiles and a bounded preview; that preview is not document data.
 PNG, BMP, TGA, TIFF, GIF and PPM export read original-resolution native rows.

@@ -41,7 +41,8 @@ final class PngStripeImporter {
     while(true){size=in.readInt();int kind=in.readInt();if(size<0)throw new IOException("Chunk PNG inválido");
       if(kind==IDAT)break;
       // RGB tRNS needs the generic decoder to preserve transparent-color metadata.
-      if(kind==0x74524e53)return false;
+      if(kind==0x74524e53 || kind==0x69434350 || kind==0x6348524d)return false;
+      if(kind==0x67414d41){if(size!=4)return false;int gamma=in.readInt();in.readInt();if(gamma!=45455)return false;continue;}
       if(kind==IEND)throw new IOException("PNG sin píxeles");skip(in,size+4L);
     }
     boolean rotated=orientation>=5;
