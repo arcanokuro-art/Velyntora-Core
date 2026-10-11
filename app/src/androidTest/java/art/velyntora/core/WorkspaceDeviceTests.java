@@ -295,8 +295,9 @@ public final class WorkspaceDeviceTests {
             new java.io.ByteArrayInputStream(
                 source.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
     try {
-      assertTrue((long) bitmap.getWidth() * bitmap.getHeight() <= 4000000);
-      assertTrue(bitmap.getWidth() <= 8192);
+      assertTrue((long) bitmap.getWidth() * bitmap.getHeight() <= art.velyntora.core.document.CanvasLimits.MAX_PIXELS);
+      assertTrue(bitmap.getWidth() <= art.velyntora.core.document.CanvasLimits.MAX_SIDE);
+      assertEquals(5000,bitmap.getWidth());assertEquals(2500,bitmap.getHeight());
       assertEquals(0xff0000ff, bitmap.getPixel(1, 1));
     } finally {
       bitmap.recycle();
