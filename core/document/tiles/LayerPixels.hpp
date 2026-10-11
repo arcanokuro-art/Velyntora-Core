@@ -5,6 +5,7 @@
 #include <map>
 #include <memory>
 #include <vector>
+#include <stdexcept>
 
 namespace velyntora::tiles {
 // Sparse copy-on-write blocks keep blank layers and unchanged history cheap.
@@ -34,7 +35,11 @@ class LayerPixels {
   LayerPixels()=default;
   LayerPixels(const std::vector<std::uint32_t>& pixels):size_(pixels.size()),
       background_(pixels.empty()?0:pixels[0]) {
-    for(std::size_t i=0;i<size_;++i) put(i,pixels[i]);
+    for(std::size_t offset=0;offset<size_;offset+=blockSize) {
+      auto first=pixels.begin()+offset,last=first+std::min(blockSize,size_-offset);
+      if(std::all_of(first,last,[this](std::uint32_t value){return value==background_;}))continue;
+      blocks_.emplace(offset/blockSize,std::make_shared<Block>(first,last));
+    }
   }
   LayerPixels(std::size_t size,std::uint32_t background):size_(size),background_(background) {}
   std::size_t size() const noexcept {return size_;}
@@ -92,8 +97,37 @@ class LayerPixels {
     for(const auto& [key,block]:blocks_)if(block)
       std::copy(block->begin(),block->end(),result.begin()+key*blockSize);
   }
+  // Bulk reads perform one map lookup per block, not one per pixel.
+  void readSpan(std::size_t offset,std::size_t count,std::uint32_t* output) const {
+    if(offset>size_ || count>size_-offset)throw std::out_of_range("Pixel span");
+    while(count) {
+      std::size_t key=offset/blockSize,inBlock=offset%blockSize;
+      std::size_t length=std::min(count,blockSize-inBlock);
+      auto found=blocks_.find(key);
+      if(found==blocks_.end())std::fill_n(output,length,background_);
+      else std::copy_n(found->second->begin()+inBlock,length,output);
+      output+=length;offset+=length;count-=length;
+    }
+  }
   LayerPixels& operator=(const std::vector<std::uint32_t>& pixels) {
-    LayerPixels replacement(pixels);*this=std::move(replacement);return *this;
+    if(pixels.size()!=size_) {
+      LayerPixels replacement(pixels);*this=std::move(replacement);return *this;
+    }
+    if(!pixels.empty() && std::all_of(pixels.begin(),pixels.end(),
+        [color=pixels[0]](std::uint32_t value){return value==color;})) {
+      LayerPixels replacement(pixels.size(),pixels[0]);*this=std::move(replacement);return *this;
+    }
+    // Preserve unchanged shared blocks; publish only after all allocations succeed.
+    auto replacement=blocks_;
+    for(std::size_t offset=0;offset<size_;offset+=blockSize) {
+      auto first=pixels.begin()+offset,last=first+std::min(blockSize,size_-offset);
+      auto found=blocks_.find(offset/blockSize);
+      bool uniform=std::all_of(first,last,[this](std::uint32_t value){return value==background_;});
+      if(uniform){replacement.erase(offset/blockSize);continue;}
+      if(found!=blocks_.end() && std::equal(first,last,found->second->begin()))continue;
+      replacement[offset/blockSize]=std::make_shared<Block>(first,last);
+    }
+    blocks_=std::move(replacement);return *this;
   }
   friend bool operator==(const LayerPixels& a,const LayerPixels& b) {
     if(a.size_!=b.size_)return false;

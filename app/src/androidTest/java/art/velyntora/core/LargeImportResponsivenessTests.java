@@ -22,10 +22,10 @@ public final class LargeImportResponsivenessTests {
       waitResponsive(inst,host);
       inst.runOnMainSync(()->{
         DrawingView view=host.readDrawing();
-        assertEquals(3034,view.documentWidth());assertEquals(4515,view.documentHeight());
+        assertEquals(3033,view.documentWidth());assertEquals(4515,view.documentHeight());
         assertTrue(view.isEnabled());assertEquals(1,view.layerCount());
         assertEquals(view.readBitmap().getPixel(1500,2200),DrawingView.nativeRegionPixels(1500,2200,1,1)[0]);
-        view.setTool(DrawingView.BRUSH);view.setColor(0xff123456);view.setBrushRadius(12);view.setToolOpacityPercent(100);
+        view.configureBrush(1,1,false,false);view.setTool(DrawingView.BRUSH);view.setColor(0xff123456);view.setBrushRadius(12);view.setToolOpacityPercent(100);
         for(int stroke=0;stroke<3;stroke++){
           long time=SystemClock.uptimeMillis();
           for(int action:new int[]{android.view.MotionEvent.ACTION_DOWN,android.view.MotionEvent.ACTION_UP}){
@@ -34,6 +34,8 @@ public final class LargeImportResponsivenessTests {
           }
           assertTrue("Repeated stroke blocked the UI",SystemClock.uptimeMillis()-time<1500);
         }
+        assertEquals(0xff123456,DrawingView.nativeRegionPixels(1517,2257,1,1)[0]);
+        assertEquals(0xff123456,view.readBitmap().getPixel(1517,2257));
         host.addLayer();
       });
       waitResponsive(inst,host);

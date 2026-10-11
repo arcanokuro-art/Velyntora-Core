@@ -3,6 +3,7 @@
 #include "../components/layers/blending/BlendModes.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <stdexcept>
 #include <utility>
@@ -145,9 +146,12 @@ std::vector<std::uint32_t> LayerDocument::flatten() const {
         && (layer.pixels.background()>>24)==255) {
       std::fill(result.begin(),result.end(),layer.pixels.background());continue;
     }
-    for (std::size_t i = 0; i < result.size(); ++i) {
-      const std::uint32_t src = layer.pixels[i], dst = result[i];
-      result[i] = blending::composite(src,dst,layer.opacity,layer.blendMode);
+    std::array<std::uint32_t,4096> source;
+    for(std::size_t offset=0;offset<result.size();offset+=source.size()) {
+      std::size_t count=std::min(source.size(),result.size()-offset);
+      layer.pixels.readSpan(offset,count,source.data());
+      for(std::size_t i=0;i<count;i++)
+        result[offset+i]=blending::composite(source[i],result[offset+i],layer.opacity,layer.blendMode);
     }
   }
   return result;
@@ -173,9 +177,12 @@ std::vector<std::uint32_t> LayerDocument::flattenRegion(int x, int y, int w, int
         && (layer.pixels.background()>>24)==255) {
       std::fill(result.begin(),result.end(),layer.pixels.background());continue;
     }
-    for (std::size_t i = 0; i < result.size(); ++i) {
-      const std::uint32_t src = layer.pixels[std::size_t(y + i / w) * width_ + x + i % w], dst = result[i];
-      result[i] = blending::composite(src,dst,layer.opacity,layer.blendMode);
+    std::vector<std::uint32_t> source(w);
+    for(int row=0;row<h;row++) {
+      layer.pixels.readSpan(std::size_t(y+row)*width_+x,w,source.data());
+      std::size_t offset=std::size_t(row)*w;
+      for(int col=0;col<w;col++)
+        result[offset+col]=blending::composite(source[col],result[offset+col],layer.opacity,layer.blendMode);
     }
   }
   return result;
