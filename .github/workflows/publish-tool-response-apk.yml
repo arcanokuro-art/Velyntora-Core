@@ -17,14 +17,14 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: 765ab185f6e8706b615d074a3f8d8a320520ba23
+      VERIFIED_SHA: 267551915f25b3a128a0c098b85fdb82356d9720
       RELEASE_TAG: v0.1.0-custom-canvas-preview
     steps:
       - name: Wait for the exact source build and tests
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 38110978244 38110978247 38110978249; do
+          for run_id in 38111250552 38111250543 38111250577; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "main"' run.json
@@ -40,7 +40,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 38110978244 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 38111250552 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
           cp apk/*.apk Velyntora-Core-Lienzos.apk
           sha256sum Velyntora-Core-Lienzos.apk > Velyntora-Core-Lienzos.apk.sha256
@@ -53,7 +53,7 @@ jobs:
           Límite compartido por creación, cambio de tamaño, apertura y exportación. El diálogo muestra los límites e incluye presets 2560 × 1600 y 3840 × 2160. Se conserva el presupuesto total de 24 millones de píxeles entre capas.
           Actualización de pantalla por franjas de hasta 262144 píxeles para evitar un array Java y una copia nativa completa del lienzo durante el refresco.
           Verificado: creación desde el formulario Android, pinceles clásico y suavizado, undo/redo, PNG, guardado/reapertura de proyecto, 4K y rechazo sin perder el documento. Pruebas nativas del máximo 16M y redimensionado/undo. Herramientas conservadas.
-          APK debug del commit 765ab185f6e8706b615d074a3f8d8a320520ba23, publicado únicamente tras aprobar compilación, núcleo y Android. SHA256 adjunta.
+          APK debug del commit 267551915f25b3a128a0c098b85fdb82356d9720, publicado únicamente tras aprobar compilación, núcleo y Android. SHA256 adjunta.
           NOTES
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
             gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "${{ github.sha }}" --title "Velyntora Core — lienzos personalizados" --notes-file notes.md --prerelease
