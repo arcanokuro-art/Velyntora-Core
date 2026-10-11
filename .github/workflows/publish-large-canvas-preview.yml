@@ -55,7 +55,10 @@ jobs:
           IMPORTANTE: el lienzo activo y el Bitmap de pantalla todavía son completos. El límite del documento continúa en 16 millones de píxeles y 8192 por lado; las imágenes mayores siguen siendo reducidas al importar. Este APK todavía NO implementa apertura o creación de 10000 × 10000 a resolución original. No integrar a main sin revisión del usuario.
           APK debug del commit 340d4c61e808628edf99a05439949ff4591ffbfd, publicado sólo tras aprobar núcleo, almacenamiento, compilación y Android. SHA256 adjunta.
           NOTES
+          # The release tag points at this publishing commit. The APK remains pinned to VERIFIED_SHA.
+          # Reject any application-code difference between the verified build and this tag.
+          gh api "repos/$GH_REPO/compare/$VERIFIED_SHA...$GITHUB_SHA" --jq '.files' | jq -e 'all(.filename == ".github/workflows/publish-large-canvas-preview.yml")'
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$VERIFIED_SHA" --title "Velyntora Core — importación y capas experimental" --notes-file notes.md --prerelease
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Velyntora Core — importación y capas experimental" --notes-file notes.md --prerelease
           fi
           gh release upload "$RELEASE_TAG" Velyntora-Core-Importacion-Fluida-Experimental.apk Velyntora-Core-Importacion-Fluida-Experimental.apk.sha256 --repo "$GH_REPO" --clobber
