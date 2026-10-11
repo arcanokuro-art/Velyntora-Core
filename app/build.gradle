@@ -9,7 +9,7 @@ android {
   versionCode 1
   versionName '0.1.0'
   testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
-  externalNativeBuild { cmake { cppFlags '-std=c++20 -Wall -Wextra' } }
+  externalNativeBuild { cmake { cppFlags '-std=c++20 -Wall -Wextra -O2' } }
  }
  externalNativeBuild { cmake { path file('../core/CMakeLists.txt'); version '3.22.1' } }
  sourceSets { main { java.srcDirs += ['../tools'] } }

@@ -8,7 +8,7 @@ import org.junit.Test;
 public final class LayersDeviceTests {
  private static <T> T find(View view,Class<T> type){if(type.isInstance(view))return type.cast(view);if(view instanceof ViewGroup){ViewGroup group=(ViewGroup)view;for(int i=0;i<group.getChildCount();i++){T result=find(group.getChildAt(i),type);if(result!=null)return result;}}return null;}
 
- @Test public void propertiesCancelAcceptAndUndoAreAtomic(){
+ @Test public void propertiesCancelAcceptAndUndoAreAtomic() throws Exception {
   android.app.Instrumentation inst=InstrumentationRegistry.getInstrumentation();
   android.content.Intent intent=new android.content.Intent(inst.getTargetContext(),MainActivity.class);
   intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -30,7 +30,7 @@ public final class LayersDeviceTests {
    inst.runOnMainSync(()->{
     View root=dialog.get().getWindow().getDecorView();find(root,EditText.class).setText("Prueba");find(root,Spinner.class).setSelection(8);find(root,CheckBox.class).setChecked(false);
     LinearLayout opacityRow=(LinearLayout)find(root,SeekBar.class).getParent();((EditText)opacityRow.getChildAt(0)).setText("50");dialog.get().getButton(-1).performClick();
-   });inst.waitForIdleSync();
+   });LargeImportResponsivenessTests.waitResponsive(inst,activity);inst.waitForIdleSync();
    inst.runOnMainSync(()->{
     DrawingView drawing=activity.readDrawing();assertFalse("Accept must dismiss the dialog",dialog.get().isShowing());
     assertEquals("Prueba",drawing.layerName(index[0]));assertEquals(8,drawing.layerBlendMode(index[0]));assertFalse("Visibility must be applied",drawing.layerVisible(index[0]));assertEquals(.5f,drawing.layerOpacity(),.001f);

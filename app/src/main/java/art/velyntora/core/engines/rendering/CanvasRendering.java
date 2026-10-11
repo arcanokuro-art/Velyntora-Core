@@ -11,7 +11,41 @@ import android.view.View;
 /** Owns engines/rendering behavior; the host is the workspace composition facade. */
 final class CanvasRendering {
   private final DrawingView host;
+  private TileDisplay display;
   CanvasRendering(DrawingView host) { this.host = host; }
+  static final class Frame {
+    final Bitmap bitmap;final TileDisplay display;
+    Frame(Bitmap bitmap,float scale){this.bitmap=bitmap;display=new TileDisplay(bitmap);try{display.warm(scale);}catch(RuntimeException|OutOfMemoryError error){display.clear();throw error;}}
+    void dispose(){display.clear();bitmap.recycle();}
+  }
+  static Frame prepareFrame(float fitScale){
+    int width=DrawingView.nativeWidth(),height=DrawingView.nativeHeight();
+    Bitmap bitmap=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
+    try{
+      int rows=Math.max(1,262144/width);
+      for(int y=0;y<height;y+=rows){
+        int count=Math.min(rows,height-y);int[] pixels=DrawingView.nativeRegionPixels(0,y,width,count);
+        if(pixels==null || pixels.length!=(long)width*count)throw new IllegalStateException("Incomplete frame");
+        bitmap.setPixels(pixels,0,width,0,y,width,count);
+      }
+      return new Frame(bitmap,fitScale);
+    }catch(RuntimeException|OutOfMemoryError error){bitmap.recycle();throw error;}
+  }
+  void installFrame(Frame frame){
+    host.removeCallbacks(host.readStrokeRefresh());host.writeStrokeRefreshPending(false);
+    if(display!=null)display.clear();
+    Bitmap old=host.readBitmap();host.writeBitmap(frame.bitmap);display=frame.display;
+    host.writeCanvasWidth(frame.bitmap.getWidth());host.writeCanvasHeight(frame.bitmap.getHeight());
+    host.readViewport().documentSize(frame.bitmap.getWidth(),frame.bitmap.getHeight());
+    old.recycle();host.writeDirtyLeft(host.writeDirtyTop(Integer.MAX_VALUE));host.writeDirtyRight(host.writeDirtyBottom(0));
+    host.invalidate();if(host.readCanvasChangedListener()!=null)host.readCanvasChangedListener().run();host.viewportChanged();
+  }
+  void drawPixels(Canvas canvas){
+    if(display==null || display.source!=host.readBitmap()){
+      if(display!=null)display.clear();display=new TileDisplay(host.readBitmap());
+    }
+    display.draw(canvas,(float)host.readViewport().scale);
+  }
 
   void noteStrokeBounds(float x0,float y0,float x1,float y1,float radius) {
     float margin=Math.min(radius,2048)+2;
@@ -27,6 +61,7 @@ final class CanvasRendering {
       int[] pixels=host.nativeRegionPixels(host.readDirtyLeft(),host.readDirtyTop(),w,h);
       if(pixels!=null && pixels.length==w*h)
         host.readBitmap().setPixels(pixels,0,w,host.readDirtyLeft(),host.readDirtyTop(),w,h);
+      if(display!=null)display.invalidate(host.readDirtyLeft(),host.readDirtyTop(),w,h);
     }
     host.writeDirtyLeft(host.writeDirtyTop(Integer.MAX_VALUE));host.writeDirtyRight(host.writeDirtyBottom(0));
     host.invalidate();
@@ -57,6 +92,7 @@ final class CanvasRendering {
   }
 
   void refreshPixels() {
+    if(display!=null)display.clear();
     int width = host.nativeWidth(), height = host.nativeHeight();
     if (width <= 0 || height <= 0) return;
     if (width != host.readCanvasWidth() || height != host.readCanvasHeight()) {

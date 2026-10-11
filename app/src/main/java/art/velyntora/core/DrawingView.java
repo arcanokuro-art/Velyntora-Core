@@ -999,6 +999,11 @@ public final class DrawingView extends View {
   void finishStrokeRefresh() {
     canvasRendering.finishStrokeRefresh();
   }
+  void drawCanvasPixels(Canvas canvas){canvasRendering.drawPixels(canvas);}
+  void installCanvasFrame(CanvasRendering.Frame frame){canvasRendering.installFrame(frame);}
+  void importedFrameReady(CanvasRendering.Frame frame){
+    resetDocumentTools();deselect();installCanvasFrame(frame);fitCanvas();
+  }
 
   void refresh() {
     canvasRendering.refresh();

@@ -42,6 +42,7 @@ final class DocumentStorage {
     BitmapFactory.Options options = new BitmapFactory.Options();
     options.inSampleSize = sample;
     options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+    options.inMutable = true;
     try (InputStream input = host.getContentResolver().openInputStream(uri)) {
       if (input == null) throw new java.io.IOException("No se puede leer el archivo");
       Bitmap decoded = BitmapFactory.decodeStream(input, null, options);
@@ -463,34 +464,54 @@ final class DocumentStorage {
     host.writeProjectProgress(progress);
     progress.show();
     host.readDrawing().setEnabled(false);
-    new Thread(
-            () -> {
-              host.fileName(uri);
-              Bitmap decoded = null;
-              try {
-                decoded = host.decodeImage(uri);
-              } catch (Exception e) {
-                decoded = null;
-              }
-              final Bitmap image = decoded;
-              host.runOnUiThread(
-                  () -> {
-                    try {
-                      if (!host.isDestroyed()) {
-                        progress.dismiss();
-                        host.writeProjectProgress(null);
-                        host.readDrawing().setEnabled(true);
-                        if (image == null || !host.readDrawing().loadBitmap(image))
-                          host.message("No se pudo abrir la imagen");
-                        else host.markDocumentClean(host.fileName(uri));
-                      }
-                    } finally {
-                      if (image != null) image.recycle();
-                    }
-                  });
-            },
-            "velyntora-image-import")
-        .start();
+    final DrawingView drawing = host.readDrawing();
+    final int viewWidth = drawing.getWidth(), viewHeight = drawing.getHeight();
+    new Thread(() -> {
+      String name = host.fileName(uri);
+      CanvasRendering.Frame prepared = null;
+      Bitmap image = null;
+      try {
+        image = host.decodeImage(uri);
+        if (!image.isMutable()) {
+          Bitmap mutable = image.copy(Bitmap.Config.ARGB_8888, true);
+          image.recycle(); image = mutable;
+        }
+        int width = image.getWidth(), height = image.getHeight();
+        float scale = Math.min(viewWidth / (float)width, viewHeight / (float)height) * .9f;
+        // Prepare display resources before changing the native document.
+        prepared = new CanvasRendering.Frame(image, scale);
+        image = null;
+        int[] pixels = new int[width * height];
+        prepared.bitmap.getPixels(pixels, 0, width, 0, 0, width, height);
+        if (!DrawingView.nativeLoadBitmap(width, height, pixels)) {
+          prepared.dispose(); prepared = null;
+        }
+      } catch (Exception | OutOfMemoryError error) {
+        if (prepared != null) prepared.dispose();
+        prepared = null;
+      } finally {
+        if (image != null) image.recycle();
+      }
+      final CanvasRendering.Frame frame = prepared;
+      host.runOnUiThread(() -> {
+        try {
+          if (host.isDestroyed()) {
+            if (frame != null) frame.dispose();
+            return;
+          }
+          if (frame == null) host.message("No se pudo abrir la imagen");
+          else {
+            drawing.importedFrameReady(frame);
+            host.markDocumentClean(name);
+          }
+        } finally {
+          progress.dismiss();
+          host.writeProjectProgress(null);
+          drawing.setEnabled(true);
+          if (!host.isDestroyed()) host.refreshLayerPanel();
+        }
+      });
+    }, "velyntora-image-import").start();
   }
 
   String fileName(Uri uri) {
@@ -543,6 +564,7 @@ final class DocumentStorage {
     BitmapFactory.Options options = new BitmapFactory.Options();
     options.inSampleSize = ImageDecodePolicy.sampleSize(bounds.outWidth, bounds.outHeight);
     options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+    options.inMutable = true;
     Bitmap bitmap = BitmapFactory.decodeByteArray(encoded, 0, encoded.length, options);
     if (bitmap == null) throw new java.io.IOException("Imagen del contenedor inválida");
     try {
