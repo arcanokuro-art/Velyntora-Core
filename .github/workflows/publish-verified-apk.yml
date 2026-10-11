@@ -13,42 +13,51 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: 47dd222398d6ca1df7b21e22df22c322277ac0a2
-      RELEASE_TAG: v0.1.0-tools-preview
+      VERIFIED_SHA: 59b4f922d646f9b275a2db8023a52db07de8a3e6
+      RELEASE_TAG: v0.1.0-menu-upper-left
     steps:
-      - name: Check successful builds and tests
+      - uses: actions/checkout@v4
+      - name: Require exact source builds and tests
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 38033470882 38033470878 38033470874; do
-            gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
-            jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "main" and .status == "completed" and .conclusion == "success"' run.json
+          for run_id in 38185078636 38185078622 38185078627; do
+            for attempt in $(seq 1 85); do
+              gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
+              jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "main"' run.json
+              if jq -e '.status == "completed"' run.json >/dev/null; then
+                jq -e '.conclusion == "success"' run.json
+                break
+              fi
+              test "$attempt" -lt 85
+              sleep 20
+            done
           done
+          gh api "repos/$GH_REPO/compare/$VERIFIED_SHA...$GITHUB_SHA" --jq '.files' | jq -e 'all(.filename == ".github/workflows/publish-verified-apk.yml")'
       - name: Download the tested APK
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 38033470882 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 38185078636 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
-          cp apk/*.apk Velyntora-Core-Herramientas.apk
-          sha256sum Velyntora-Core-Herramientas.apk > Velyntora-Core-Herramientas.apk.sha256
+          cp apk/*.apk Velyntora-Core-Menu-Izquierda.apk
+          sha256sum Velyntora-Core-Menu-Izquierda.apk > Velyntora-Core-Menu-Izquierda.apk.sha256
       - name: Publish release and assets
         shell: bash
         run: |
           set -euo pipefail
           cat > notes.md <<'NOTES'
-          Reorganización de las 28 herramientas: controlador e icono en su propia carpeta, con código nativo específico junto a cada módulo.
+          El botón del menú principal (☰) queda fijo en el extremo superior izquierdo, antes de Nuevo. Conserva su función y permanece accesible al desplazar los accesos de archivo.
 
-          Se conserva la interfaz de dos columnas y el zoom nítido. Esta versión permite comprobar en el teléfono que la reorganización no haya afectado el comportamiento.
+          Incluye la versión aprobada e integrada en main: límite de 6000 × 6000 px, importación proporcional, detalle uniforme al hacer zoom/girar e historial con resolución conservada y pulsaciones rápidas en orden.
 
-          APK exacto del commit verificado 47dd222398d6ca1df7b21e22df22c322277ac0a2. Compilación Android, 23 suites Java, 16 suites C++ e integraciones JNI aprobadas; 13 pruebas Android aprobadas con fuentes 1.0 y 1.8.
-
-          Descargar Velyntora-Core-Herramientas.apk. Es el APK debug verificado, publicado como versión preliminar de prueba. La suma SHA-256 se adjunta para verificar el archivo.
+          APK debug exacto de 59b4f922d646f9b275a2db8023a52db07de8a3e6. Publicado después de aprobar compilación, núcleo y pruebas Android. Se adjunta SHA-256. Versión preliminar para revisión en el dispositivo.
           NOTES
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$VERIFIED_SHA" --title "Velyntora Core — herramientas reorganizadas" --notes-file notes.md --prerelease
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$VERIFIED_SHA" --title "Velyntora Core — menú arriba a la izquierda" --notes-file notes.md --prerelease
           fi
-          gh release upload "$RELEASE_TAG" Velyntora-Core-Herramientas.apk Velyntora-Core-Herramientas.apk.sha256 --repo "$GH_REPO" --clobber
+          gh release upload "$RELEASE_TAG" Velyntora-Core-Menu-Izquierda.apk Velyntora-Core-Menu-Izquierda.apk.sha256 --repo "$GH_REPO" --clobber
