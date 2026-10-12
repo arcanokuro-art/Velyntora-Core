@@ -38,6 +38,13 @@ final class LayerActionBar {
     button.setCompoundDrawablePadding(0);
     // Refresh TextView's cached drawable dimensions after keeping the 20 dp bounds.
     button.setCompoundDrawables(icon,null,null,null);
+    // A left compound drawable is anchored to padding, even with CENTER gravity.
+    // Center the unchanged glyph inside its measured touch target.
+    button.addOnLayoutChangeListener((v,left,top,right,bottom,oldLeft,oldTop,oldRight,oldBottom)->{
+      int inset=Math.max(0,((right-left)-host.dp(20))/2);
+      if(button.getPaddingLeft()!=inset || button.getPaddingRight()!=inset)
+        button.setPadding(inset,0,inset,0);
+    });
     LinearLayout.LayoutParams cell=new LinearLayout.LayoutParams(0,host.dp(48),1);
     cell.setMargins(host.dp(2),0,host.dp(2),0);
     button.setLayoutParams(cell);
