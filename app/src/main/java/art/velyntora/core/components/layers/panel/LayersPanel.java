@@ -59,24 +59,17 @@ final class LayersPanel {
   void create(LinearLayout root) {
     LinearLayout panel=new LinearLayout(host);panel.setOrientation(1);panel.setBackgroundColor(0xFF202020);TextView title=host.text("CAPAS");title.setPadding(host.dp(8),host.dp(8),host.dp(8),host.dp(8));panel.addView(title);
     LinearLayout items=new LinearLayout(host);items.setOrientation(1);ScrollView list=new ScrollView(host);list.addView(items,new ScrollView.LayoutParams(-1,-2));panel.addView(list,new LinearLayout.LayoutParams(-1,0,1));host.writeLayerItems(items);
-    LinearLayout commands=new LinearLayout(host);
-    commands.setOrientation(LinearLayout.VERTICAL);
-    commands.setPadding(host.dp(8),host.dp(4),host.dp(8),host.dp(4));
-    panel.addView(commands,new LinearLayout.LayoutParams(-1,-2));
-    LinearLayout editCommands=host.row(),orderCommands=host.row();
-    editCommands.setGravity(Gravity.CENTER_HORIZONTAL);
-    orderCommands.setGravity(Gravity.CENTER_HORIZONTAL);
-    commands.addView(editCommands,new LinearLayout.LayoutParams(-1,-2));
-    commands.addView(orderCommands,new LinearLayout.LayoutParams(-1,-2));
-    command(editCommands,"Añadir una capa nueva","new",host::addLayer);
-    delete=command(editCommands,"Eliminar capa","delete",host::deleteLayer);
-    duplicate=command(editCommands,"Duplicar la capa","duplicate",()->action(0));
-    merge=command(orderCommands,"Combinar con la capa inferior","merge",()->action(1));
-    up=command(orderCommands,"Subir capa","up",()->host.moveLayer(1));
-    down=command(orderCommands,"Bajar capa","down",()->host.moveLayer(-1));
+    LayerActionBar commands=new LayerActionBar(host);
+    panel.addView(commands.view,new LinearLayout.LayoutParams(-1,-2));
+    commands.add("Añadir una capa nueva","new",host::addLayer);
+    delete=commands.add("Eliminar capa","delete",host::deleteLayer);
+    duplicate=commands.add("Duplicar la capa","duplicate",()->action(0));
+    merge=commands.add("Combinar con la capa inferior","merge",()->action(1));
+    up=commands.add("Subir capa","up",()->host.moveLayer(1));
+    down=commands.add("Bajar capa","down",()->host.moveLayer(-1));
 
     LayerPanelContainer container=new LayerPanelContainer(host);container.addView(panel,new ScrollView.LayoutParams(-1,-1));host.writeLayerScroll(container);
   }
-  private Button command(LinearLayout row,String label,String glyph,Runnable action){Button b=host.iconButton(row,label,glyph,action);b.setPadding(host.dp(4),host.dp(4),host.dp(4),host.dp(4));LinearLayout.LayoutParams cell=new LinearLayout.LayoutParams(host.dp(48),host.dp(48));cell.setMargins(host.dp(4),host.dp(4),host.dp(4),host.dp(4));b.setLayoutParams(cell);return b;}
+
   private void action(int action){LayerWorkQueue.run(host,()->DrawingView.nativeLayerAction(action),true,null);}
 }

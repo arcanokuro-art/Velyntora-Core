@@ -49,7 +49,26 @@ public final class LayersDeviceTests {
    long deadline=android.os.SystemClock.uptimeMillis()+5000;while(activity.getResources().getConfiguration().orientation!=2&&android.os.SystemClock.uptimeMillis()<deadline)android.os.SystemClock.sleep(50);inst.waitForIdleSync();
    inst.runOnMainSync(()->{for(int i=activity.readDrawing().layerCount();i<12;i++)assertTrue(activity.readDrawing().addLayer());activity.refreshLayerPanel();activity.readToolScroll().setVisibility(View.GONE);activity.readLayerScroll().setVisibility(View.VISIBLE);});inst.waitForIdleSync();
    android.os.SystemClock.sleep(150);capture(inst,"layers-panel");
-   inst.runOnMainSync(()->{ScrollView list=(ScrollView)activity.readLayerItems().getParent();LinearLayout panel=(LinearLayout)list.getParent();LinearLayout commands=(LinearLayout)panel.getChildAt(2);assertEquals(2,commands.getChildCount());for(int row=0;row<2;row++){LinearLayout buttons=(LinearLayout)commands.getChildAt(row);assertEquals(3,buttons.getChildCount());for(int i=0;i<3;i++){View button=buttons.getChildAt(i);assertTrue(button.getWidth()>=activity.dp(48));assertTrue(button.getHeight()>=activity.dp(48));if(i>0)assertTrue(button.getLeft()-buttons.getChildAt(i-1).getRight()>=activity.dp(8));}assertTrue(buttons.getChildAt(0).getLeft()>=activity.dp(8));assertTrue(buttons.getWidth()-buttons.getChildAt(2).getRight()>=activity.dp(8));}assertTrue("List must have a viewport",list.getHeight()>0);assertTrue("Actions must stay inside panel",commands.getBottom()<=panel.getHeight());list.fullScroll(View.FOCUS_DOWN);});inst.waitForIdleSync();android.os.SystemClock.sleep(150);capture(inst,"layers-panel-bottom");
+   inst.runOnMainSync(()->{
+    ScrollView list=(ScrollView)activity.readLayerItems().getParent();LinearLayout panel=(LinearLayout)list.getParent();
+    HorizontalScrollView commands=(HorizontalScrollView)panel.getChildAt(2);
+    LinearLayout buttons=(LinearLayout)commands.getChildAt(0);
+    assertEquals(LinearLayout.HORIZONTAL,buttons.getOrientation());assertEquals(6,buttons.getChildCount());
+    String[] labels={"Añadir una capa nueva","Eliminar capa","Duplicar la capa","Combinar con la capa inferior","Subir capa","Bajar capa"};
+    for(int i=0;i<6;i++){
+     Button button=(Button)buttons.getChildAt(i);
+     assertEquals(labels[i],button.getContentDescription());
+     assertTrue(button.getWidth()>=activity.dp(32));assertTrue(button.getHeight()>=activity.dp(48));
+     assertEquals(buttons.getChildAt(0).getTop(),button.getTop());
+     assertEquals(activity.dp(20),button.getCompoundDrawables()[0].getBounds().width());
+     if(i>0)assertTrue(button.getLeft()-buttons.getChildAt(i-1).getRight()>=activity.dp(4));
+    }
+    assertTrue(buttons.getChildAt(0).getLeft()>=activity.dp(8));
+    assertTrue(buttons.getWidth()-buttons.getChildAt(5).getRight()>=activity.dp(8));
+    assertTrue("All six actions should fit the normal panel",buttons.getWidth()<=commands.getWidth());
+    assertTrue("List must have a viewport",list.getHeight()>0);
+    assertTrue("Actions must stay inside panel",commands.getBottom()<=panel.getHeight());list.fullScroll(View.FOCUS_DOWN);
+   });inst.waitForIdleSync();android.os.SystemClock.sleep(150);capture(inst,"layers-panel-bottom");
    inst.runOnMainSync(()->dialog.set(LayerPropertiesDialog.show(activity,activity.readDrawing().activeLayer())));inst.waitForIdleSync();android.os.SystemClock.sleep(150);capture(inst,"layers-properties");
   }finally{inst.runOnMainSync(()->{if(dialog.get()!=null)dialog.get().dismiss();activity.finish();});}
  }
