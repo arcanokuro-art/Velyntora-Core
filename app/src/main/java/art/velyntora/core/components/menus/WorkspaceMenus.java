@@ -60,7 +60,6 @@ final class WorkspaceMenus {
     new AdjustmentDialogs(host, host.readDrawing()).addMenu(menus);
     new ColorAdjustmentsMenu(host).populate(menus);
     new ImageMenu(host).populate(menus);
-    new LayersMenu(host).populate(menus);
     new ToolsMenu(host).populate(menus);
     new EffectsMenu(host).populate(menus);
     new HelpMenu(host).populate(menus);
