@@ -17,15 +17,15 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: 59b4f922d646f9b275a2db8023a52db07de8a3e6
-      RELEASE_TAG: v0.1.0-menu-upper-left
+      VERIFIED_SHA: 7c43ae2fb00ab657bd427c79b70386360c5736ac
+      RELEASE_TAG: v0.1.0-layers-row-preview
     steps:
       - uses: actions/checkout@v4
       - name: Require exact source builds and tests
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 38185078636 38185078622 38185078627; do
+          for run_id in 38188559133 38188559152 38188559153; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "main"' run.json
@@ -37,27 +37,28 @@ jobs:
               sleep 20
             done
           done
-          gh api "repos/$GH_REPO/compare/$VERIFIED_SHA...$GITHUB_SHA" --jq '.files' | jq -e 'all(.filename == ".github/workflows/publish-verified-apk.yml")'
+          gh api "repos/$GH_REPO/compare/$VERIFIED_SHA...$GITHUB_SHA" --jq '.files' | jq -e 'all(.filename == ".github/workflows/publish-verified-apk.yml" or .filename == "app/src/main/java/art/velyntora/core/components/layers/panel/README.md")'
       - name: Download the tested APK
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 38185078636 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 38188559133 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
-          cp apk/*.apk Velyntora-Core-Menu-Izquierda.apk
-          sha256sum Velyntora-Core-Menu-Izquierda.apk > Velyntora-Core-Menu-Izquierda.apk.sha256
+          cp apk/*.apk Velyntora-Core-Capas-Una-Fila.apk
+          sha256sum Velyntora-Core-Capas-Una-Fila.apk > Velyntora-Core-Capas-Una-Fila.apk.sha256
       - name: Publish release and assets
         shell: bash
         run: |
           set -euo pipefail
           cat > notes.md <<'NOTES'
-          El botón del menú principal (☰) queda fijo en el extremo superior izquierdo, antes de Nuevo. Conserva su función y permanece accesible al desplazar los accesos de archivo.
+          Las seis acciones del panel de Capas aparecen en una sola fila compacta, con iconos pequeños, fondo transparente, márgenes y separación uniforme. Orden: añadir, eliminar, duplicar, combinar hacia abajo, subir y bajar. Se conservan sus funciones y los estados habilitado/deshabilitado.
 
-          Incluye la versión aprobada e integrada en main: límite de 6000 × 6000 px, importación proporcional, detalle uniforme al hacer zoom/girar e historial con resolución conservada y pulsaciones rápidas en orden.
+          El botón del menú principal permanece arriba a la izquierda. Incluye las mejoras aprobadas del lienzo, zoom, rotación e historial y el límite de 6000 × 6000 px.
 
-          APK debug exacto de 59b4f922d646f9b275a2db8023a52db07de8a3e6. Publicado después de aprobar compilación, núcleo y pruebas Android. Se adjunta SHA-256. Versión preliminar para revisión en el dispositivo.
+          Se comprueba que los seis controles quepan y estén alineados con texto normal y grande; se generan capturas Android para revisión. APK debug exacto de 7c43ae2fb00ab657bd427c79b70386360c5736ac. Publicado después de aprobar compilación, núcleo y pruebas Android. SHA-256 adjunta. Versión preliminar para comprobar en el dispositivo.
+
           NOTES
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$VERIFIED_SHA" --title "Velyntora Core — menú arriba a la izquierda" --notes-file notes.md --prerelease
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$VERIFIED_SHA" --title "Velyntora Core — acciones de capas en una fila" --notes-file notes.md --prerelease
           fi
-          gh release upload "$RELEASE_TAG" Velyntora-Core-Menu-Izquierda.apk Velyntora-Core-Menu-Izquierda.apk.sha256 --repo "$GH_REPO" --clobber
+          gh release upload "$RELEASE_TAG" Velyntora-Core-Capas-Una-Fila.apk Velyntora-Core-Capas-Una-Fila.apk.sha256 --repo "$GH_REPO" --clobber
