@@ -1,6 +1,6 @@
 # Herramientas de Velyntora Core
 
-La carpeta raíz `tools/` reúne código Android, iconos y código nativo por herramienta. Se conservan los 28 identificadores existentes y la firma JNI de `DrawingView`: los proyectos y los accesos de la interfaz no necesitan migración.
+La carpeta raíz `tools/` reúne código Android, iconos y código nativo por herramienta. Se conservan los 29 identificadores existentes y la firma JNI de `DrawingView`: los proyectos y los accesos de la interfaz no necesitan migración.
 
 ## Inventario
 
@@ -8,15 +8,15 @@ La carpeta raíz `tools/` reúne código Android, iconos y código nativo por he
 |---|---|---|---|
 | Pincel | `tools/brush/` | `BrushTool.java` | `BrushIcon.java` |
 | Cubeta de pintura | `tools/bucket/` | `BucketTool.java` | `BucketIcon.java` |
-| Círculo | `tools/circle/` | `CircleTool.java` | `CircleIcon.java` |
+| Círculo | `tools/figuras/sin_relleno/circulo/` | `CircleTool.java` | `CircleIcon.java` |
 | Tampón de clonar | `tools/clone/` | `CloneTool.java` | `CloneIcon.java` |
-| Elipse | `tools/ellipse/` | `EllipseTool.java` | `EllipseIcon.java` |
+| Elipse | `tools/figuras/sin_relleno/elipse/` | `EllipseTool.java` | `EllipseIcon.java` |
 | Selección elíptica | `tools/ellipse_selection/` | `EllipseSelectionTool.java` | `EllipseSelectionIcon.java` |
 | Borrador | `tools/eraser/` | `EraserTool.java` | `EraserIcon.java` |
-| Elipse rellena | `tools/filled_ellipse/` | `FilledEllipseTool.java` | `FilledEllipseIcon.java` |
-| Rectángulo relleno | `tools/filled_rectangle/` | `FilledRectangleTool.java` | `FilledRectangleIcon.java` |
-| Rectángulo redondeado relleno | `tools/filled_rounded_rectangle/` | `FilledRoundedRectangleTool.java` | `FilledRoundedRectangleIcon.java` |
-| Triángulo relleno | `tools/filled_triangle/` | `FilledTriangleTool.java` | `FilledTriangleIcon.java` |
+| Elipse rellena | `tools/figuras/con_relleno/elipse/` | `FilledEllipseTool.java` | `FilledEllipseIcon.java` |
+| Rectángulo relleno | `tools/figuras/con_relleno/rectangulo/` | `FilledRectangleTool.java` | `FilledRectangleIcon.java` |
+| Rectángulo redondeado relleno | `tools/figuras/con_relleno/rectangulo_redondeado/` | `FilledRoundedRectangleTool.java` | `FilledRoundedRectangleIcon.java` |
+| Triángulo relleno | `tools/figuras/con_relleno/triangulo/` | `FilledTriangleTool.java` | `FilledTriangleIcon.java` |
 | Forma libre | `tools/freeform/` | `FreeformTool.java` | `FreeformIcon.java` |
 | Degradado | `tools/gradient/` | `GradientTool.java` | `GradientIcon.java` |
 | Selección libre | `tools/lasso_selection/` | `LassoSelectionTool.java` | `LassoSelectionIcon.java` |
@@ -28,11 +28,11 @@ La carpeta raíz `tools/` reúne código Android, iconos y código nativo por he
 | Lápiz | `tools/pencil/` | `PencilTool.java` | `PencilIcon.java` |
 | Cuentagotas | `tools/picker/` | `PickerTool.java` | `PickerIcon.java` |
 | Recoloración | `tools/recolor/` | `RecolorTool.java` | `RecolorIcon.java` |
-| Rectángulo | `tools/rectangle/` | `RectangleTool.java` | `RectangleIcon.java` |
+| Rectángulo | `tools/figuras/sin_relleno/rectangulo/` | `RectangleTool.java` | `RectangleIcon.java` |
 | Selección rectangular | `tools/rectangle_selection/` | `RectangleSelectionTool.java` | `RectangleSelectionIcon.java` |
-| Rectángulo redondeado | `tools/rounded_rectangle/` | `RoundedRectangleTool.java` | `RoundedRectangleIcon.java` |
+| Rectángulo redondeado | `tools/figuras/sin_relleno/rectangulo_redondeado/` | `RoundedRectangleTool.java` | `RoundedRectangleIcon.java` |
 | Texto | `tools/text/` | `TextTool.java` | `TextIcon.java` |
-| Triángulo | `tools/triangle/` | `TriangleTool.java` | `TriangleIcon.java` |
+| Triángulo | `tools/figuras/sin_relleno/triangulo/` | `TriangleTool.java` | `TriangleIcon.java` |
 | Zoom | `tools/zoom/` | `ZoomTool.java` | `ZoomIcon.java` |
 
 ## Código compartido
@@ -66,3 +66,7 @@ La interfaz de dos columnas aprobada continúa vigente. Remove AI se integra en 
 ## Variantes de pincel
 
 `tools/brush/` conserva una sola herramienta y contiene `classic/`, `antialiased/` y `selector/`. Cada pincel tiene su renderer separado; el selector muestra las variantes y recuerda la última elección. El clásico mantiene su algoritmo original; el suavizado añade cobertura subpíxel en los bordes. Las futuras variantes se agregan como carpetas independientes.
+
+## Selector de figuras
+
+`tools/figuras/` agrupa nueve herramientas sin cambiar sus identificadores ni algoritmos. `sin_relleno/` contiene rectángulo, redondeado, elipse, triángulo y círculo; `con_relleno/` contiene rectángulo, elipse, redondeado y triángulo. Cada figura tiene su propia carpeta. `FigurasModule.java` es el catálogo; `selector/FigurasSelector.java` abre los dos grupos desde el botón Figuras. La barra conserva 21 accesos visibles al reunir las nueve figuras en uno.

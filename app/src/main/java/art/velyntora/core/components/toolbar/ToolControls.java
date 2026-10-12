@@ -25,6 +25,7 @@ import java.io.OutputStream;
 /** Owns components/toolbar behavior; the host is the workspace composition facade. */
 final class ToolControls {
   private final MainActivity host;
+  private Button figurasButton;
   ToolControls(MainActivity host) { this.host = host; }
 
   void configureGradient() {
@@ -74,6 +75,12 @@ final class ToolControls {
     iconButton.setPadding(0, host.dp(12), 0, host.dp(12));
     iconButton.setContentDescription(label);
     if (android.os.Build.VERSION.SDK_INT >= 26) iconButton.setTooltipText(label);
+    if(tool==DrawingView.RECTANGLE){
+      figurasButton=iconButton;
+      for(int[] group:new int[][]{FigurasModule.SIN_RELLENO,FigurasModule.CON_RELLENO})for(int id:group){
+        host.readToolButtons().put(id,iconButton);host.readToolLabels().put(id,FigurasModule.label(id));
+      }
+    }
     if (tool == DrawingView.GRADIENT)
       iconButton.setOnLongClickListener(
           v -> {
@@ -90,6 +97,13 @@ final class ToolControls {
     iconButton.setOnClickListener(
         v -> {
           if (host.readProjectProgress() != null) return;
+          if(tool==DrawingView.RECTANGLE){
+            FigurasSelector.show(iconButton,host.readDrawing(),()->{
+              host.readDrawing().setColor(host.readActiveColor());host.syncToolState();
+              if(!host.readPanelsInline() && host.readToolScroll()!=null)host.readToolScroll().setVisibility(View.GONE);
+            });
+            return;
+          }
           host.readDrawing().setTool(tool);
           host.readDrawing().setColor(host.readActiveColor());
           host.syncToolState();
@@ -109,9 +123,17 @@ final class ToolControls {
     for (int i = 0; i < host.readToolButtons().size(); i++) {
       boolean selected = host.readToolButtons().keyAt(i) == active;
       Button button = host.readToolButtons().valueAt(i);
+      if(button==figurasButton)selected=FigurasModule.contains(active);
       button.setSelected(selected);
       if (android.os.Build.VERSION.SDK_INT >= 30)
         button.setStateDescription(selected ? "Activa" : "");
+    }
+    if(figurasButton!=null){
+      int figure=FigurasModule.selected(host.readDrawing());
+      android.graphics.drawable.Drawable icon=Tools.icon(figure,host);icon.setBounds(0,0,host.dp(24),host.dp(24));
+      figurasButton.setCompoundDrawables(null,icon,null,null);
+      figurasButton.setContentDescription("Figuras: "+FigurasModule.label(figure));
+      if(android.os.Build.VERSION.SDK_INT>=26)figurasButton.setTooltipText("Figuras: "+FigurasModule.label(figure));
     }
     if (host.readSelectedTool() != null && host.readToolLabels().get(active) != null)
       host.readSelectedTool().setText(host.readToolLabels().get(active).split(":", 2)[0]);
@@ -213,11 +235,9 @@ final class ToolControls {
         "Línea/Curva: arrastrar tiradores; mantener pulsado para confirmar",
         DrawingView.LINE);
     host.tool(toolGrid, "Selección elíptica", DrawingView.SELECT_ELLIPSE);
-    host.tool(toolGrid, "Rectángulo", DrawingView.RECTANGLE);
+    host.tool(toolGrid, "Figuras", DrawingView.RECTANGLE);
     host.tool(toolGrid, "Selección libre (contorno)", DrawingView.SELECT_FREE);
-    host.tool(toolGrid, "Rectángulo redondeado", DrawingView.ROUNDED_RECTANGLE);
     host.tool(toolGrid, "Varita mágica", DrawingView.MAGIC_WAND);
-    host.tool(toolGrid, "Elipse", DrawingView.ELLIPSE);
     host.tool(toolGrid, "Pincel", DrawingView.BRUSH);
     host.tool(toolGrid, "Forma libre (contorno cerrado)", DrawingView.FREEFORM);
     host.tool(toolGrid, "Lápiz", DrawingView.PENCIL);
@@ -230,12 +250,6 @@ final class ToolControls {
         toolGrid,
         "Recoloración: sustituye el color inicial; tolerancia de varita",
         DrawingView.RECOLOR);
-    host.tool(toolGrid, "Círculo", DrawingView.CIRCLE);
-    host.tool(toolGrid, "Triángulo", DrawingView.TRIANGLE);
-    host.tool(toolGrid, "Rectángulo relleno", DrawingView.FILLED_RECTANGLE);
-    host.tool(toolGrid, "Elipse rellena", DrawingView.FILLED_ELLIPSE);
-    host.tool(toolGrid, "Redondeado relleno", DrawingView.FILLED_ROUNDED_RECTANGLE);
-    host.tool(toolGrid, "Triángulo relleno", DrawingView.FILLED_TRIANGLE);
     host.tool(toolGrid, "Remove AI: pinta el objeto y pulsa Eliminar", DrawingView.REMOVE_AI);
     TextView brushSizeLabel = host.text("Anchura del pincel: " + Math.round(host.readDrawing().brushRadius() * 2) + " px");
     brushSizeLabel.setSingleLine(true);

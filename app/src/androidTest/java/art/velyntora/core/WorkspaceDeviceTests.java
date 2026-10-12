@@ -371,7 +371,7 @@ public final class WorkspaceDeviceTests {
 
   private android.widget.GridLayout toolGrid(View view) {
     if (view instanceof android.widget.GridLayout
-        && ((android.widget.GridLayout) view).getChildCount() == 29)
+        && ((android.widget.GridLayout) view).getChildCount() == 21)
       return (android.widget.GridLayout) view;
     if (view instanceof ViewGroup) {
       ViewGroup group = (ViewGroup) view;

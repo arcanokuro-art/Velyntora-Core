@@ -17,9 +17,9 @@ add_library(velyntora_engine STATIC
  ../tools/brush/classic/native/Raster.cpp
  ../tools/brush/antialiased/native/Raster.cpp
  ../tools/bucket/native/Raster.cpp
- ../tools/ellipse/native/Raster.cpp
+ ../tools/figuras/sin_relleno/elipse/native/Raster.cpp
  ../tools/move_pixels/native/SelectionTransform.cpp
- ../tools/rectangle/native/Raster.cpp
+ ../tools/figuras/sin_relleno/rectangulo/native/Raster.cpp
  ../tools/shared/native/Raster.cpp
 )
 set_target_properties(velyntora_engine PROPERTIES POSITION_INDEPENDENT_CODE ON)
