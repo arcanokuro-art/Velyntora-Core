@@ -61,6 +61,8 @@ public final class LayersDeviceTests {
      assertTrue(button.getWidth()>=activity.dp(32));assertTrue(button.getHeight()>=activity.dp(48));
      assertEquals(buttons.getChildAt(0).getTop(),button.getTop());
      assertEquals(activity.dp(20),button.getCompoundDrawables()[0].getBounds().width());
+     assertEquals(0,button.getCompoundDrawablePadding());
+     assertCenteredIcon(button,activity.dp(20));
      if(i>0)assertTrue(button.getLeft()-buttons.getChildAt(i-1).getRight()>=activity.dp(4));
     }
     assertTrue(buttons.getChildAt(0).getLeft()>=activity.dp(8));
@@ -71,6 +73,19 @@ public final class LayersDeviceTests {
    });inst.waitForIdleSync();android.os.SystemClock.sleep(150);capture(inst,"layers-panel-bottom");
    inst.runOnMainSync(()->dialog.set(LayerPropertiesDialog.show(activity,activity.readDrawing().activeLayer())));inst.waitForIdleSync();android.os.SystemClock.sleep(150);capture(inst,"layers-properties");
   }finally{inst.runOnMainSync(()->{if(dialog.get()!=null)dialog.get().dismiss();activity.finish();});}
+ }
+
+ private static void assertCenteredIcon(Button button,int iconSize){
+  android.graphics.Bitmap image=android.graphics.Bitmap.createBitmap(button.getWidth(),button.getHeight(),android.graphics.Bitmap.Config.ARGB_8888);
+  android.graphics.drawable.Drawable background=button.getBackground();
+  try{
+   button.setBackground(null);button.draw(new android.graphics.Canvas(image));
+   int left=image.getWidth(),right=-1;
+   for(int y=0;y<image.getHeight();y++)for(int x=0;x<image.getWidth();x++)if((image.getPixel(x,y)>>>24)>0){left=Math.min(left,x);right=Math.max(right,x);}
+   assertTrue("Icon must be visible",right>=left);
+   assertTrue("Icon must keep its size",right-left+1<=iconSize+2);
+   assertTrue("Icon must be centered in its cell",Math.abs(left+right+1-button.getWidth())<=3);
+  }finally{button.setBackground(background);image.recycle();}
  }
 
  private void capture(android.app.Instrumentation inst,String name)throws Exception{

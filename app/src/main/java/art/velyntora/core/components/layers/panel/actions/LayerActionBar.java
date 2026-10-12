@@ -35,6 +35,9 @@ final class LayerActionBar {
     button.setBackgroundResource(background.resourceId);
     android.graphics.drawable.Drawable icon=button.getCompoundDrawables()[0];
     if(icon!=null)icon.setBounds(0,0,host.dp(20),host.dp(20));
+    button.setCompoundDrawablePadding(0);
+    // Refresh TextView's cached drawable dimensions after keeping the 20 dp bounds.
+    button.setCompoundDrawables(icon,null,null,null);
     LinearLayout.LayoutParams cell=new LinearLayout.LayoutParams(0,host.dp(48),1);
     cell.setMargins(host.dp(2),0,host.dp(2),0);
     button.setLayoutParams(cell);
