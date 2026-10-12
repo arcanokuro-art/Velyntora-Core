@@ -17,15 +17,15 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: a3a577dca3c135616832ac12229b19b61f9be923
-      RELEASE_TAG: v0.1.0-layers-centered-preview
+      VERIFIED_SHA: 8ddf4b55a4fa8a57b0516328416a57cdaa5ec962
+      RELEASE_TAG: v0.1.0-figuras-preview
     steps:
       - uses: actions/checkout@v4
       - name: Require exact source builds and tests
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 38190197998 38190197993 38190197939; do
+          for run_id in 38202302439 38202302412 38202302421; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "main"' run.json
@@ -42,25 +42,23 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 38190197998 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 38202302439 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
-          cp apk/*.apk Velyntora-Core-Capas-Centradas.apk
-          sha256sum Velyntora-Core-Capas-Centradas.apk > Velyntora-Core-Capas-Centradas.apk.sha256
+          cp apk/*.apk Velyntora-Core-Figuras.apk
+          sha256sum Velyntora-Core-Figuras.apk > Velyntora-Core-Figuras.apk.sha256
       - name: Publish release and assets
         shell: bash
         run: |
           set -euo pipefail
           cat > notes.md <<'NOTES'
-          Se corrige el centrado horizontal de los iconos ajustando simétricamente el espacio interno de cada botón según su ancho, eliminando el espacio del texto vacío y actualizando las medidas de alineación de Android. Se conserva el tamaño actual de 20 dp, el orden de las acciones y la separación de la fila.
+          Un solo botón Figuras abre dos grupos: Sin relleno (rectángulo, rectángulo redondeado, elipse, triángulo y círculo) y Con relleno (rectángulo, elipse, rectángulo redondeado y triángulo). Cada figura conserva su controlador e icono en su propia carpeta dentro de tools/figuras. Los algoritmos de dibujo, identificadores y firmas JNI se conservan.
 
-          Las seis acciones del panel de Capas aparecen en una sola fila compacta, con iconos pequeños, fondo transparente, márgenes y separación uniforme. Orden: añadir, eliminar, duplicar, combinar hacia abajo, subir y bajar. Se conservan sus funciones y los estados habilitado/deshabilitado.
+          El selector permite escoger una figura y recuerda la última elegida. Abrir o cerrar el menú no cambia la herramienta activa. Se conservan ancho, opacidad, colores y las mejoras aprobadas del lienzo, historial y panel de capas.
 
-          El botón del menú principal permanece arriba a la izquierda. Incluye las mejoras aprobadas del lienzo, zoom, rotación e historial y el límite de 6000 × 6000 px.
-
-          Se comprueba que los seis controles quepan y estén alineados con texto normal y grande; se generan capturas Android para revisión. APK debug exacto de a3a577dca3c135616832ac12229b19b61f9be923. Publicado después de aprobar compilación, núcleo y pruebas Android. SHA-256 adjunta. Versión preliminar para comprobar en el dispositivo.
+          Comprobaciones de dibujo, relleno/contorno y deshacer/rehacer para las nueve figuras, además de navegación real de ambos grupos del desplegable y capturas Android con texto normal y grande. APK debug exacto de 8ddf4b55a4fa8a57b0516328416a57cdaa5ec962, publicado después de aprobar compilación, núcleo y pruebas Android. SHA-256 adjunta. Versión preliminar para comprobar en el dispositivo.
 
           NOTES
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Velyntora Core — iconos de capas centrados" --notes-file notes.md --prerelease
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Velyntora Core — figuras por grupos" --notes-file notes.md --prerelease
           fi
-          gh release upload "$RELEASE_TAG" Velyntora-Core-Capas-Centradas.apk Velyntora-Core-Capas-Centradas.apk.sha256 --repo "$GH_REPO" --clobber
+          gh release upload "$RELEASE_TAG" Velyntora-Core-Figuras.apk Velyntora-Core-Figuras.apk.sha256 --repo "$GH_REPO" --clobber
