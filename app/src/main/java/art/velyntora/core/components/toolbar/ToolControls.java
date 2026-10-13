@@ -28,15 +28,18 @@ final class ToolControls {
   private Button figurasButton;
   private TextView sizeLabel;
   private SeekBar sizeSlider;
+  private boolean syncingSize;
 
   private void syncSizeControl() {
     if (sizeSlider == null) return;
     boolean wand = host.readDrawing().currentTool() == DrawingView.MAGIC_WAND;
     int value = wand ? host.readDrawing().readWandTolerance() : Math.round(host.readDrawing().brushRadius() * 2);
+    syncingSize = true;
     sizeSlider.setContentDescription(wand ? "Tolerancia" : "Anchura del pincel en píxeles");
     sizeSlider.setMax(wand ? 255 : 299);
     sizeSlider.setProgress(wand ? value : value - 1);
     sizeLabel.setText(wand ? "Tolerancia: " + value : "Anchura del pincel: " + value + " px");
+    syncingSize = false;
   }
   ToolControls(MainActivity host) { this.host = host; }
 
@@ -291,7 +294,7 @@ final class ToolControls {
         new SeekBar.OnSeekBarChangeListener() {
           @Override
           public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
-            if (!fromUser) return;
+            if (syncingSize) return;
             if (host.readDrawing().currentTool() == DrawingView.MAGIC_WAND) {
               host.writeWandTolerance(progress);
               host.readDrawing().setWandTolerance(progress);
