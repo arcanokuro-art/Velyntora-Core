@@ -17,15 +17,15 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: fab6cb49e010f1feb067d45a341ad780fa564661
-      RELEASE_TAG: v0.1.0-varita-tolerancia-preview
+      VERIFIED_SHA: 07a61b80179cfb6c23f3027b3ecf0bb70bb56d14
+      RELEASE_TAG: v0.1.0-varita-bloqueo-preview
     steps:
       - uses: actions/checkout@v4
       - name: Require exact source builds and tests
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 38464233333 38464233374 38464233414; do
+          for run_id in 38468086222 38468086302 38468086188; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "main"' run.json
@@ -42,21 +42,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 38464233333 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 38468086222 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
-          cp apk/*.apk Velyntora-Core-Tolerancia.apk
-          sha256sum Velyntora-Core-Tolerancia.apk > Velyntora-Core-Tolerancia.apk.sha256
+          cp apk/*.apk Velyntora-Core-Varita.apk
+          sha256sum Velyntora-Core-Varita.apk > Velyntora-Core-Varita.apk.sha256
       - name: Publish release and assets
         shell: bash
         run: |
           set -euo pipefail
           cat > notes.md <<'NOTES'
-          Al seleccionar Varita mágica, la barra superior muestra Tolerancia (0–255) en lugar de Anchura del pincel. Se elimina la opción duplicada de tolerancia del menú Herramientas. Las herramientas de dibujo conservan su anchura (1–300 px); cambiar de herramienta conserva ambos parámetros por separado.
+          La varita prepara el contorno de selecciones grandes en segundo plano. La selección conserva su región exacta para editar; solo la representación del borde se limita para evitar una geometría excesiva en la pantalla. El movimiento de píxeles de selecciones grandes prepara la máscara exacta y ejecuta el cambio de imagen fuera del hilo de interfaz.
 
-          APK debug exacto del código aprobado por compilación, pruebas del núcleo y pruebas Android. SHA-256 adjunta. Versión preliminar para revisar en el dispositivo.
+          Se conserva Tolerancia en la barra superior. Incluye pruebas de selección y movimiento en 4031 × 6000 px, respuesta del hilo principal, máscara con huecos y deshacer, además de las pruebas existentes. APK debug exacto del código verificado. SHA-256 adjunta. Versión preliminar para comprobar en el dispositivo.
 
           NOTES
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Velyntora Core — tolerancia de varita" --notes-file notes.md --prerelease
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Velyntora Core — selección grande sin bloqueo" --notes-file notes.md --prerelease
           fi
-          gh release upload "$RELEASE_TAG" Velyntora-Core-Tolerancia.apk Velyntora-Core-Tolerancia.apk.sha256 --repo "$GH_REPO" --clobber
+          gh release upload "$RELEASE_TAG" Velyntora-Core-Varita.apk Velyntora-Core-Varita.apk.sha256 --repo "$GH_REPO" --clobber
