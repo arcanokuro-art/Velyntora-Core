@@ -20,6 +20,27 @@ public final class PagedWandDeviceTests {
     assertFalse(display.isEmpty());
     assertTrue(region.contains(3,5));assertFalse(region.contains(8,10));
   }
+  @Test public void smallSelectionMovementRendersContinuousFrames() throws Exception {
+    Instrumentation inst=InstrumentationRegistry.getInstrumentation();
+    MainActivity host=(MainActivity)inst.startActivitySync(new Intent(inst.getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+    try{
+      inst.runOnMainSync(()->{
+        DrawingView v=host.readDrawing();assertTrue(v.newDocument(800,800));
+        v.installWandRegion(new Region(180,180,620,620));v.setTool(DrawingView.MOVE_PIXELS);
+      });
+      ContinuousFrameProbe.stroke(inst,host);
+      LargeImportResponsivenessTests.waitResponsive(inst,host);
+      inst.runOnMainSync(()->assertTrue(host.readDrawing().hasSelection()));
+      for(int i=0;i<6;i++){
+        int direction=i%2==0?-1:1;
+        inst.runOnMainSync(()->assertTrue(host.readDrawing().moveSelectedPixels(direction*4,direction*3)));
+        LargeImportResponsivenessTests.waitResponsive(inst,host);
+      }
+    }finally{
+      LargeImportResponsivenessTests.waitResponsive(inst,host);
+      inst.runOnMainSync(()->{host.readDrawing().newDocument(64,64);host.finish();});
+    }
+  }
   @Test public void largeWandAndPixelMoveKeepMainThreadResponsive() throws Exception {
     Instrumentation inst=InstrumentationRegistry.getInstrumentation();
     MainActivity host=(MainActivity)inst.startActivitySync(new Intent(inst.getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));

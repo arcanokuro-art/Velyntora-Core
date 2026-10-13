@@ -114,7 +114,9 @@ final class CanvasInput {
           boolean regionalStroke=host.readStrokeEditing();
           host.finishOpacityStroke();
           host.writeDrawing(false);
-          if (host.readTool() == DrawingView.REMOVE_AI) host.invalidate();
+          if (host.readTool() == DrawingView.MOVE_PIXELS || host.readTool() == DrawingView.MOVE_SELECTION)
+            host.invalidate(); // The selection worker installs the completed frame once.
+          else if (host.readTool() == DrawingView.REMOVE_AI) host.invalidate();
           else if (regionalStroke) host.finishStrokeRefresh();
           else host.refresh();
         }

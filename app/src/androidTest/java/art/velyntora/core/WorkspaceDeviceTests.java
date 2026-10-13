@@ -668,7 +668,7 @@ public final class WorkspaceDeviceTests {
   }
 
   @Test
-  public void toolModulesKeepSelectionAndPixelMovementIndependent() {
+  public void toolModulesKeepSelectionAndPixelMovementIndependent() throws Exception {
     instrumentation.runOnMainSync(
         () -> {
           DrawingView v = drawing();
@@ -697,6 +697,10 @@ public final class WorkspaceDeviceTests {
           gesture(v, 8, 8, 24, 24, false);
           v.setTool(DrawingView.MOVE_PIXELS);
           gesture(v, 12, 12, 32, 32, false);
+        });
+    LargeImportResponsivenessTests.waitResponsive(instrumentation,activity);
+    instrumentation.runOnMainSync(() -> {
+          DrawingView v=drawing();
           Bitmap image = v.snapshot();
           try {
             assertEquals(0, image.getPixel(12, 12));

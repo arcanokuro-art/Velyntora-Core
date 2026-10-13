@@ -50,6 +50,7 @@ final class PagedWand {
   }
   // The exact Region is used by editing. Only its visual contour is bounded.
   static Path displayBoundary(Region region,int width,int height){
+    if((long)width*height<=1048576)return region.getBoundaryPath();
     int sample=Math.max(1,(Math.max(width,height)+127)/128);
     if(sample==1)return region.getBoundaryPath();
     int columns=(width+sample-1)/sample,rows=(height+sample-1)/sample;
