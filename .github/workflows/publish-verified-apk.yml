@@ -17,15 +17,15 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: 07a61b80179cfb6c23f3027b3ecf0bb70bb56d14
-      RELEASE_TAG: v0.1.0-varita-bloqueo-preview
+      VERIFIED_SHA: aec23ecf72e744ea4475a05e79803457fd7f3ffc
+      RELEASE_TAG: v0.1.0-varita-fluida-preview
     steps:
       - uses: actions/checkout@v4
       - name: Require exact source builds and tests
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 38468086222 38468086302 38468086188; do
+          for run_id in 38468375340 38468375367 38468375386; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "main"' run.json
@@ -42,7 +42,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 38468086222 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 38468375340 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
           cp apk/*.apk Velyntora-Core-Varita.apk
           sha256sum Velyntora-Core-Varita.apk > Velyntora-Core-Varita.apk.sha256
