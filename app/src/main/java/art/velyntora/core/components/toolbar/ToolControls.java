@@ -26,6 +26,18 @@ import java.io.OutputStream;
 final class ToolControls {
   private final MainActivity host;
   private Button figurasButton;
+  private TextView sizeLabel;
+  private SeekBar sizeSlider;
+
+  private void syncSizeControl() {
+    if (sizeSlider == null) return;
+    boolean wand = host.readDrawing().currentTool() == DrawingView.MAGIC_WAND;
+    int value = wand ? host.readDrawing().readWandTolerance() : Math.round(host.readDrawing().brushRadius() * 2);
+    sizeSlider.setContentDescription(wand ? "Tolerancia" : "Anchura del pincel en píxeles");
+    sizeSlider.setMax(wand ? 255 : 299);
+    sizeSlider.setProgress(wand ? value : value - 1);
+    sizeLabel.setText(wand ? "Tolerancia: " + value : "Anchura del pincel: " + value + " px");
+  }
   ToolControls(MainActivity host) { this.host = host; }
 
   void configureGradient() {
@@ -139,6 +151,7 @@ final class ToolControls {
       host.readSelectedTool().setText(host.readToolLabels().get(active).split(":", 2)[0]);
     if (active == DrawingView.BRUSH && host.readSelectedTool() != null)
       host.readSelectedTool().setText(host.readDrawing().brushes().label());
+    syncSizeControl();
     if (host.readGradientOptions() != null)
       host.readGradientOptions().setVisibility(active == DrawingView.GRADIENT ? View.VISIBLE : View.GONE);
     if (host.readCurveConfirm() != null)
@@ -259,6 +272,8 @@ final class ToolControls {
         + brushSizeLabel.getPaddingLeft() + brushSizeLabel.getPaddingRight() + host.dp(8);
     options.addView(brushSizeLabel, new LinearLayout.LayoutParams(widthLabelSpace, -2));
     SeekBar brushSize = new SeekBar(host);
+    sizeLabel = brushSizeLabel;
+    sizeSlider = brushSize;
     brushSize.setContentDescription("Anchura del pincel en píxeles");
     brushSize.setMax(299);
     brushSize.setProgress(Math.round(host.readDrawing().brushRadius() * 2) - 1);
@@ -276,6 +291,13 @@ final class ToolControls {
         new SeekBar.OnSeekBarChangeListener() {
           @Override
           public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+            if (!fromUser) return;
+            if (host.readDrawing().currentTool() == DrawingView.MAGIC_WAND) {
+              host.writeWandTolerance(progress);
+              host.readDrawing().setWandTolerance(progress);
+              brushSizeLabel.setText("Tolerancia: " + progress);
+              return;
+            }
             int size = progress + 1;
             brushSizeLabel.setText("Anchura del pincel: " + size + " px");
             host.readDrawing().setBrushRadius(size / 2f);
@@ -287,11 +309,8 @@ final class ToolControls {
           @Override
           public void onStopTrackingTouch(SeekBar bar) {}
         });
-    host.readDrawing().brushWidthChanged = () -> {
-      int width = Math.round(host.readDrawing().brushRadius() * 2);
-      brushSize.setProgress(width - 1);
-      brushSizeLabel.setText("Anchura del pincel: " + width + " px");
-    };
+    host.readDrawing().brushWidthChanged = this::syncSizeControl;
+    syncSizeControl();
     options.addView(brushSize, new LinearLayout.LayoutParams(host.dp(120), host.dp(48)));
     OpacityControls.attach(host, host.readDrawing(), options);
     host.iconButton(options, "Configurar pincel", "settings", host::configureBrush);

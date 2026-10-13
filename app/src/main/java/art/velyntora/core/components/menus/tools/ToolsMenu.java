@@ -32,7 +32,6 @@ final class ToolsMenu {
         menus,
         "Herramientas",
         new String[] {
-          "Tolerancia de varita mágica",
           "Configurar pincel",
           "Elegir color…",
           "Color secundario…",
@@ -42,7 +41,6 @@ final class ToolsMenu {
           "Cancelar Línea/Curva"
         },
         new Runnable[] {
-          host::configureWandTolerance,
           host::configureBrush,
           host::configureColor,
           () -> host.configureColor(true),
