@@ -645,10 +645,13 @@ public final class DrawingView extends View {
 
   int readWandTolerance(){return wandTolerance;}
   void installWandRegion(android.graphics.Region region){
+    installWandRegion(region,region.getBoundaryPath());
+  }
+  void installWandRegion(android.graphics.Region region,android.graphics.Path outline){
     freeRegion.set(region);freePath.reset();wandBoundary.reset();
     selectionTool=MAGIC_WAND;android.graphics.Rect bounds=region.getBounds();
     selectionLeft=bounds.left;selectionTop=bounds.top;selectionRight=bounds.right;selectionBottom=bounds.bottom;
-    hasSelection=!region.isEmpty();if(hasSelection)wandBoundary.set(region.getBoundaryPath());invalidate();
+    hasSelection=!region.isEmpty();if(hasSelection)wandBoundary.set(outline);invalidate();
   }
   public void setWandTolerance(int value) {
     wandTolerance = Math.max(0, Math.min(255, value));

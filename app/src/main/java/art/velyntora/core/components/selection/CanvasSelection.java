@@ -77,6 +77,8 @@ final class CanvasSelection {
   }
 
   boolean moveSelectedPixels(int dx, int dy) {
+    if ((long)host.documentWidth()*host.documentHeight()>1048576)
+      return PagedSelectionMove.run(host,dx,dy);
     return MovePixelsTool.moveSelectedPixels(host, dx, dy);
   }
 

@@ -1,5 +1,7 @@
 package art.velyntora.core;
 import android.graphics.Region;
+import android.graphics.Path;
+import android.graphics.Matrix;
 import java.util.*;
 
 /** Scanline flood selection: bounded source rows, bitset visitation, no full ARGB image. */
@@ -39,8 +41,29 @@ final class PagedWand {
   static void run(DrawingView drawing,int x,int y){
     if(!(drawing.getContext() instanceof MainActivity host))return;
     int width=drawing.documentWidth(),height=drawing.documentHeight(),tolerance=drawing.readWandTolerance();
-    Region[] result={null};
-    LayerWorkQueue.run(host,()->{result[0]=select(width,height,x,y,tolerance);return true;},false,()->drawing.installWandRegion(result[0]));
+    Region[] result={null};Path[] outline={null};
+    LayerWorkQueue.run(host,()->{
+      result[0]=select(width,height,x,y,tolerance);
+      outline[0]=displayBoundary(result[0],width,height);
+      return true;
+    },false,"Seleccionando con varita…","No se pudo completar la selección",()->drawing.installWandRegion(result[0],outline[0]));
+  }
+  // The exact Region is used by editing. Only its visual contour is bounded.
+  static Path displayBoundary(Region region,int width,int height){
+    int sample=Math.max(1,(Math.max(width,height)+127)/128);
+    if(sample==1)return region.getBoundaryPath();
+    Region preview=new Region();
+    for(int y=0;y<height;y+=sample){
+      int run=-1;
+      for(int x=0;x<=width;x+=sample){
+        boolean selected=x<width && region.contains(Math.min(width-1,x+sample/2),Math.min(height-1,y+sample/2));
+        if(selected && run<0)run=x/sample;
+        if(!selected && run>=0){preview.op(run,y/sample,x/sample,y/sample+1,Region.Op.UNION);run=-1;}
+      }
+      if(run>=0)preview.op(run,y/sample,(width+sample-1)/sample,y/sample+1,Region.Op.UNION);
+    }
+    Path path=preview.getBoundaryPath();Matrix scale=new Matrix();scale.setScale(sample,sample);path.transform(scale);
+    return path;
   }
   private PagedWand(){}
 }
