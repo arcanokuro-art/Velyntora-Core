@@ -17,6 +17,7 @@ public final class PagedWandDeviceTests {
     for(int y=bounds.top;y<bounds.bottom;y++)for(int x=bounds.left;x<bounds.right;x++)
       assertEquals(region.contains(x,y)?1:0,mask[(y-bounds.top)*bounds.width()+x-bounds.left]);
     Path display=PagedWand.displayBoundary(region,4031,6000);
+    assertFalse(display.isEmpty());
     assertTrue(region.contains(3,5));assertFalse(region.contains(8,10));
   }
   @Test public void largeWandAndPixelMoveKeepMainThreadResponsive() throws Exception {

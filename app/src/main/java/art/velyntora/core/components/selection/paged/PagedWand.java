@@ -52,15 +52,24 @@ final class PagedWand {
   static Path displayBoundary(Region region,int width,int height){
     int sample=Math.max(1,(Math.max(width,height)+127)/128);
     if(sample==1)return region.getBoundaryPath();
+    int columns=(width+sample-1)/sample,rows=(height+sample-1)/sample;
+    BitSet cells=new BitSet(columns*rows);
+    android.graphics.RegionIterator iterator=new android.graphics.RegionIterator(region);
+    android.graphics.Rect rect=new android.graphics.Rect();
+    while(iterator.next(rect)){
+      int left=Math.max(0,rect.left/sample),right=Math.min(columns,(rect.right+sample-1)/sample);
+      if(left>=right)continue;
+      for(int y=Math.max(0,rect.top/sample);y<Math.min(rows,(rect.bottom+sample-1)/sample);y++)
+        cells.set(y*columns+left,y*columns+right);
+    }
     Region preview=new Region();
-    for(int y=0;y<height;y+=sample){
-      int run=-1;
-      for(int x=0;x<=width;x+=sample){
-        boolean selected=x<width && region.contains(Math.min(width-1,x+sample/2),Math.min(height-1,y+sample/2));
-        if(selected && run<0)run=x/sample;
-        if(!selected && run>=0){preview.op(run,y/sample,x/sample,y/sample+1,Region.Op.UNION);run=-1;}
+    for(int y=0;y<rows;y++){
+      int start=y*columns,end=start+columns,col=cells.nextSetBit(start);
+      while(col>=0 && col<end){
+        int right=Math.min(end,cells.nextClearBit(col));
+        preview.op(col-start,y,right-start,y+1,Region.Op.UNION);
+        col=cells.nextSetBit(right);
       }
-      if(run>=0)preview.op(run,y/sample,(width+sample-1)/sample,y/sample+1,Region.Op.UNION);
     }
     Path path=preview.getBoundaryPath();Matrix scale=new Matrix();scale.setScale(sample,sample);path.transform(scale);
     return path;
