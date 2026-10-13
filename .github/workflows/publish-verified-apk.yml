@@ -17,15 +17,15 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: 7843ed68c922a1f828db19cc1ffa0c0a1b3aee20
-      RELEASE_TAG: v0.1.0-menu-sin-capas-preview
+      VERIFIED_SHA: fab6cb49e010f1feb067d45a341ad780fa564661
+      RELEASE_TAG: v0.1.0-varita-tolerancia-preview
     steps:
       - uses: actions/checkout@v4
       - name: Require exact source builds and tests
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 38310934229 38310934103 38310934091; do
+          for run_id in 38464233333 38464233374 38464233414; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "main"' run.json
@@ -42,21 +42,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 38310934229 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 38464233333 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
-          cp apk/*.apk Velyntora-Core-Menu.apk
-          sha256sum Velyntora-Core-Menu.apk > Velyntora-Core-Menu.apk.sha256
+          cp apk/*.apk Velyntora-Core-Tolerancia.apk
+          sha256sum Velyntora-Core-Tolerancia.apk > Velyntora-Core-Tolerancia.apk.sha256
       - name: Publish release and assets
         shell: bash
         run: |
           set -euo pipefail
           cat > notes.md <<'NOTES'
-          Se elimina la entrada duplicada Capas del menú principal ☰. El panel de capas conserva sus controles y el acceso a propiedades mediante doble toque o pulsación prolongada en una capa.
+          Al seleccionar Varita mágica, la barra superior muestra Tolerancia (0–255) en lugar de Anchura del pincel. Se elimina la opción duplicada de tolerancia del menú Herramientas. Las herramientas de dibujo conservan su anchura (1–300 px); cambiar de herramienta conserva ambos parámetros por separado.
 
-          APK debug del código verificado por compilación, pruebas de núcleo y pruebas Android. SHA-256 adjunta. Versión preliminar para revisar en el dispositivo.
+          APK debug exacto del código aprobado por compilación, pruebas del núcleo y pruebas Android. SHA-256 adjunta. Versión preliminar para revisar en el dispositivo.
 
           NOTES
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Velyntora Core — menú sin Capas" --notes-file notes.md --prerelease
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Velyntora Core — tolerancia de varita" --notes-file notes.md --prerelease
           fi
-          gh release upload "$RELEASE_TAG" Velyntora-Core-Menu.apk Velyntora-Core-Menu.apk.sha256 --repo "$GH_REPO" --clobber
+          gh release upload "$RELEASE_TAG" Velyntora-Core-Tolerancia.apk Velyntora-Core-Tolerancia.apk.sha256 --repo "$GH_REPO" --clobber
