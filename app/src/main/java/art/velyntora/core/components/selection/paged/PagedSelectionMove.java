@@ -38,7 +38,7 @@ final class PagedSelectionMove {
         android.graphics.Matrix shift=new android.graphics.Matrix();shift.setTranslate(moveX,moveY);drawing.freePath.transform(shift);}
       drawing.selectionLeft+=moveX;drawing.selectionRight+=moveX;drawing.selectionTop+=moveY;drawing.selectionBottom+=moveY;
       drawing.invalidate();
-    });
+    },drawing.selectionDragPreview::clear);
     return true;
   }
   private PagedSelectionMove(){}

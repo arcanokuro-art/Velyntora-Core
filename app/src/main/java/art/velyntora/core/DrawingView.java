@@ -641,6 +641,8 @@ public final class DrawingView extends View {
   boolean freeSelectionReady;
   final android.graphics.Region freeRegion = new android.graphics.Region();
   int wandTolerance = 0;
+  final SelectionDragPreview selectionDragPreview=new SelectionDragPreview(this);
+  SelectionDragPreview readSelectionDragPreview(){return selectionDragPreview;}
   final android.graphics.Path wandBoundary = new android.graphics.Path();
 
   int readWandTolerance(){return wandTolerance;}

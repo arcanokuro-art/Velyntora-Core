@@ -18,10 +18,10 @@ final class WorkspaceRenderer {
     Checkerboard.draw(canvas,v.canvasWidth,v.canvasHeight);
     // Interpolate only when reducing the image. Enlarged source pixels stay sharp.
     v.paint.setFilterBitmap(scale < 1f);
-    v.drawCanvasPixels(canvas);
+    if(!v.selectionDragPreview.draw(canvas))v.drawCanvasPixels(canvas);
 
     if (v.isEnabled()) Tools.controller(v.tool).preview(v, canvas, scale);
-    SelectionSupport.draw(v, canvas, scale);
+    v.selectionDragPreview.contour(canvas, scale);
     canvas.restore();
   }
 }

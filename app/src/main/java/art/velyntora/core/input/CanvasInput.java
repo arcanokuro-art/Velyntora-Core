@@ -11,6 +11,16 @@ import android.view.View;
 /** Owns input behavior; the host is the workspace composition facade. */
 final class CanvasInput {
   private final DrawingView host;
+  private boolean selectionStatusPending;
+  private void notifyCursorChanged(){
+    if(host.readTool()!=DrawingView.MOVE_PIXELS && host.readTool()!=DrawingView.MOVE_SELECTION){
+      if(host.readViewportChangedListener()!=null)host.readViewportChangedListener().run();
+      return;
+    }
+    if(selectionStatusPending)return;
+    selectionStatusPending=true;
+    host.postOnAnimation(()->{selectionStatusPending=false;if(host.readViewportChangedListener()!=null)host.readViewportChangedListener().run();});
+  }
   CanvasInput(DrawingView host) { this.host = host; }
 
   void updateCursor(float x, float y) {
@@ -22,7 +32,7 @@ final class CanvasInput {
     if (cx != host.readCursorX() || cy != host.readCursorY()) {
       host.writeCursorX(cx);
       host.writeCursorY(cy);
-      if (host.readViewportChangedListener() != null) host.readViewportChangedListener().run();
+      notifyCursorChanged();
     }
   }
 
@@ -44,6 +54,7 @@ final class CanvasInput {
   }
 
   void cancelToolGesture() {
+    host.readSelectionDragPreview().clear();
     Tools.controller(host.readTool()).cancel(host);
     host.finishOpacityStroke();
     host.writeDrawing(false);
@@ -100,6 +111,7 @@ final class CanvasInput {
           return true;
         }
         Tools.controller(host.readTool()).down(host, x, y, event);
+        if(host.readTool()==DrawingView.MOVE_PIXELS)host.readSelectionDragPreview().begin();
         return true;
       case MotionEvent.ACTION_MOVE:
         if (!host.readDrawing()) return true;
@@ -110,7 +122,9 @@ final class CanvasInput {
       case MotionEvent.ACTION_UP:
         host.getParent().requestDisallowInterceptTouchEvent(false);
         if (host.readDrawing()) {
+          if(host.readTool()==DrawingView.MOVE_PIXELS)host.readSelectionDragPreview().release(x,y);
           Tools.controller(host.readTool()).up(host, x, y, event);
+          if(host.readTool()==DrawingView.MOVE_PIXELS && (!(host.getContext() instanceof MainActivity activity) || activity.readProjectProgress()==null))host.readSelectionDragPreview().clear();
           boolean regionalStroke=host.readStrokeEditing();
           host.finishOpacityStroke();
           host.writeDrawing(false);

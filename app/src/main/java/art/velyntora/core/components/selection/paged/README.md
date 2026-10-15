@@ -12,3 +12,10 @@ worker; the UI receives the completed frame and selection together.
 Pixel movement uses the worker at every document size. ACTION_UP must not
 perform a second full refresh after queuing the edit. Selection-only movement
 invalidates the overlay without rebuilding unchanged document pixels.
+
+SelectionDragPreview owns disposable visual state during pixel drags. On small
+single-layer normal/opaque documents, it prepares cut-out bitmaps on a worker
+and translates them without pixel recomposition per input event. Other documents
+retain normal compositing; irregular selection contours follow the drag using a
+Canvas translation. Cancel discards the preview; only release uses the existing
+native movement/history operation. No native document pixels change in preview.
