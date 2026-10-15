@@ -68,6 +68,7 @@ final class CanvasSelection {
   }
 
   void deselect() {
+    host.readSelectionConfirmation().forget();
     SelectionSupport.deselect(host);
   }
 
@@ -82,7 +83,7 @@ final class CanvasSelection {
 
   void selectMatchingRegion(int sx, int sy) {
     if((long)host.documentWidth()*host.documentHeight()>1048576)PagedWand.run(host,sx,sy);
-    else MagicWandTool.selectMatchingRegion(host,sx,sy);
+    else {MagicWandTool.selectMatchingRegion(host,sx,sy);host.readSelectionConfirmation().begin();}
   }
 
   void translateSelectionMask(int dx, int dy) {

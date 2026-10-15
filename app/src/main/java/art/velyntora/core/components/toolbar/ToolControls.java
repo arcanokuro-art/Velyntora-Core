@@ -320,6 +320,7 @@ final class ToolControls {
     host.writeGradientOptions(host.iconButton(options, "Configurar degradado", "gradient", host::configureGradient));
     host.writeCurveConfirm(host.iconButton(options, "Confirmar Línea/Curva", "confirm", host.readDrawing()::confirmCurve));
     host.writeCurveCancel(host.iconButton(options, "Cancelar Línea/Curva", "cancel", host.readDrawing()::cancelCurve));
+    SelectionConfirmationControls.attach(host,options);
     host.readDrawing().removeAi().controls(options);
     host.addScrollable(root, options);
     ScrollView toolScroll = new ScrollView(host);

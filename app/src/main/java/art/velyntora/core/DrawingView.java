@@ -641,6 +641,8 @@ public final class DrawingView extends View {
   boolean freeSelectionReady;
   final android.graphics.Region freeRegion = new android.graphics.Region();
   int wandTolerance = 0;
+  private final SelectionConfirmation selectionConfirmation=new SelectionConfirmation(this);
+  SelectionConfirmation readSelectionConfirmation(){return selectionConfirmation;}
   final SelectionDragPreview selectionDragPreview=new SelectionDragPreview(this);
   SelectionDragPreview readSelectionDragPreview(){return selectionDragPreview;}
   final android.graphics.Path wandBoundary = new android.graphics.Path();
@@ -653,7 +655,7 @@ public final class DrawingView extends View {
     freeRegion.set(region);freePath.reset();wandBoundary.reset();
     selectionTool=MAGIC_WAND;android.graphics.Rect bounds=region.getBounds();
     selectionLeft=bounds.left;selectionTop=bounds.top;selectionRight=bounds.right;selectionBottom=bounds.bottom;
-    hasSelection=!region.isEmpty();if(hasSelection)wandBoundary.set(outline);invalidate();
+    hasSelection=!region.isEmpty();if(hasSelection)wandBoundary.set(outline);selectionConfirmation.begin();invalidate();
   }
   public void setWandTolerance(int value) {
     wandTolerance = Math.max(0, Math.min(255, value));
@@ -797,6 +799,7 @@ public final class DrawingView extends View {
     if (tool == REMOVE_AI || value == REMOVE_AI) removeAi().clear();
     finishOpacityStroke();
     tool = value;
+    selectionConfirmation.toolChanged(value);
     opacityPreferences();
     brushOpacity = toolOpacities.get(tool) / 100f;
     if (toolOpacityChanged != null) toolOpacityChanged.run();

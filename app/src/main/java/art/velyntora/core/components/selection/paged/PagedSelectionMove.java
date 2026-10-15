@@ -28,6 +28,7 @@ final class PagedSelectionMove {
     int kind=drawing.selectionTool;boolean masked=kind==DrawingView.MAGIC_WAND || kind==DrawingView.SELECT_FREE;
     Region selected=masked?new Region(drawing.freeRegion):null;
     Path[] outline={null};
+    drawing.readSelectionConfirmation().beforeMove();
     LayerWorkQueue.run(host,()->{
       boolean ok=masked?DrawingView.nativeMoveMaskedSelection(bounds.left,bounds.top,bounds.width(),bounds.height(),mask(selected,bounds),moveX,moveY)
         :DrawingView.nativeMovePixels(kind,bounds.left,bounds.top,bounds.right,bounds.bottom,moveX,moveY);
@@ -37,6 +38,7 @@ final class PagedSelectionMove {
       if(masked){drawing.freeRegion.set(selected);drawing.wandBoundary.set(outline[0]);
         android.graphics.Matrix shift=new android.graphics.Matrix();shift.setTranslate(moveX,moveY);drawing.freePath.transform(shift);}
       drawing.selectionLeft+=moveX;drawing.selectionRight+=moveX;drawing.selectionTop+=moveY;drawing.selectionBottom+=moveY;
+      drawing.readSelectionConfirmation().moved();
       drawing.invalidate();
     },drawing.selectionDragPreview::clear);
     return true;
