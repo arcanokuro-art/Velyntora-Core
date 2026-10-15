@@ -17,15 +17,15 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: 0b0b8d78dffc32daa0bde2afe2e4ec4bdec51401
-      RELEASE_TAG: v0.1.0-seleccion-arrastre-preview
+      VERIFIED_SHA: 3b4f5af557a88af18bb6039e1a9eb002a11fbab3
+      RELEASE_TAG: v0.1.0-seleccion-confirmar-preview
     steps:
       - uses: actions/checkout@v4
       - name: Require exact source builds and tests
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 38795535867 38795535880 38795535862; do
+          for run_id in 38810327384 38810327365 38810327299; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "main"' run.json
@@ -42,21 +42,23 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 38795535867 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 38810327384 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
-          cp apk/*.apk Velyntora-Core-Seleccion.apk
-          sha256sum Velyntora-Core-Seleccion.apk > Velyntora-Core-Seleccion.apk.sha256
+          cp apk/*.apk Velyntora-Core-Confirmar-Seleccion.apk
+          sha256sum Velyntora-Core-Confirmar-Seleccion.apk > Velyntora-Core-Confirmar-Seleccion.apk.sha256
       - name: Publish release and assets
         shell: bash
         run: |
           set -euo pipefail
           cat > notes.md <<'NOTES'
-          Corrección centrada en el arrastre de selecciones: el contorno irregular acompaña al gesto mediante traslación visual. En documentos pequeños de una sola capa normal y opaca, una vista previa temporal mueve los píxeles durante el gesto sin recomponerlos por cada evento. Preparación en segundo plano; cancelar descarta la vista previa y soltar aplica el movimiento mediante la operación existente. Los documentos con varias capas conservan su composición normal y el contorno móvil. Actualización de coordenadas agrupada por fotograma solo para herramientas de movimiento de selección.
+          La selección de varita tiene botones propios ✓ y X en la barra superior, también al pasar a Mover píxeles o Mover contorno. ✓ conserva el resultado y deselecciona. X deshace los movimientos registrados desde esa selección y restaura los píxeles originales, incluido el contenido que estaba debajo del destino, sin borrar la imagen. La cancelación se prepara en segundo plano y publica un solo fotograma final.
 
-          Pruebas de posición visual, cancelación sin edición ni historial, aplicación al soltar, deshacer y protección de composición multicapa, junto con pruebas de arrastre continuo y las demás herramientas. Algoritmos de tools, JNI y sesión nativa intactos. APK debug del código verificado; SHA-256 adjunta. Versión preliminar para comprobar la respuesta en el dispositivo.
+          Módulo components/selection/confirmation con estado y controles separados. Comprobaciones de revisión impiden deshacer ediciones ajenas a los movimientos; cambiar a una herramienta de dibujo cierra la sesión pendiente y conserva la máscara para dibujar. Línea/Curva y los algoritmos protegidos permanecen intactos.
+
+          Pruebas de cancelación de movimientos consecutivos con comparación completa de píxeles, confirmación, deshacer y cancelación sin movimientos, además de las pruebas Android existentes. APK debug exacto del código verificado. SHA-256 adjunta. Versión preliminar para revisar en dispositivo.
 
           NOTES
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Velyntora Core — vista previa de selección" --notes-file notes.md --prerelease
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Velyntora Core — confirmar o cancelar selección" --notes-file notes.md --prerelease
           fi
-          gh release upload "$RELEASE_TAG" Velyntora-Core-Seleccion.apk Velyntora-Core-Seleccion.apk.sha256 --repo "$GH_REPO" --clobber
+          gh release upload "$RELEASE_TAG" Velyntora-Core-Confirmar-Seleccion.apk Velyntora-Core-Confirmar-Seleccion.apk.sha256 --repo "$GH_REPO" --clobber
