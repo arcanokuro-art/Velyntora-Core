@@ -17,15 +17,15 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: b7b056d5ec29a5cd097926cee9dd90523a4190f3
-      RELEASE_TAG: v0.1.0-mover-fluido-preview
+      VERIFIED_SHA: 0b0b8d78dffc32daa0bde2afe2e4ec4bdec51401
+      RELEASE_TAG: v0.1.0-seleccion-arrastre-preview
     steps:
       - uses: actions/checkout@v4
       - name: Require exact source builds and tests
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 38472533839 38472533905 38472533775; do
+          for run_id in 38795535867 38795535880 38795535862; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "main"' run.json
@@ -42,21 +42,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 38472533839 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 38795535867 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
-          cp apk/*.apk Velyntora-Core-Movimiento.apk
-          sha256sum Velyntora-Core-Movimiento.apk > Velyntora-Core-Movimiento.apk.sha256
+          cp apk/*.apk Velyntora-Core-Seleccion.apk
+          sha256sum Velyntora-Core-Seleccion.apk > Velyntora-Core-Seleccion.apk.sha256
       - name: Publish release and assets
         shell: bash
         run: |
           set -euo pipefail
           cat > notes.md <<'NOTES'
-          Mover píxeles ejecuta la edición y prepara el fotograma en segundo plano en todos los tamaños de lienzo, incluido 800 × 800 px. Se elimina la segunda actualización completa al soltar la selección. Mover solo el contorno no reconstruye la imagen. Las selecciones pequeñas conservan su contorno exacto.
+          Corrección centrada en el arrastre de selecciones: el contorno irregular acompaña al gesto mediante traslación visual. En documentos pequeños de una sola capa normal y opaca, una vista previa temporal mueve los píxeles durante el gesto sin recomponerlos por cada evento. Preparación en segundo plano; cancelar descarta la vista previa y soltar aplica el movimiento mediante la operación existente. Los documentos con varias capas conservan su composición normal y el contorno móvil. Actualización de coordenadas agrupada por fotograma solo para herramientas de movimiento de selección.
 
-          Incluye prueba de arrastre continuo con métricas de fotogramas y movimientos consecutivos, además de selección/movimiento en 4031 × 6000 px, exactitud de máscara y deshacer. APK debug del código verificado por compilación, núcleo y Android. SHA-256 adjunta. Versión preliminar para revisar en el dispositivo.
+          Pruebas de posición visual, cancelación sin edición ni historial, aplicación al soltar, deshacer y protección de composición multicapa, junto con pruebas de arrastre continuo y las demás herramientas. Algoritmos de tools, JNI y sesión nativa intactos. APK debug del código verificado; SHA-256 adjunta. Versión preliminar para comprobar la respuesta en el dispositivo.
 
           NOTES
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Velyntora Core — movimiento de selección" --notes-file notes.md --prerelease
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Velyntora Core — vista previa de selección" --notes-file notes.md --prerelease
           fi
-          gh release upload "$RELEASE_TAG" Velyntora-Core-Movimiento.apk Velyntora-Core-Movimiento.apk.sha256 --repo "$GH_REPO" --clobber
+          gh release upload "$RELEASE_TAG" Velyntora-Core-Seleccion.apk Velyntora-Core-Seleccion.apk.sha256 --repo "$GH_REPO" --clobber
