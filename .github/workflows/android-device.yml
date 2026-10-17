@@ -3,7 +3,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main, codex/large-canvas-12000]
+    branches: [main, codex/large-canvas-12000, codex/line-curve-delete-point]
   workflow_dispatch:
 jobs:
   device:

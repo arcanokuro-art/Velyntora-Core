@@ -15,8 +15,8 @@
     "tools/line_curve/CurveSnapshot.java": "a65477b5e8b749fa74db62688fd7f05da7e05f89ee4dafc879f9ba6136f16582",
     "tools/line_curve/CurveHistory.java": "1b7781e7ae35f9faf7c12471ecd5c2a94f4a3052205a2c7144f2c0b26bec3fe6",
     "tools/line_curve/LineCurveIcon.java": "fc1f6f871d87acf37dc526eceb08fb160818920a902414f2a2626ac6b5d73fd1",
-    "tools/line_curve/CurveDraft.java": "3153114f8b0721948565566358cbe87624bc1a9c0bc6026b951e61f78a2c6c0b",
-    "tools/line_curve/LineCurveTool.java": "2ff433f53f7920756691dac471adfcaf81de8f422aec39a8c7e63fc0898f1a9a",
+    "tools/line_curve/CurveDraft.java": "b68e5d7db3af4002708e4a9db38ce7d0d7f506d010e0bff2f70a25c734b263b8",
+    "tools/line_curve/LineCurveTool.java": "3712b0d0b2c6725990ce90a615c08a94badfaf8b531996e75f9dd3742a7820f1",
     "tools/picker/PickerTool.java": "8fa4cf66ba8f0de414a9156790b76a1e0cb59120f8de0793777e9222b5abc869",
     "tools/picker/PickerIcon.java": "4fc615775b18d8dbed5e73f258f985816ad3dc3fc99958aec4709b480906ddeb",
     "tools/magic_wand/MagicWandTool.java": "e7f64c9cc9f481ab45deef31f00bde04e6d4fb2a080bacb5bc15599509c427ae",
@@ -109,7 +109,9 @@
     "tools/figuras/sin_relleno/elipse/README.md": "c278e9433b063a5a0caaef51e3411bef4b4e3d13066bbf3f92c0f2fe34e67930",
     "tools/figuras/sin_relleno/triangulo/README.md": "301b341e7f0af52e0c946fec165a242521c3918dd7c163ea87bb5afed27f6916",
     "tools/figuras/sin_relleno/rectangulo/README.md": "c6a7b065b748198d3ae2814fe559b57a31d5e1cc3af70afc0d93e2d90bf11bb1",
-    "tools/figuras/sin_relleno/circulo/README.md": "01add8f3dbb6c5ac7fe4183ec05403ee00b43960a98d7559c13de3d66360468b"
+    "tools/figuras/sin_relleno/circulo/README.md": "01add8f3dbb6c5ac7fe4183ec05403ee00b43960a98d7559c13de3d66360468b",
+    "tools/line_curve/points/CurvePointMenu.java": "b55cfcdcbaef8a706a6f81715b0ceb91f2ab9f30ac68e50240be4ebc07d3bf83",
+    "tools/line_curve/points/README.md": "fde23673d3077a2df988aa03a81c9bd7a38af46c2b1871272a4acda200c5a264"
   },
   "jni": {
     "nativeCreate": "67e171b13db3b94154cc38fc3e1e41894125ab510e845df3f3cc2f372ca9549b",

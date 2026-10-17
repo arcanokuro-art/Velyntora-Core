@@ -16,6 +16,13 @@ public final class CurveDraftTests {
   try{c.move(1,Float.NaN,0);throw new AssertionError();}catch(IllegalArgumentException expected){}
   try{c.evaluate(2,true);throw new AssertionError();}catch(IllegalArgumentException expected){}
   try{c.setTension(1,2);throw new AssertionError();}catch(IllegalArgumentException expected){}
+  CurveDraft deletion=new CurveDraft(0,0,100,0);
+  check(deletion.insert(50,0,2)==1);deletion.setTension(1,.7f);
+  CurveDraft beforeDelete=deletion.copy();
+  check(!deletion.removeInterior(0) && !deletion.removeInterior(2));
+  check(deletion.removeInterior(1) && deletion.x.length==2 && deletion.tension.length==2);
+  check(beforeDelete.x.length==3 && beforeDelete.tension[1]==.7f);
+  check(!deletion.removeInterior(1) && !deletion.removeInterior(-1));
   System.out.println("Cardinal spline nodes, insertion, interpolation, tension and copy passed");
  }
 }

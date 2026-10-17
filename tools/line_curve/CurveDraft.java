@@ -43,6 +43,19 @@ final class CurveDraft {
     x[point] = px; y[point] = py;
   }
 
+  boolean removeInterior(int point) {
+    if(point<=0 || point>=x.length-1)return false;
+    x=removeAt(x,point);y=removeAt(y,point);tension=removeAt(tension,point);
+    return true;
+  }
+
+  private static float[] removeAt(float[] source,int point){
+    float[] result=new float[source.length-1];
+    System.arraycopy(source,0,result,0,point);
+    System.arraycopy(source,point+1,result,point,source.length-point-1);
+    return result;
+  }
+
   void setTension(int point, float value) {
     if (point < 0 || point >= x.length || !Float.isFinite(value) || value < 0 || value > 1)
       throw new IllegalArgumentException("Invalid tension");

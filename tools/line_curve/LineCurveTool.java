@@ -6,6 +6,7 @@ import android.view.MotionEvent;
 /** Gesture controller for line_curve. Shared document state belongs to DrawingView. */
 final class LineCurveTool implements DrawingTool {
   private boolean adjustingTension;
+  private final CurvePointMenu pointMenu=new CurvePointMenu();
   public void down(DrawingView v, float x, float y, MotionEvent event) {
     v.setFocusableInTouchMode(true);
     v.requestFocus();
@@ -13,11 +14,13 @@ final class LineCurveTool implements DrawingTool {
     float pathRadius = 8 * v.getResources().getDisplayMetrics().density / (float) v.viewport.scale;
     v.dragBackup = v.curve == null ? null : v.curve.copy();
     v.curveHandle = v.curve == null ? -1 : v.curve.hit(x,y,nodeRadius);
+    boolean existingPoint=v.curveHandle>=0;
     if (v.curve != null && v.curveHandle < 0) {
       // A previously drawn line stays editable until the whole group is confirmed.
       for (int i=0; i<v.curve.others.size(); i++) {
         CurveDraft other = v.curve.others.get(i);
         int handle = other.hit(x,y,nodeRadius);
+        if(handle>=0)existingPoint=true;
         if (handle < 0) handle = other.insert(x,y,pathRadius);
         if (handle >= 0) {
           float[] oldX=v.curve.x, oldY=v.curve.y, oldT=v.curve.tension;
@@ -37,11 +40,13 @@ final class LineCurveTool implements DrawingTool {
       } else v.curve = v.curve.newLine(x,y);
       v.curveHandle = -2; // new line: move its endpoint, retaining other pending lines
     }
+    pointMenu.begin(v,event,existingPoint);
     adjustingTension = v.curveHandle >= 0 && event.isButtonPressed(MotionEvent.BUTTON_SECONDARY);
     v.viewportChanged();
   }
 
   public void move(DrawingView v, float x, float y, MotionEvent event) {
+    pointMenu.track(v,event);
     if (v.curveHandle == -2) v.curve.move(1,x,y);
     else if (v.curveHandle >= 0 && !adjustingTension) v.curve.move(v.curveHandle, x, y);
     v.invalidate();
@@ -50,18 +55,21 @@ final class LineCurveTool implements DrawingTool {
   public void up(DrawingView v, float x, float y, MotionEvent event) {
     if (v.curve != null) {
       int tensionNode = v.curveHandle;
+      boolean tap=pointMenu.tapped(v,event);
       boolean adjustTension = tensionNode >= 0 &&
           (event.getEventTime() - event.getDownTime() >= 500 ||
            adjustingTension) &&
           Math.hypot(x-v.startX,y-v.startY) * v.viewport.scale < 8;
-      if (v.curveHandle == -2) v.curve.move(1,x,y);
+      if(tap)pointMenu.restoreTap(v);
+      else if (v.curveHandle == -2) v.curve.move(1,x,y);
       else if (v.curveHandle >= 0 && !adjustingTension) v.curve.move(v.curveHandle, x, y);
       v.curveHistory.record(v.dragBackup, v.curve);
       v.drawing = false;
       v.dragBackup = null;
       v.curveHandle = -1;
       v.viewportChanged();
-      if (adjustTension) showTension(v,tensionNode);
+      if(tap)pointMenu.show(v,tensionNode);
+      else if (adjustTension) showTension(v,tensionNode);
     }
   }
 
@@ -204,6 +212,7 @@ final class LineCurveTool implements DrawingTool {
   }
 
   public void cancel(DrawingView v) {
+    pointMenu.dismiss();
     if (v.drawing) {
       v.curve = v.dragBackup;
       v.dragBackup = null;
