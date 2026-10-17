@@ -1,7 +1,7 @@
 name: Publish verified APK
 on:
   push:
-    branches: [main]
+    branches: [codex/line-curve-delete-point]
     paths: [.github/workflows/publish-verified-apk.yml]
   workflow_dispatch:
 permissions:
@@ -17,18 +17,18 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: 3b4f5af557a88af18bb6039e1a9eb002a11fbab3
-      RELEASE_TAG: v0.1.0-seleccion-confirmar-preview
+      VERIFIED_SHA: 871da4c7c9accab15308f6d162cd6bdf8e5aab7e
+      RELEASE_TAG: v0.1.0-linea-borrar-punto-preview
     steps:
       - uses: actions/checkout@v4
       - name: Require exact source builds and tests
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 38810327384 38810327365 38810327299; do
+          for run_id in 39074003326 39074003324 39074003358; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
-              jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "main"' run.json
+              jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "codex/line-curve-delete-point"' run.json
               if jq -e '.status == "completed"' run.json >/dev/null; then
                 jq -e '.conclusion == "success"' run.json
                 break
@@ -42,23 +42,23 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 38810327384 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 39074003326 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
-          cp apk/*.apk Velyntora-Core-Confirmar-Seleccion.apk
-          sha256sum Velyntora-Core-Confirmar-Seleccion.apk > Velyntora-Core-Confirmar-Seleccion.apk.sha256
+          cp apk/*.apk Velyntora-Core-Borrar-Punto.apk
+          sha256sum Velyntora-Core-Borrar-Punto.apk > Velyntora-Core-Borrar-Punto.apk.sha256
       - name: Publish release and assets
         shell: bash
         run: |
           set -euo pipefail
           cat > notes.md <<'NOTES'
-          La selección de varita tiene botones propios ✓ y X en la barra superior, también al pasar a Mover píxeles o Mover contorno. ✓ conserva el resultado y deselecciona. X deshace los movimientos registrados desde esa selección y restaura los píxeles originales, incluido el contenido que estaba debajo del destino, sin borrar la imagen. La cancelación se prepara en segundo plano y publica un solo fotograma final.
+          APK experimental de la rama codex/line-curve-delete-point. Main permanece intacta; esta modificación no está integrada en la versión principal.
 
-          Módulo components/selection/confirmation con estado y controles separados. Comprobaciones de revisión impiden deshacer ediciones ajenas a los movimientos; cambiar a una herramienta de dibujo cierra la sesión pendiente y conserva la máscara para dibujar. Línea/Curva y los algoritmos protegidos permanecen intactos.
+          Un toque breve en un punto interior existente de Línea/Curva abre Borrar punto junto a él. Borrar elimina solo ese nodo, conserva ambos extremos y permite seguir editando el trazo. Se puede deshacer/rehacer la eliminación. Arrastrar sigue moviendo el nodo; los extremos no abren este menú ni se pueden borrar. Se conserva la edición de tensión existente.
 
-          Pruebas de cancelación de movimientos consecutivos con comparación completa de píxeles, confirmación, deshacer y cancelación sin movimientos, además de las pruebas Android existentes. APK debug exacto del código verificado. SHA-256 adjunta. Versión preliminar para revisar en dispositivo.
+          Arquitectura modular: tools/line_curve/points. Pruebas de menú real, borrado, extremos, arrastre, inserción, historial y confirmación, además de las pruebas existentes. APK debug exacto del código verificado. SHA-256 adjunta. No se fusionará con main sin aprobación del usuario después de probarlo.
 
           NOTES
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Velyntora Core — confirmar o cancelar selección" --notes-file notes.md --prerelease
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Velyntora Core — borrar punto interior (rama de prueba)" --notes-file notes.md --prerelease
           fi
-          gh release upload "$RELEASE_TAG" Velyntora-Core-Confirmar-Seleccion.apk Velyntora-Core-Confirmar-Seleccion.apk.sha256 --repo "$GH_REPO" --clobber
+          gh release upload "$RELEASE_TAG" Velyntora-Core-Borrar-Punto.apk Velyntora-Core-Borrar-Punto.apk.sha256 --repo "$GH_REPO" --clobber
