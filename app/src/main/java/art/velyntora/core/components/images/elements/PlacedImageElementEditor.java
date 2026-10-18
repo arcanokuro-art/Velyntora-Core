@@ -11,7 +11,7 @@ import java.util.concurrent.*;
 /** Reopens a retained image source and composes bounded previews off the UI thread. */
 final class PlacedImageElementEditor {
   static final class Prepared {
-    PlacedImageSource source;float[] transform;float opacity;int[] preview;
+    TextSpec text;PlacedImageSource source;float[] transform;float opacity;int[] preview;
   }
   static Prepared prepare(MainActivity host,int index)throws IOException {
     File file=File.createTempFile("image-element-",".source",host.getCacheDir());
@@ -23,7 +23,7 @@ final class PlacedImageElementEditor {
       if(ready.preview==null)throw new IOException("Image source unavailable");
       ready.transform=DrawingView.nativeImageTransform(index);ready.opacity=DrawingView.nativeIndexedLayerOpacity(index);
       if(ready.transform==null)throw new IOException("Image transform unavailable");
-      ready.source=PlacedImageSource.load(host,Uri.fromFile(file));return ready;
+      ready.text=TextSpec.read(index);ready.source=PlacedImageSource.load(host,Uri.fromFile(file));return ready;
     }finally{file.delete();}
   }
   final PlacedImageSession session;final int width,height,sample;

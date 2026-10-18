@@ -8,6 +8,7 @@
 #include "../../document/tiles/LayerPixels.hpp"
 
 #include "../../components/images/ImageElement.hpp"
+#include "../../components/text/TextElement.hpp"
 
 namespace velyntora {
 struct Layer {
@@ -17,6 +18,7 @@ struct Layer {
   float opacity = 1.f;
   int blendMode = 0;
   std::shared_ptr<const images::Element> image;
+  std::shared_ptr<const text::Element> text;
 };
 class LayerDocument {
  public:
@@ -48,8 +50,9 @@ class LayerDocument {
   void replaceActivePixels(const std::vector<std::uint32_t>& pixels);
   void replaceActivePixels(const tiles::LayerPixels& pixels);
   void replaceActivePixels(std::initializer_list<std::uint32_t> pixels){replaceActivePixels(std::vector<std::uint32_t>(pixels));}
-  void writeActiveSpan(std::size_t offset,std::size_t count,const std::uint32_t* input){layers_[active_].image.reset();layers_[active_].pixels.writeSpan(offset,count,input);}
-  void setActiveImage(std::shared_ptr<const images::Element> image){if(image && !image->valid())throw std::invalid_argument("Invalid image element");layers_[active_].image=std::move(image);}
+  void writeActiveSpan(std::size_t offset,std::size_t count,const std::uint32_t* input){layers_[active_].image.reset();layers_[active_].text.reset();layers_[active_].pixels.writeSpan(offset,count,input);}
+  void setActiveImage(std::shared_ptr<const images::Element> image){if(image && !image->valid())throw std::invalid_argument("Invalid image element");if(!image)layers_[active_].text.reset();layers_[active_].image=std::move(image);}
+  void setActiveText(std::shared_ptr<const text::Element> text){if(text && (!text->valid() || !layers_[active_].image))throw std::invalid_argument("Invalid text element");layers_[active_].text=std::move(text);}
   std::vector<std::uint32_t> flatten() const;
   void replaceActiveRegion(const std::vector<std::uint32_t>& pixels, int x, int y, int w, int h);
   std::vector<std::uint32_t> flattenRegion(int x, int y, int w, int h) const;

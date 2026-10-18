@@ -131,8 +131,9 @@ jobs:
           java -cp build/java-tests art.velyntora.core.OpenRasterTests
       - name: Retained image project raster adapter
         run: |
-          javac -cp build/java-tests -d build/java-tests tests/VlyImageElementStreamTests.java
+          javac -cp build/java-tests -d build/java-tests tests/VlyImageElementStreamTests.java tests/VlyTextElementStreamTests.java
           java -cp build/java-tests art.velyntora.core.VlyImageElementStreamTests
+          java -cp build/java-tests art.velyntora.core.VlyTextElementStreamTests
       - run: cmake -S tests -B build/tests -DCMAKE_BUILD_TYPE=Debug
       - run: cmake --build build/tests --parallel
       - run: ctest --test-dir build/tests --output-on-failure

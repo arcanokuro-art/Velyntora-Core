@@ -15,3 +15,4 @@
 #include "history/HistoryStatusBridge.inc"
 
 #include "images/PlacedImageBridge.inc"
+#include "text/TextElementBridge.inc"

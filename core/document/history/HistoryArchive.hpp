@@ -29,7 +29,7 @@ class HistoryArchive {
       out.text(layer.name);out.put(std::uint8_t(layer.visible));out.put(layer.opacity);out.put(layer.blendMode);
       std::uint64_t imageId=0;
       if(layer.image){auto [it,added]=imageIds_.emplace(layer.image.get(),images_.size()+1);if(added)images_.push_back(layer.image);imageId=it->second;}
-      out.put(imageId);
+      out.put(imageId);out.put(std::uint8_t(bool(layer.text)));if(layer.text){out.text(layer.text->content);for(auto v:layer.text->style)out.put(v);}
       out.put(saved.size);out.put(saved.background);out.put(std::uint64_t(saved.blocks.size()));
       for(const auto& block:saved.blocks){out.put(block.key);out.put(block.offset);}
     }
@@ -44,6 +44,7 @@ class HistoryArchive {
     for(std::uint64_t i=0;i<count;++i) {
       Layer layer;layer.name=in.text();layer.visible=in.get<std::uint8_t>();layer.opacity=in.get<float>();layer.blendMode=in.get<int>();
       auto imageId=in.get<std::uint64_t>();if(imageId>images_.size())throw std::runtime_error("History image");if(imageId)layer.image=images_[imageId-1];
+      if(in.get<std::uint8_t>()){auto text=std::make_shared<text::Element>();text->content=in.text();for(auto& v:text->style)v=in.get<std::int32_t>();if(!text->valid() || !layer.image)throw std::runtime_error("History text");layer.text=std::move(text);}
       tiles::LayerPixels::Archived saved; saved.size=in.get<std::uint64_t>();saved.background=in.get<std::uint32_t>();
       auto blocks=in.get<std::uint64_t>();if(blocks>(saved.size+4095)/4096)throw std::runtime_error("History blocks");
       saved.blocks.reserve(blocks);

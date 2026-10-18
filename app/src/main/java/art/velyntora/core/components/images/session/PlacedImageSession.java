@@ -14,11 +14,14 @@ final class PlacedImageSession {
   PlacedImageSource source;
   volatile PlacedImageSource loading;
   PlacedImageTransform state;
+  TextSpec text;
+  private final java.util.IdentityHashMap<PlacedImageSource,Boolean> sources=new java.util.IdentityHashMap<>();
+  private final class EditState {final PlacedImageTransform transform;final TextSpec spec;final PlacedImageSource original;EditState(PlacedImageTransform t){transform=t.copy();spec=text;original=source;}void restore(){state=transform.copy();text=spec;source=original;}}
   boolean keepRatio=true;
   int editingIndex=-1;
   PlacedImageElementEditor editor;
   Runnable changed;
-  private final ArrayDeque<PlacedImageTransform> undo=new ArrayDeque<>(),redo=new ArrayDeque<>();
+  private final ArrayDeque<EditState> undo=new ArrayDeque<>(),redo=new ArrayDeque<>();
   private PlacedImageTransform dragStart;
   private int handle=-3;
   private float startX,startY,startAngle;
@@ -48,7 +51,7 @@ final class PlacedImageSession {
   void begin(PlacedImageSource ready){
     if(host().isDestroyed()){ready.close();return;}
     if(drawing.layerCount()>=32){ready.close();host().message("Se alcanzó el límite de capas");return;}
-    editingIndex=-1;source=ready;state=new PlacedImageTransform(ready.size.displayWidth(),ready.size.displayHeight(),drawing.documentWidth(),drawing.documentHeight());
+    text=null;editingIndex=-1;source=ready;sources.put(source,true);state=new PlacedImageTransform(ready.size.displayWidth(),ready.size.displayHeight(),drawing.documentWidth(),drawing.documentHeight());
     undo.clear();redo.clear();drawing.requestFocus();notifyChanged();host().refreshLayerPanel();
   }
   void edit(int index){
@@ -59,9 +62,23 @@ final class PlacedImageSession {
       catch(Exception|OutOfMemoryError error){DrawingView.nativeCloseImageEdit();return false;}
     },false,"Abriendo imagen editable…","No se pudo abrir la imagen editable",()->{
       if(host().isDestroyed()){ready[0].source.close();DrawingView.nativeCloseImageEdit();return;}
-      source=ready[0].source;state=new PlacedImageTransform(source.size.displayWidth(),source.size.displayHeight(),drawing.documentWidth(),drawing.documentHeight());state.restore(ready[0].transform);state.opacity=ready[0].opacity;
+      source=ready[0].source;sources.put(source,true);text=ready[0].text;state=new PlacedImageTransform(source.size.displayWidth(),source.size.displayHeight(),drawing.documentWidth(),drawing.documentHeight());state.restore(ready[0].transform);state.opacity=ready[0].opacity;
       editingIndex=index;undo.clear();redo.clear();editor=new PlacedImageElementEditor(this,ready[0].preview);drawing.deselect();drawing.requestFocus();notifyChanged();host().refreshLayerPanel();
     },()->{if(host().isDestroyed() && ready[0]!=null){ready[0].source.close();DrawingView.nativeCloseImageEdit();}});
+  }
+  void applyText(TextSpec next,int x,int y,boolean editing){
+    if(host().readProjectProgress()!=null || (editing && (!active() || text==null)) || (!editing && active()))return;
+    PlacedImageSource[] rendered={null};
+    LayerWorkQueue.run(host(),()->{try{rendered[0]=TextSourceRenderer.render(host(),next);return true;}catch(Exception|OutOfMemoryError error){return false;}},false,"Preparando texto…","No se pudo preparar el texto. Reduce su tamaño o la cantidad de líneas.",()->{
+      if(host().isDestroyed()){rendered[0].close();return;}
+      if(!editing){begin(rendered[0]);if(source!=rendered[0])return;text=next;state.width=source.size.displayWidth();state.height=source.size.displayHeight();state.cx=x+state.width/2;state.cy=y+state.height/2;state.opacity=drawing.toolOpacityPercent()/100f;}
+      else{
+        remember();float[] origin={0,0};state.matrix().mapPoints(origin);float sx=state.width/state.crop.width(),sy=state.height/state.crop.height();
+        source=rendered[0];sources.put(source,true);text=next;state.crop=new RectF(0,0,source.size.displayWidth(),source.size.displayHeight());state.width=state.crop.width()*sx;state.height=state.crop.height()*sy;
+        double angle=Math.toRadians(state.angle);state.cx=origin[0]+(float)(state.width/2*Math.cos(angle)-state.height/2*Math.sin(angle));state.cy=origin[1]+(float)(state.width/2*Math.sin(angle)+state.height/2*Math.cos(angle));
+      }
+      notifyChanged();host().refreshLayerPanel();
+    },()->{if(host().isDestroyed() && rendered[0]!=null)rendered[0].close();});
   }
   boolean tapExisting(float x,float y){
     int index=drawing.activeLayer();if(!DrawingView.nativeLayerIsImage(index))return false;
@@ -70,18 +87,18 @@ final class PlacedImageSession {
     if(!t.contains(x,y))return false;edit(index);return true;
   }
   boolean drawBase(Canvas canvas){return editor!=null && editor.draw(canvas);}
-  void remember(){if(active()){undo.addLast(state.copy());redo.clear();}}
-  void undo(){if(!active() || undo.isEmpty())return;redo.addLast(state.copy());state=undo.removeLast();notifyChanged();}
-  void redo(){if(!active() || redo.isEmpty())return;undo.addLast(state.copy());state=redo.removeLast();notifyChanged();}
+  void remember(){if(active()){undo.addLast(new EditState(state));redo.clear();}}
+  void undo(){if(!active() || undo.isEmpty())return;redo.addLast(new EditState(state));undo.removeLast().restore();notifyChanged();}
+  void redo(){if(!active() || redo.isEmpty())return;undo.addLast(new EditState(state));redo.removeLast().restore();notifyChanged();}
   void rotate(){if(!active())return;remember();state.angle=(state.angle+90)%360;notifyChanged();}
   void cropTo(RectF rect){if(!active() || rect.width()<1 || rect.height()<1)return;remember();state.cropTo(rect);notifyChanged();}
   void cancel(){if(committing || host().readProjectProgress()!=null)return;clear();}
   private void clear(){
     if(editor!=null){editor.close();editor=null;}editingIndex=-1;
-    if(source!=null)source.close();source=null;state=null;dragStart=null;undo.clear();redo.clear();
+    for(PlacedImageSource s:sources.keySet())s.close();sources.clear();source=null;text=null;state=null;dragStart=null;undo.clear();redo.clear();
     notifyChanged();host().syncToolState();if(!host().isDestroyed())host().refreshLayerPanel();
   }
-  void dispose(){if(editor!=null){editor.close();editor=null;}if(!committing){if(source!=null)source.close();source=null;if(loading!=null)loading.close();loading=null;}}
+  void dispose(){if(editor!=null){editor.close();editor=null;}if(!committing){for(PlacedImageSource s:sources.keySet())s.close();sources.clear();source=null;text=null;if(loading!=null)loading.close();loading=null;}}
   boolean key(int code,android.view.KeyEvent event){
     if(!active())return false;
     if(host().readProjectProgress()!=null)return true;
@@ -98,7 +115,7 @@ final class PlacedImageSession {
     if(!active())return true;
     if(host().readProjectProgress()!=null)return false;
     if(label.equals("Deshacer")){undo();return false;}if(label.equals("Rehacer")){redo();return false;}
-    return label.equals("Confirmar imagen") || label.equals("Cancelar imagen") || label.equals("Recortar imagen") || label.equals("Rotar imagen");
+    return label.equals("Editar texto") || label.equals("Confirmar imagen") || label.equals("Cancelar imagen") || label.equals("Recortar imagen") || label.equals("Rotar imagen");
   }
   void cancelGesture(){if(dragStart!=null){state=dragStart;dragStart=null;notifyChanged();}}
   boolean touch(MotionEvent event,float x,float y){
@@ -131,7 +148,7 @@ final class PlacedImageSession {
       }
       if(editor!=null)editor.request();drawing.invalidate();
       if(action==MotionEvent.ACTION_UP){
-        if(handle!=-3 && (Math.abs(x-startX)>0.01 || Math.abs(y-startY)>0.01)){undo.addLast(dragStart);redo.clear();}
+        if(handle!=-3 && (Math.abs(x-startX)>0.01 || Math.abs(y-startY)>0.01)){undo.addLast(new EditState(dragStart));redo.clear();}
         dragStart=null;drawing.getParent().requestDisallowInterceptTouchEvent(false);notifyChanged();
       }
       return true;
@@ -152,7 +169,7 @@ final class PlacedImageSession {
   }
   void confirm(){
     if(!active() || committing || host().readProjectProgress()!=null)return;
-    PlacedImageSource original=source;PlacedImageTransform transform=state.copy();
+    PlacedImageSource original=source;PlacedImageTransform transform=state.copy();TextSpec confirmedText=text;
     RectF area=new RectF(transform.crop);transform.matrix().mapRect(area);
     Rect bounds=new Rect(Math.max(0,(int)Math.floor(area.left)),Math.max(0,(int)Math.floor(area.top)),Math.min(drawing.documentWidth(),(int)Math.ceil(area.right)),Math.min(drawing.documentHeight(),(int)Math.ceil(area.bottom)));
     if(bounds.isEmpty()){host().message("La imagen está fuera del lienzo");return;}
@@ -167,7 +184,7 @@ final class PlacedImageSession {
           try{int[] data=new int[tile.width()*tile.height()];pixels.getPixels(data,0,tile.width(),0,0,tile.width(),tile.height());if(!DrawingView.nativePlacedImageTile(tile.left,tile.top,tile.width(),tile.height(),data))return false;}
           finally{pixels.recycle();}
         }
-        if(!DrawingView.nativePlacedImageElement(original.file.getPath(),transform.values()))return false;
+        if(!(confirmedText!=null?DrawingView.nativePlacedTextElement(original.file.getPath(),transform.values(),confirmedText.bytes(),confirmedText.values()):DrawingView.nativePlacedImageElement(original.file.getPath(),transform.values())))return false;
         committed[0]=DrawingView.nativeCommitPlacedImage();return committed[0];
       }catch(Exception|OutOfMemoryError error){return false;}
       finally{if(decoder!=null)decoder.recycle();DrawingView.nativeCancelPlacedImage();}

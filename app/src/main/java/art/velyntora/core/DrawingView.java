@@ -31,6 +31,9 @@ public final class DrawingView extends View {
   static native int[] nativeComposeImageEdit(int[] moving,float opacity);
   static native void nativeCloseImageEdit();
   static native boolean nativeRasterizeImage(int index);
+  static native byte[] nativeTextContent(int index);
+  static native int[] nativeTextStyle(int index);
+  static native boolean nativePlacedTextElement(String path,float[] transform,byte[] content,int[] style);
   static native boolean nativePlacedImageTile(int x,int y,int width,int height,int[] pixels);
   static native boolean nativeCommitPlacedImage();
   static native void nativeCancelPlacedImage();

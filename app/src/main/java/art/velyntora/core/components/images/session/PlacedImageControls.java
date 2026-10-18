@@ -6,12 +6,14 @@ import java.util.IdentityHashMap;
 
 final class PlacedImageControls {
   final MainActivity host;final LinearLayout options,row;final PlacedImageSession session;
+  final TextView heading;final android.view.View crop,editText;
   final TextView opacityLabel;final SeekBar opacity;boolean syncing;
   final IdentityHashMap<View,Integer> hidden=new IdentityHashMap<>();
   PlacedImageControls(MainActivity host,LinearLayout options){
     this.host=host;this.options=options;session=host.readDrawing().placedImage();row=host.row();options.addView(row);
-    row.addView(host.text("Imagen  "));
-    host.iconButton(row,"Recortar imagen","rectangle",()->PlacedImageCropDialog.show(host,session));
+    heading=host.text("Imagen  ");row.addView(heading);
+    editText=host.button(row,"Editar texto",()->TextDialog.edit(host));
+    crop=host.iconButton(row,"Recortar imagen","rectangle",()->PlacedImageCropDialog.show(host,session));
     host.iconButton(row,"Rotar imagen","redo",session::rotate);
     CheckBox ratio=new CheckBox(host);ratio.setText("Proporciones");ratio.setChecked(true);ratio.setOnCheckedChangeListener((b,v)->session.keepRatio=v);row.addView(ratio);
     opacityLabel=host.text("Opacidad: 100 %");row.addView(opacityLabel);
@@ -27,7 +29,7 @@ final class PlacedImageControls {
   }
   void sync(){
     boolean active=session.active();
-    if(active){
+    if(active){heading.setText(session.text!=null?"Texto  ":"Imagen  ");crop.setVisibility(session.text==null?View.VISIBLE:View.GONE);editText.setVisibility(session.text!=null?View.VISIBLE:View.GONE);
       for(int i=0;i<options.getChildCount();i++){View v=options.getChildAt(i);if(v==row)continue;if(!hidden.containsKey(v))hidden.put(v,v.getVisibility());v.setVisibility(View.GONE);}
       syncing=true;opacity.setProgress(Math.round(session.state.opacity*100));opacityLabel.setText("Opacidad: "+opacity.getProgress()+" %");syncing=false;
     }else{for(var entry:hidden.entrySet())entry.getKey().setVisibility(entry.getValue());hidden.clear();}

@@ -57,7 +57,7 @@ final class VlyProjectStream {
       byte[] magic = new byte[8];
       in.readFully(magic);
       version=magic[7];magic[7]=2;
-      if ((version!=1&&version!=2&&version!=3)||!java.util.Arrays.equals(magic, MAGIC)) throw new IOException("Proyecto incompatible");
+      if ((version!=1&&version!=2&&version!=3&&version!=4)||!java.util.Arrays.equals(magic, MAGIC)) throw new IOException("Proyecto incompatible");
       width = integer(in);
       height = integer(in);
       count = integer(in);
@@ -90,6 +90,7 @@ final class VlyProjectStream {
           byte[] buffer=new byte[65536];while(bytes>0){int n=Math.min(bytes,buffer.length);in.readFully(buffer,0,n);bytes-=n;}
         }
       }
+      if(version>=4){int has=integer(in);if(has<0 || has>1)throw new IOException("Texto inválido");if(has==1){int n=integer(in);if(n<1 || n>16384)throw new IOException("Texto inválido");byte[] text=new byte[n];in.readFully(text);int sizePx=integer(in);integer(in);int family=integer(in),style=integer(in),wrap=integer(in);if(sizePx<4 || sizePx>256 || family<0 || family>2 || style<0 || style>3 || wrap<8 || wrap>6000)throw new IOException("Formato de texto inválido");}}
       index++;
       return new Layer(new String(name, StandardCharsets.UTF_8), visibility == 1, opacity, pixels,mode);
     }

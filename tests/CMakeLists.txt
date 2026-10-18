@@ -80,3 +80,7 @@ add_test(NAME history_archive_tests COMMAND history_archive_tests)
 add_executable(image_element_tests image_element_tests.cpp)
 target_link_libraries(image_element_tests PRIVATE velyntora_engine)
 add_test(NAME image_element_tests COMMAND image_element_tests)
+
+add_executable(text_element_tests text_element_tests.cpp)
+target_link_libraries(text_element_tests PRIVATE velyntora_engine)
+add_test(NAME text_element_tests COMMAND text_element_tests)
