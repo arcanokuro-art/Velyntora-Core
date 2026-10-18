@@ -47,6 +47,7 @@ final class ColorPickerDialog {
     view.setTextSize(14); view.setSelectAllOnFocus(true); view.setPadding(dp(6),0,dp(6),0);
     view.setLayoutParams(new LinearLayout.LayoutParams(dp(width),dp(44))); return view;
   }
+  private ColorPickerDialog(Context ctx,int primary,int secondary,boolean editSecondary,Listener listener){this(ctx,primary,secondary,editSecondary,listener,false);}
   private ColorPickerDialog(Context ctx,int primary,int secondary,boolean editSecondary,Listener listener,boolean single) {
     context=ctx; colors=new int[]{primary,secondary}; original=colors.clone(); selected=editSecondary?1:0;
     dialog=new Dialog(ctx); dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
