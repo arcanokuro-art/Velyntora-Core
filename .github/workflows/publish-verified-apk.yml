@@ -1,7 +1,7 @@
 name: Publish verified APK
 on:
   push:
-    branches: [main]
+    branches: [codex/image-layer-transform]
     paths: [.github/workflows/publish-verified-apk.yml]
   workflow_dispatch:
 permissions:
@@ -17,18 +17,18 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: 16e2e278c74a558c95ab389f17bc021ded3d9020
-      RELEASE_TAG: v0.1.0-anchura-contextual-preview
+      VERIFIED_SHA: fa9ea07e3bcd76eb767b9111165ae922197bdf0f
+      RELEASE_TAG: v0.1.0-insertar-imagen-preview
     steps:
       - uses: actions/checkout@v4
       - name: Require exact source builds and tests
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 39092567129 39092567296 39092567128; do
+          for run_id in 39097574889 39097574875 39097574927; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
-              jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "main"' run.json
+              jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "codex/image-layer-transform"' run.json
               if jq -e '.status == "completed"' run.json >/dev/null; then
                 jq -e '.conclusion == "success"' run.json
                 break
@@ -42,21 +42,23 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 39092567129 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 39097574889 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
-          cp apk/*.apk Velyntora-Core-Anchura-Contextual.apk
-          sha256sum Velyntora-Core-Anchura-Contextual.apk > Velyntora-Core-Anchura-Contextual.apk.sha256
+          cp apk/*.apk Velyntora-Core-Insertar-Imagen.apk
+          sha256sum Velyntora-Core-Insertar-Imagen.apk > Velyntora-Core-Insertar-Imagen.apk.sha256
       - name: Publish release and assets
         shell: bash
         run: |
           set -euo pipefail
           cat > notes.md <<'NOTES'
-          La barra superior oculta Anchura del pincel y su deslizador en Mover píxeles/contorno, cubeta, degradado, zoom, cuentagotas, desplazamiento, texto, selecciones y figuras rellenas. Conserva el grosor en las herramientas que lo utilizan y Tolerancia en la varita mágica. Los valores se mantienen al cambiar de herramienta.
+          Versión experimental de la rama codex/image-layer-transform. Main permanece sin cambios; pendiente de revisión y aprobación en dispositivo.
 
-          Política de visibilidad separada en components/toolbar/ToolWidthPolicy.java. No cambia los algoritmos de las herramientas. Prueba Android de las 29 herramientas, visibilidad de etiqueta/deslizador, rangos y conservación de valores, además de las pruebas existentes. APK debug del código verificado. SHA-256 adjunta. Versión preliminar para revisar en dispositivo.
+          Archivo > Insertar imagen como capa permite mover, redimensionar desde bordes y esquinas, girar, ajustar opacidad y recortar la imagen antes de confirmar. ✓ crea una capa nueva con un solo paso de deshacer; X cancela la inserción. El recorte incluye proporciones y cuadrícula. Al confirmar se rasteriza la imagen en la capa; esta versión no reabre la transformación original después de confirmar.
+
+          Arquitectura modular en components/images: insertion, transformation, crop y session. Decodificación por regiones y confirmación por bloques. Se conserva el límite de 6000 px por lado, con confirmación para reducir imágenes mayores. APK debug publicado solo después de compilar y pasar pruebas del motor y de Android. SHA-256 adjunta.
 
           NOTES
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Velyntora Core — anchura solo donde corresponde" --notes-file notes.md --prerelease
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Velyntora Core — insertar y transformar imagen" --notes-file notes.md --prerelease
           fi
-          gh release upload "$RELEASE_TAG" Velyntora-Core-Anchura-Contextual.apk Velyntora-Core-Anchura-Contextual.apk.sha256 --repo "$GH_REPO" --clobber
+          gh release upload "$RELEASE_TAG" Velyntora-Core-Insertar-Imagen.apk Velyntora-Core-Insertar-Imagen.apk.sha256 --repo "$GH_REPO" --clobber
