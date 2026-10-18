@@ -17,7 +17,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: 0df1fdfcdc0ecb052ecc46ae607857d1573384e6
+      VERIFIED_SHA: 1868f03eb096b4a37621ed962f09110855b8005e
       RELEASE_TAG: v0.1.0-texto-nitido-preview
     steps:
       - uses: actions/checkout@v4
@@ -25,7 +25,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 39164270811 39164270828 39164270842; do
+          for run_id in 39164402279 39164402229 39164402220; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "codex/image-layer-transform"' run.json
@@ -42,7 +42,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 39164270811 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 39164402279 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
           cp apk/*.apk Velyntora-Core-Texto-Nitido.apk
           sha256sum Velyntora-Core-Texto-Nitido.apk > Velyntora-Core-Texto-Nitido.apk.sha256
