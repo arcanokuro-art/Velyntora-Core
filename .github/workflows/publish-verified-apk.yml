@@ -17,7 +17,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: 8321c9c0963e518aa2bb27d1be53d899bc4ac2d3
+      VERIFIED_SHA: d66120a326180aad41de754ebbc3b94a7e02c8ea
       RELEASE_TAG: v0.1.0-texto-editable-preview
     steps:
       - uses: actions/checkout@v4
@@ -25,7 +25,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 39102403396 39102403377 39102403431; do
+          for run_id in 39102730980 39102730918 39102730953; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "codex/image-layer-transform"' run.json
@@ -42,7 +42,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 39102403396 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 39102730980 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
           cp apk/*.apk Velyntora-Core-Texto-Editable.apk
           sha256sum Velyntora-Core-Texto-Editable.apk > Velyntora-Core-Texto-Editable.apk.sha256
