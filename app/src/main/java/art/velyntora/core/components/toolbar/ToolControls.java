@@ -32,7 +32,11 @@ final class ToolControls {
 
   private void syncSizeControl() {
     if (sizeSlider == null) return;
-    boolean wand = host.readDrawing().currentTool() == DrawingView.MAGIC_WAND;
+    int tool=host.readDrawing().currentTool();
+    boolean wand = tool == DrawingView.MAGIC_WAND;
+    int visibility=wand || ToolWidthPolicy.usesWidth(tool)?View.VISIBLE:View.GONE;
+    sizeLabel.setVisibility(visibility);
+    sizeSlider.setVisibility(visibility);
     int value = wand ? host.readDrawing().readWandTolerance() : Math.round(host.readDrawing().brushRadius() * 2);
     syncingSize = true;
     sizeSlider.setContentDescription(wand ? "Tolerancia" : "Anchura del pincel en píxeles");
