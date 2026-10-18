@@ -26,14 +26,14 @@ final class TextDialog {
     EditText wrap=number(form,"Ancho máximo del texto en píxeles",initial.wrapWidth);
     form.addView(host.text("Cada texto tiene su propia capa. Después de ✓ puedes seleccionarla y editar lo escrito."));
     AlertDialog dialog=new AlertDialog.Builder(host).setTitle(editing?"Editar texto":"Añadir texto").setView(host.scrollForm(form)).setNegativeButton("Cancelar",null).setPositiveButton("Aplicar",null).create();
-    dialog.setOnShowListener(d->dialog.getButton(-1).setOnClickListener(v->{
+    dialog.show();dialog.getButton(-1).setOnClickListener(v->{
       int px,width,argb;
       try{px=Integer.parseInt(size.getText().toString());if(px<4 || px>256)throw new NumberFormatException();}catch(NumberFormatException error){size.setError("Usa de 4 a 256 px");return;}
       try{width=Integer.parseInt(wrap.getText().toString());if(width<8 || width>6000)throw new NumberFormatException();}catch(NumberFormatException error){wrap.setError("Usa de 8 a 6000 px");return;}
       try{String hex=color.getText().toString().trim().replace("#","");if(hex.length()!=6 && hex.length()!=8)throw new IllegalArgumentException();argb=Color.parseColor("#"+hex);}catch(IllegalArgumentException error){color.setError("Usa RRGGBB o AARRGGBB");return;}
       TextSpec next;try{next=new TextSpec(input.getText().toString(),px,argb,family.getSelectedItemPosition(),(bold.isChecked()?1:0)|(italic.isChecked()?2:0),width);}catch(IllegalArgumentException error){input.setError("Escribe de 1 a 4096 caracteres visibles");return;}
       dialog.dismiss();host.readDrawing().placedImage().applyText(next,x,y,editing);
-    }));dialog.show();return dialog;
+    });return dialog;
   }
   EditText number(LinearLayout form,String label,int value){form.addView(host.text(label+":"));EditText input=new EditText(host);input.setContentDescription(label);input.setSingleLine(true);input.setInputType(InputType.TYPE_CLASS_NUMBER);input.setText(""+value);form.addView(input);return input;}
 }
