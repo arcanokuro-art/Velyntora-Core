@@ -34,6 +34,7 @@ final class FileMenu {
         new String[] {
           "Nuevo…",
           "Abrir archivo (detección automática)",
+          "Insertar imagen como capa…",
           "Abrir TGA",
           "Abrir TIFF",
           "Abrir ICO",
@@ -55,6 +56,7 @@ final class FileMenu {
         new Runnable[] {
           () -> host.protectDocument(() -> host.configureDimensions(0)),
           host::openImage,
+          () -> host.readDrawing().placedImage().pick(),
           host::openTga,
           host::openTiff,
           host::openIco,

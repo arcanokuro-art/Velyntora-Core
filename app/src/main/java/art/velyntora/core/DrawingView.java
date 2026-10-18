@@ -21,6 +21,12 @@ public final class DrawingView extends View {
   }
 
   static native float nativeIndexedLayerOpacity(int index);
+  static native boolean nativeBeginPlacedImage(String name,float opacity);
+  static native boolean nativePlacedImageTile(int x,int y,int width,int height,int[] pixels);
+  static native boolean nativeCommitPlacedImage();
+  static native void nativeCancelPlacedImage();
+  private final PlacedImageSession placedImageSession=new PlacedImageSession(this);
+  PlacedImageSession placedImage(){return placedImageSession;}
   static native int nativeLayerBlendMode(int index);
   static native boolean nativeLayerAction(int action);
   static native boolean nativeLayerProperties(int index,String name,boolean visible,float opacity,int mode);
@@ -505,6 +511,7 @@ public final class DrawingView extends View {
 
   @Override
   public boolean onKeyDown(int code, android.view.KeyEvent event) {
+    if(placedImage().key(code,event))return true;
     if (code == android.view.KeyEvent.KEYCODE_ENTER && confirmCurve()) return true;
     if (code == android.view.KeyEvent.KEYCODE_ESCAPE && curve != null) {
       cancelCurve();

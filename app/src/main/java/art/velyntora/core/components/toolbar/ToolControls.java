@@ -26,6 +26,7 @@ import java.io.OutputStream;
 final class ToolControls {
   private final MainActivity host;
   private Button figurasButton;
+  private PlacedImageControls placedImageControls;
   private TextView sizeLabel;
   private SeekBar sizeSlider;
   private boolean syncingSize;
@@ -115,7 +116,7 @@ final class ToolControls {
           });
     iconButton.setOnClickListener(
         v -> {
-          if (host.readProjectProgress() != null) return;
+          if (host.readProjectProgress() != null || host.readDrawing().placedImage().active()) return;
           if(tool==DrawingView.RECTANGLE){
             FigurasSelector.show(iconButton,host.readDrawing(),()->{
               host.readDrawing().setColor(host.readActiveColor());host.syncToolState();
@@ -165,6 +166,7 @@ final class ToolControls {
       host.readCurveConfirm().setVisibility(active == DrawingView.LINE ? View.VISIBLE : View.GONE);
     if (host.readCurveCancel() != null)
       host.readCurveCancel().setVisibility(active == DrawingView.LINE ? View.VISIBLE : View.GONE);
+    if(placedImageControls!=null)placedImageControls.sync();
   }
 
   void configureBrush() {
@@ -326,6 +328,7 @@ final class ToolControls {
     host.writeCurveCancel(host.iconButton(options, "Cancelar Línea/Curva", "cancel", host.readDrawing()::cancelCurve));
     SelectionConfirmationControls.attach(host,options);
     host.readDrawing().removeAi().controls(options);
+    placedImageControls=new PlacedImageControls(host,options);
     host.addScrollable(root, options);
     ScrollView toolScroll = new ScrollView(host);
     toolScroll.addView(sidebar);

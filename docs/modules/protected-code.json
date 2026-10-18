@@ -220,7 +220,11 @@
     "nativeCancelImageImport": "c1af073a28f0a96dc59dedf37b29f2725c2997c3d799ac5bda1b16444b7b7216",
     "nativeAcceptImageImport": "d2e1bc89f144b7888399460d63be59cf00eb95fb286191172355b12e22f7377f",
     "nativeFillSelectionWorker": "fba9f2c22d62d6b39e070e452e07dc9f68cbe8985fbb40cbea8ff86ceeabd867",
-    "nativeHistoryAvailability": "33568a92fb32e3c905c1ef88baeb301728bb8ffcc7487c5a44bd867fc196898b"
+    "nativeHistoryAvailability": "33568a92fb32e3c905c1ef88baeb301728bb8ffcc7487c5a44bd867fc196898b",
+    "nativeBeginPlacedImage": "299fffbbe5bb16cdee0d701caf9cfeaa485d1c7f972ba26e079db5c811c43106",
+    "nativePlacedImageTile": "6b4a216ce9e174e840bd78c6d35ab5c4420d6061a0bfbb4f953ada5b28652ee7",
+    "nativeCommitPlacedImage": "fb2c1239c8fd707a557023be311249ef9c705c535a5eae210cc908f71fe1472a",
+    "nativeCancelPlacedImage": "f49962bfdcfde0025e2b48361bc6d89858a0519f11766e35321e555442a15847"
   },
   "session": "117c721239248c8dee7708db972cda2c14d6047a1138dbd1d0cac424f5a2b3b7"
 }

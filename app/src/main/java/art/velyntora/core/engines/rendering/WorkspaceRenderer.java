@@ -20,8 +20,9 @@ final class WorkspaceRenderer {
     v.paint.setFilterBitmap(scale < 1f);
     if(!v.selectionDragPreview.draw(canvas))v.drawCanvasPixels(canvas);
 
-    if (v.isEnabled()) Tools.controller(v.tool).preview(v, canvas, scale);
-    v.selectionDragPreview.contour(canvas, scale);
+    if(v.placedImage().active())v.placedImage().draw(canvas,scale);
+    else {if (v.isEnabled()) Tools.controller(v.tool).preview(v, canvas, scale);
+      v.selectionDragPreview.contour(canvas, scale);}
     canvas.restore();
   }
 }

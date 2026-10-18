@@ -13,3 +13,5 @@
 #include "brush/BrushBridge.inc"
 
 #include "history/HistoryStatusBridge.inc"
+
+#include "images/PlacedImageBridge.inc"

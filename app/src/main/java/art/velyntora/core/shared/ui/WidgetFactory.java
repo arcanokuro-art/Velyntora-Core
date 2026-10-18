@@ -81,6 +81,7 @@ final class WidgetFactory {
     button.setContentDescription(description);
     button.setOnClickListener(
         v -> {
+          if(host.readDrawing()!=null && host.readDrawing().placedImage().active() && !host.readDrawing().placedImage().allow(label))return;
           if (host.readProjectProgress() == null || label.equals("Deshacer") || label.equals("Rehacer")) action.run();
           else host.message("Espera a que termine la operación actual");
         });

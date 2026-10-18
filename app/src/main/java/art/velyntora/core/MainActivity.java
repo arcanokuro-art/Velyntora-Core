@@ -104,6 +104,16 @@ public final class MainActivity extends Activity {
 
   @Override
   public boolean onKeyDown(int key, android.view.KeyEvent event) {
+    if(drawing!=null && drawing.placedImage().active()){
+      if(projectProgress!=null)return true;
+      if(key==android.view.KeyEvent.KEYCODE_ENTER){drawing.placedImage().confirm();return true;}
+      if(key==android.view.KeyEvent.KEYCODE_ESCAPE){drawing.placedImage().cancel();return true;}
+      if(event.isCtrlPressed()){
+        if(key==android.view.KeyEvent.KEYCODE_Z){if(event.isShiftPressed())drawing.placedImage().redo();else drawing.placedImage().undo();}
+        else if(key==android.view.KeyEvent.KEYCODE_Y)drawing.placedImage().redo();
+        return true;
+      }
+    }
     if (event.isCtrlPressed()) {
       if (projectProgress != null) return true;
       switch (key) {
@@ -145,6 +155,7 @@ public final class MainActivity extends Activity {
 
   @Override
   public void onBackPressed() {
+    if(drawing!=null && drawing.placedImage().active()){drawing.placedImage().cancel();return;}
     protectDocument(() -> super.onBackPressed());
   }
 
@@ -358,6 +369,7 @@ public final class MainActivity extends Activity {
 
   @Override
   protected void onDestroy() {
+    if(drawing!=null)drawing.placedImage().dispose();
     if (projectProgress != null) {
       projectProgress.dismiss();
       projectProgress = null;
@@ -538,6 +550,7 @@ public final class MainActivity extends Activity {
       protectDocument(() -> acceptFileResult(request, uri));
       return;
     }
+    if(request==PlacedImageSession.PICK_IMAGE){drawing.placedImage().load(uri);return;}
     acceptFileResult(request, uri);
   }
 

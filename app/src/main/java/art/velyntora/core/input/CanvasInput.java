@@ -54,6 +54,7 @@ final class CanvasInput {
   }
 
   void cancelToolGesture() {
+    if(host.placedImage().active())host.placedImage().cancelGesture();
     host.readSelectionDragPreview().clear();
     Tools.controller(host.readTool()).cancel(host);
     host.finishOpacityStroke();
@@ -94,9 +95,10 @@ final class CanvasInput {
       }
       return true;
     }
-    if (host.readTool() == host.readPAN() || host.readTool() == host.readZOOM()) return Tools.controller(host.readTool()).screen(host, event);
+    if (!host.placedImage().active() && (host.readTool() == host.readPAN() || host.readTool() == host.readZOOM())) return Tools.controller(host.readTool()).screen(host, event);
     float x = (float) host.readViewport().documentX(event.getX(), event.getY());
     float y = (float) host.readViewport().documentY(event.getX(), event.getY());
+    if(host.placedImage().active())return host.placedImage().touch(event,x,y);
     host.updateCursor(x, y);
     switch (event.getActionMasked()) {
       case MotionEvent.ACTION_DOWN:
