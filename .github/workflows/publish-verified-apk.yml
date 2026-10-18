@@ -17,15 +17,15 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: c892f2af3811bcc6377bee05279d251d6cd37fb8
-      RELEASE_TAG: v0.1.0-insertar-imagen-preview
+      VERIFIED_SHA: 95cf5fa52810dfabd41957011a392dbcb4426e27
+      RELEASE_TAG: v0.1.0-imagen-editable-preview
     steps:
       - uses: actions/checkout@v4
       - name: Require exact source builds and tests
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 39097997336 39097997385 39097997329; do
+          for run_id in 39100164228 39100164264 39100164260; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "codex/image-layer-transform"' run.json
@@ -42,10 +42,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 39097997336 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 39100164228 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
-          cp apk/*.apk Velyntora-Core-Insertar-Imagen.apk
-          sha256sum Velyntora-Core-Insertar-Imagen.apk > Velyntora-Core-Insertar-Imagen.apk.sha256
+          cp apk/*.apk Velyntora-Core-Imagen-Editable.apk
+          sha256sum Velyntora-Core-Imagen-Editable.apk > Velyntora-Core-Imagen-Editable.apk.sha256
       - name: Publish release and assets
         shell: bash
         run: |
@@ -53,12 +53,14 @@ jobs:
           cat > notes.md <<'NOTES'
           Versión experimental de la rama codex/image-layer-transform. Main permanece sin cambios; pendiente de revisión y aprobación en dispositivo.
 
-          Archivo > Insertar imagen como capa permite mover, redimensionar desde bordes y esquinas, girar, ajustar opacidad y recortar la imagen antes de confirmar. ✓ crea una capa nueva con un solo paso de deshacer; X cancela la inserción. El recorte incluye proporciones y cuadrícula. Al confirmar se rasteriza la imagen en la capa; esta versión no reabre la transformación original después de confirmar.
+          Archivo > Insertar imagen como capa conserva el original y su configuración. Después de ✓, selecciona su capa o toca la imagen para volver a moverla, redimensionarla, girarla, recortarla o cambiar su opacidad. ✓ actualiza la misma capa con un paso de deshacer; X descarta la edición. Se respetan las capas superiores y los modos de mezcla en la vista previa.
 
-          Arquitectura modular en components/images: insertion, transformation, crop y session. Decodificación por regiones y confirmación por bloques. Se conserva el límite de 6000 px por lado, con confirmación para reducir imágenes mayores. APK debug publicado solo después de compilar y pasar pruebas del motor y de Android. SHA-256 adjunta.
+          El proyecto nativo VLYCORE conserva los originales y transformaciones al guardar y abrir. Las fuentes comprimidas se guardan en disco y se comparten entre duplicados e historial. Los proyectos anteriores siguen siendo compatibles. Los proyectos nuevos que contienen imágenes editables requieren esta versión o una posterior.
+
+          Arquitectura modular en components/images y core/components/images. Límite de 6000 px por lado. Texto fuera de este cambio. Pintar o aplicar efectos a la capa, combinar capas o cambiar las dimensiones del documento convierte el resultado en píxeles normales. También puedes rasterizar explícitamente desde propiedades de capa; deshacer recupera la imagen editable. PNG/JPEG y OpenRaster exportan el resultado visible, sin conservar la transformación original. APK debug publicado solo tras aprobar compilación y pruebas exactas de la fuente. SHA-256 adjunta.
 
           NOTES
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Velyntora Core — insertar y transformar imagen" --notes-file notes.md --prerelease
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Velyntora Core — imagen editable después de confirmar" --notes-file notes.md --prerelease
           fi
-          gh release upload "$RELEASE_TAG" Velyntora-Core-Insertar-Imagen.apk Velyntora-Core-Insertar-Imagen.apk.sha256 --repo "$GH_REPO" --clobber
+          gh release upload "$RELEASE_TAG" Velyntora-Core-Imagen-Editable.apk Velyntora-Core-Imagen-Editable.apk.sha256 --repo "$GH_REPO" --clobber
