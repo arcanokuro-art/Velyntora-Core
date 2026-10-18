@@ -26,8 +26,9 @@ final class ColorPickerDialog {
   private final int[] maxima = {360,100,100,255,255,255,255};
 
   static void show(Context context, int primary, int secondary, boolean editSecondary, Listener listener) {
-    new ColorPickerDialog(context, primary, secondary, editSecondary, listener);
+    new ColorPickerDialog(context, primary, secondary, editSecondary, listener,false);
   }
+  static void showSingle(Context context,int color,java.util.function.IntConsumer listener){new ColorPickerDialog(context,color,color,false,(primary,secondary)->listener.accept(primary),true);}
   private int dp(float value) { return Math.round(value * context.getResources().getDisplayMetrics().density); }
   private TextView label(String text) {
     TextView view = new TextView(context); view.setText(text); view.setTextColor(Color.WHITE);
@@ -46,18 +47,18 @@ final class ColorPickerDialog {
     view.setTextSize(14); view.setSelectAllOnFocus(true); view.setPadding(dp(6),0,dp(6),0);
     view.setLayoutParams(new LinearLayout.LayoutParams(dp(width),dp(44))); return view;
   }
-  private ColorPickerDialog(Context ctx,int primary,int secondary,boolean editSecondary,Listener listener) {
+  private ColorPickerDialog(Context ctx,int primary,int secondary,boolean editSecondary,Listener listener,boolean single) {
     context=ctx; colors=new int[]{primary,secondary}; original=colors.clone(); selected=editSecondary?1:0;
     dialog=new Dialog(ctx); dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
     LinearLayout root=new LinearLayout(ctx); root.setOrientation(LinearLayout.VERTICAL);
     root.setPadding(dp(20),dp(12),dp(20),dp(16)); root.setBackgroundColor(0xff303030);
     LinearLayout header=row(); header.addView(button("Restablecer",()->{System.arraycopy(original,0,colors,0,2); load();}));
-    TextView title=label("Selector de color"); title.setGravity(Gravity.CENTER);
+    TextView title=label(single?"Color del texto":"Selector de color"); title.setGravity(Gravity.CENTER);
     header.addView(title,new LinearLayout.LayoutParams(0,dp(48),1)); root.addView(header);
     ScrollView scroll=new ScrollView(ctx); LinearLayout contents=new LinearLayout(ctx); contents.setOrientation(LinearLayout.VERTICAL); contents.setPadding(0,dp(8),0,dp(8));
     scroll.addView(contents); root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
     HorizontalScrollView tabsScroll=new HorizontalScrollView(ctx); LinearLayout tabs=row();
-    tabs.addView(button("⇄",()->{int value=colors[0]; colors[0]=colors[1]; colors[1]=value;load();}));
+    if(!single)tabs.addView(button("⇄",()->{int value=colors[0]; colors[0]=colors[1]; colors[1]=value;load();}));
     tabs.addView(button("Tono y saturación",()->{square=false;plane.invalidate();}));
     tabs.addView(button("Saturación y valor",()->{square=true;plane.invalidate();})); tabsScroll.addView(tabs); contents.addView(tabsScroll);
     LinearLayout hexRow=row(); hexRow.addView(label("Hexadecimal  ")); hex=entry(130);
@@ -69,7 +70,7 @@ final class ColorPickerDialog {
     body.setPadding(0,dp(14),0,dp(8));
     body.setOrientation(wide?LinearLayout.HORIZONTAL:LinearLayout.VERTICAL); contents.addView(body);
     LinearLayout palette=row(); LinearLayout swatchColumn=new LinearLayout(ctx); swatchColumn.setOrientation(LinearLayout.VERTICAL);
-    for(int i=0;i<2;i++){ final int slot=i; swatches[i]=new View(ctx);swatches[i].setContentDescription(i==0?"Color primario":"Color secundario");
+    for(int i=0;i<2;i++){ final int slot=i; swatches[i]=new View(ctx);swatches[i].setContentDescription(single?"Color del texto":i==0?"Color primario":"Color secundario");if(single && i==1)swatches[i].setVisibility(View.GONE);
       LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(dp(48),dp(70));p.setMargins(0,dp(5),dp(10),dp(5));swatchColumn.addView(swatches[i],p);
       swatches[i].setOnClickListener(v->{selected=slot;load();}); }
     palette.addView(swatchColumn); LinearLayout surface=new LinearLayout(ctx); surface.setOrientation(LinearLayout.VERTICAL);

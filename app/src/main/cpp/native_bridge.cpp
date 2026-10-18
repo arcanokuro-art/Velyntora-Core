@@ -16,3 +16,4 @@
 
 #include "images/PlacedImageBridge.inc"
 #include "text/TextElementBridge.inc"
+#include "text/TextPreviewBridge.inc"

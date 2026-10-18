@@ -25,6 +25,8 @@ final class PlacedImageControls {
       public void onStopTrackingTouch(SeekBar s){s.getParent().requestDisallowInterceptTouchEvent(false);}
     });
     host.iconButton(row,"Confirmar imagen","confirm",session::confirm);host.iconButton(row,"Cancelar imagen","cancel",session::cancel);
+    row.setPadding(host.dp(8),0,host.dp(8),0);
+    for(int i=0;i<row.getChildCount();i++){View child=row.getChildAt(i);LinearLayout.LayoutParams params=(LinearLayout.LayoutParams)child.getLayoutParams();params.setMargins(0,host.dp(4),host.dp(12),host.dp(4));child.setLayoutParams(params);}
     session.changed=this::sync;sync();
   }
   void sync(){

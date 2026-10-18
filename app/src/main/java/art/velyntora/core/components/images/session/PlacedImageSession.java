@@ -63,7 +63,7 @@ final class PlacedImageSession {
     },false,"Abriendo imagen editable…","No se pudo abrir la imagen editable",()->{
       if(host().isDestroyed()){ready[0].source.close();DrawingView.nativeCloseImageEdit();return;}
       source=ready[0].source;sources.put(source,true);text=ready[0].text;state=new PlacedImageTransform(source.size.displayWidth(),source.size.displayHeight(),drawing.documentWidth(),drawing.documentHeight());state.restore(ready[0].transform);state.opacity=ready[0].opacity;
-      editingIndex=index;undo.clear();redo.clear();editor=new PlacedImageElementEditor(this,ready[0].preview);drawing.deselect();drawing.requestFocus();notifyChanged();host().refreshLayerPanel();
+      editingIndex=index;undo.clear();redo.clear();editor=new PlacedImageElementEditor(this,ready[0].preview);editor.vector=ready[0].vector;drawing.deselect();drawing.requestFocus();notifyChanged();host().refreshLayerPanel();
     },()->{if(host().isDestroyed() && ready[0]!=null){ready[0].source.close();DrawingView.nativeCloseImageEdit();}});
   }
   void retainSource(PlacedImageSource value){sources.put(value,true);source=value;}
@@ -147,7 +147,7 @@ final class PlacedImageSession {
   void draw(Canvas canvas,float scale){
     if(!active())return;Paint image=new Paint(Paint.FILTER_BITMAP_FLAG);image.setAlpha(Math.round(state.opacity*255));
     if(editor==null){canvas.save();canvas.concat(state.matrix());canvas.clipRect(state.crop);
-    canvas.drawBitmap(source.preview,null,new RectF(0,0,source.size.displayWidth(),source.size.displayHeight()),image);canvas.restore();}
+    if(text!=null){canvas.saveLayerAlpha(state.crop,Math.round(state.opacity*255));new TextGlyphLayout(text).draw(canvas);canvas.restore();}else canvas.drawBitmap(source.preview,null,new RectF(0,0,source.size.displayWidth(),source.size.displayHeight()),image);canvas.restore();}
     float[] p=state.handles();Paint frame=new Paint(Paint.ANTI_ALIAS_FLAG);frame.setColor(0xFF80CBC4);frame.setStrokeWidth(1.5f/scale);frame.setStyle(Paint.Style.STROKE);
     Path border=new Path();border.moveTo(p[0],p[1]);for(int i:new int[]{2,4,6})border.lineTo(p[i*2],p[i*2+1]);border.close();canvas.drawPath(border,frame);
     float radius=5*drawing.getResources().getDisplayMetrics().density/scale;frame.setStyle(Paint.Style.FILL);
@@ -164,12 +164,12 @@ final class PlacedImageSession {
     if(bounds.isEmpty()){host().message("La imagen está fuera del lienzo");return;}
     committing=true;boolean[] committed={false};
     LayerWorkQueue.run(host(),()->{
-      BitmapRegionDecoder decoder=null;
+      BitmapRegionDecoder decoder=null;TextGlyphLayout glyphs=confirmedText!=null?new TextGlyphLayout(confirmedText):null;
       try{
         if(!(editingIndex>=0?DrawingView.nativeBeginPlacedImageEdit(editingIndex,transform.opacity):DrawingView.nativeBeginPlacedImage(original.name,transform.opacity)))return false;
         decoder=BitmapRegionDecoder.newInstance(original.file.getPath(),false);if(decoder==null)return false;
         for(int y=bounds.top;y<bounds.bottom;y+=256)for(int x=bounds.left;x<bounds.right;x+=256){
-          Rect tile=new Rect(x,y,Math.min(bounds.right,x+256),Math.min(bounds.bottom,y+256));Bitmap pixels=original.tile(decoder,transform,tile);
+          Rect tile=new Rect(x,y,Math.min(bounds.right,x+256),Math.min(bounds.bottom,y+256));Bitmap pixels=glyphs!=null?TextGlyphLayout.tile(glyphs,transform,tile):original.tile(decoder,transform,tile);
           try{int[] data=new int[tile.width()*tile.height()];pixels.getPixels(data,0,tile.width(),0,0,tile.width(),tile.height());if(!DrawingView.nativePlacedImageTile(tile.left,tile.top,tile.width(),tile.height(),data))return false;}
           finally{pixels.recycle();}
         }

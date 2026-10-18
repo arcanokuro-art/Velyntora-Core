@@ -236,7 +236,9 @@
     "nativeRasterizeImage": "02e1a58fd555693d1c6aca1c8afa411665262fee4779cbc6e4b0bf9f8cb421b6",
     "nativeTextContent": "5146b02c1dcccf3726c983a4d62554a078d9e82e725e9a2c2b660e00701e43fc",
     "nativeTextStyle": "fdb4a95d913305b8f8e079ff77bf50f63c14fe1ff718d633505366bc0d41871d",
-    "nativePlacedTextElement": "026ffb9979d36a580e7b9518b014100449944f4a91080f211e13544db0451c7c"
+    "nativePlacedTextElement": "026ffb9979d36a580e7b9518b014100449944f4a91080f211e13544db0451c7c",
+    "nativeTextPreviewStyle": "cdae8243a87c713ee692f7254a110b38ec4d7ff079a36f9c79274caa370214a8",
+    "nativeTextPreviewPlane": "b8175ff8a06f4ea7b0fff12c809815ee67e27fb54b22cfda24e27b00ea211745"
   },
   "session": "117c721239248c8dee7708db972cda2c14d6047a1138dbd1d0cac424f5a2b3b7"
 }
