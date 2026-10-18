@@ -66,20 +66,8 @@ final class PlacedImageSession {
       editingIndex=index;undo.clear();redo.clear();editor=new PlacedImageElementEditor(this,ready[0].preview);drawing.deselect();drawing.requestFocus();notifyChanged();host().refreshLayerPanel();
     },()->{if(host().isDestroyed() && ready[0]!=null){ready[0].source.close();DrawingView.nativeCloseImageEdit();}});
   }
-  void applyText(TextSpec next,int x,int y,boolean editing){
-    if(host().readProjectProgress()!=null || (editing && (!active() || text==null)) || (!editing && active()))return;
-    PlacedImageSource[] rendered={null};
-    LayerWorkQueue.run(host(),()->{try{rendered[0]=TextSourceRenderer.render(host(),next);return true;}catch(Exception|OutOfMemoryError error){return false;}},false,"Preparando texto…","No se pudo preparar el texto. Reduce su tamaño o la cantidad de líneas.",()->{
-      if(host().isDestroyed()){rendered[0].close();return;}
-      if(!editing){begin(rendered[0]);if(source!=rendered[0])return;text=next;state.width=source.size.displayWidth();state.height=source.size.displayHeight();state.cx=x+state.width/2;state.cy=y+state.height/2;state.opacity=drawing.toolOpacityPercent()/100f;}
-      else{
-        remember();float[] origin={0,0};state.matrix().mapPoints(origin);float sx=state.width/state.crop.width(),sy=state.height/state.crop.height();
-        source=rendered[0];sources.put(source,true);text=next;state.crop=new RectF(0,0,source.size.displayWidth(),source.size.displayHeight());state.width=state.crop.width()*sx;state.height=state.crop.height()*sy;
-        double angle=Math.toRadians(state.angle);state.cx=origin[0]+(float)(state.width/2*Math.cos(angle)-state.height/2*Math.sin(angle));state.cy=origin[1]+(float)(state.width/2*Math.sin(angle)+state.height/2*Math.cos(angle));
-      }
-      notifyChanged();host().refreshLayerPanel();
-    },()->{if(host().isDestroyed() && rendered[0]!=null)rendered[0].close();});
-  }
+  void retainSource(PlacedImageSource value){sources.put(value,true);source=value;}
+  void applyText(TextSpec next,int x,int y,boolean editing){TextLayerEditing.apply(this,next,x,y,editing);}
   boolean tapExisting(float x,float y){
     int index=drawing.activeLayer();if(!DrawingView.nativeLayerIsImage(index))return false;
     float[] values=DrawingView.nativeImageTransform(index);if(values==null)return false;
