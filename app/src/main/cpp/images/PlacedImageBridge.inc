@@ -63,27 +63,30 @@ struct PlacedPreview {
 std::shared_ptr<const PlacedPreview> placedPreview;
 }
 extern "C" JNIEXPORT jintArray JNICALL Java_art_velyntora_core_DrawingView_nativePrepareImageEdit(JNIEnv* env,jclass,jint index,jint fd){
-  std::lock_guard<std::mutex> lock(guard);if(!layers || index<0 || std::size_t(index)>=layers->layerCount() || !layers->layer(index).image || fd<0)return nullptr;
+  std::unique_lock<std::mutex> lock(guard);if(!layers || index<0 || std::size_t(index)>=layers->layerCount() || !layers->layer(index).image || fd<0)return nullptr;
   try{
-    layers->layer(index).image->source->write([&](const void* bytes,std::size_t n){auto p=static_cast<const char*>(bytes);while(n){auto done=write(fd,p,n);if(done<0 && errno==EINTR)continue;if(done<=0)throw std::runtime_error("Image restore");p+=done;n-=done;}});
-    auto next=std::make_shared<PlacedPreview>();next->sample=1;next->index=index;next->mode=layers->layer(index).blendMode;next->visible=layers->layer(index).visible;
-    int width=layers->width(),height=layers->height();
-    while(std::int64_t((width+next->sample-1)/next->sample)*((height+next->sample-1)/next->sample)*std::max<std::size_t>(8,layers->layerCount())>2097152)next->sample*=2;
+    auto document=std::make_unique<velyntora::LayerDocument>(*layers);auto expectedRevision=revision;lock.unlock();
+    document->layer(index).image->source->write([&](const void* bytes,std::size_t n){auto p=static_cast<const char*>(bytes);while(n){auto done=write(fd,p,n);if(done<0 && errno==EINTR)continue;if(done<=0)throw std::runtime_error("Image restore");p+=done;n-=done;}});
+    auto next=std::make_shared<PlacedPreview>();next->sample=1;next->index=index;next->mode=document->layer(index).blendMode;next->visible=document->layer(index).visible;
+    int width=document->width(),height=document->height();
+    while(std::int64_t((width+next->sample-1)/next->sample)*((height+next->sample-1)/next->sample)*std::max<std::size_t>(8,document->layerCount())>2097152)next->sample*=2;
     next->w=(width+next->sample-1)/next->sample;next->h=(height+next->sample-1)/next->sample;next->lower.resize(std::size_t(next->w)*next->h,0);
-    for(std::size_t i=0;i<layers->layerCount();i++){
-      const auto& layer=layers->layer(i);if(i==std::size_t(index) || !layer.visible || layer.opacity<=0)continue;
+    for(std::size_t i=0;i<document->layerCount();i++){
+      const auto& layer=document->layer(i);if(i==std::size_t(index) || !layer.visible || layer.opacity<=0)continue;
       std::vector<std::uint32_t> pixels(next->lower.size());std::vector<std::uint32_t> row(width);
       // Area average with premultiplied alpha; no canvas-sized bitmap.
-      for(int y=0;y<next->h;y++){
+      if(layer.pixels.isUniform())std::fill(pixels.begin(),pixels.end(),layer.pixels.background());
+      else for(int y=0;y<next->h;y++){
         std::vector<std::array<std::uint64_t,4>> sums(next->w);
         int rows=std::min(next->sample,height-y*next->sample);
-        for(int dy=0;dy<rows;dy++){layer.pixels.readSpan(std::size_t(y*next->sample+dy)*width,width,row.data());
+        for(int dy=0;dy<rows;dy++){{std::lock_guard<std::mutex> pageLock(guard);layer.pixels.readSpan(std::size_t(y*next->sample+dy)*width,width,row.data());}
           for(int x=0;x<width;x++){auto p=row[x],a=p>>24;auto& s=sums[x/next->sample];s[0]+=a;s[1]+=((p>>16)&255)*a;s[2]+=((p>>8)&255)*a;s[3]+=(p&255)*a;}}
         for(int x=0;x<next->w;x++){auto s=sums[x];auto n=rows*std::min(next->sample,width-x*next->sample);pixels[std::size_t(y)*next->w+x]=s[0]?((std::uint32_t((s[0]+n/2)/n)<<24)|(std::uint32_t((s[1]+s[0]/2)/s[0])<<16)|(std::uint32_t((s[2]+s[0]/2)/s[0])<<8)|std::uint32_t((s[3]+s[0]/2)/s[0])):0;}
       }
       if(i<std::size_t(index)){for(std::size_t p=0;p<pixels.size();p++)next->lower[p]=velyntora::blending::composite(pixels[p],next->lower[p],layer.opacity,layer.blendMode);}
       else next->above.push_back({std::move(pixels),layer.opacity,layer.blendMode});
     }
+    lock.lock();if(!layers || revision!=expectedRevision)return nullptr;
     jint info[]={next->w,next->h,next->sample};auto out=env->NewIntArray(3);if(out)env->SetIntArrayRegion(out,0,3,info);placedPreview=std::move(next);return out;
   }catch(...){return nullptr;}
 }
