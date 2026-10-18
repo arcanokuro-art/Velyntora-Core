@@ -17,15 +17,15 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: d66120a326180aad41de754ebbc3b94a7e02c8ea
-      RELEASE_TAG: v0.1.0-texto-editable-preview
+      VERIFIED_SHA: 0df1fdfcdc0ecb052ecc46ae607857d1573384e6
+      RELEASE_TAG: v0.1.0-texto-nitido-preview
     steps:
       - uses: actions/checkout@v4
       - name: Require exact source builds and tests
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 39102730980 39102730918 39102730953; do
+          for run_id in 39164270811 39164270828 39164270842; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "codex/image-layer-transform"' run.json
@@ -42,10 +42,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 39102730980 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 39164270811 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
-          cp apk/*.apk Velyntora-Core-Texto-Editable.apk
-          sha256sum Velyntora-Core-Texto-Editable.apk > Velyntora-Core-Texto-Editable.apk.sha256
+          cp apk/*.apk Velyntora-Core-Texto-Nitido.apk
+          sha256sum Velyntora-Core-Texto-Nitido.apk > Velyntora-Core-Texto-Nitido.apk.sha256
       - name: Publish release and assets
         shell: bash
         run: |
@@ -53,14 +53,16 @@ jobs:
           cat > notes.md <<'NOTES'
           Versión experimental de la rama codex/image-layer-transform. Main permanece sin cambios; pendiente de revisión y aprobación en dispositivo.
 
-          La herramienta Texto crea una capa independiente. Escribe y pulsa Aplicar para ver el elemento; ajusta posición, tamaño, giro y opacidad y confirma con ✓. Después, selecciona su capa o toca el texto de la capa activa y usa Editar texto para cambiar las palabras, fuente, tamaño, color ARGB, negrita, cursiva o ancho de ajuste. X descarta toda la edición pendiente; Cancelar en el cuadro de texto descarta solo lo escrito en ese cuadro.
+          Barra de edición con márgenes explícitos entre Texto, Editar texto, giro, Proporciones, Opacidad y ✓/X. Tamaño y ancho máximo se ajustan con deslizadores y valores en píxeles, con muestra vectorial inmediata dentro del cuadro de configuración.
 
-          Deshacer y rehacer conservan contenido, formato y colocación. El proyecto nativo VLYCORE v4 guarda texto Unicode editable, incluidos saltos de línea, y conserva las imágenes editables aprobadas. Los proyectos v1/v2/v3 siguen siendo legibles. Los proyectos que contienen texto editable requieren esta versión o una posterior. Exportar PNG/JPEG u OpenRaster conserva el resultado visible, sin la edición de palabras. Efectos de píxeles, combinar o cambiar dimensiones del documento rasterizan la capa afectada; deshacer recupera sus datos editables.
+          Color del texto abre un selector independiente con rueda/plano, HSV, RGB y alfa. Aceptar o cancelar este selector no modifica los colores del pincel. El tamaño mostrado al reabrir la configuración tiene en cuenta el escalado de los tiradores; aplicar tipografía normaliza la escala vertical para no duplicar el aumento y conserva el estiramiento horizontal.
 
-          Arquitectura modular: components/text/model, rendering y session; core/components/text; puente nativo propio. Caché de glifos generada por franjas fuera de la interfaz, sin un bitmap del tamaño de todo el lienzo. Se mantiene el límite de 6000 px por lado, el límite de 32 capas y la edición de imágenes. APK debug condicionado a compilación y pruebas exactas del motor y de Android. SHA-256 adjunta. Main permanece intacta.
+          Edición y confirmación dibujan los glifos a la resolución correspondiente, sin ampliar la pequeña caché de origen. Las capas de texto usan glifos vectoriales durante la edición con composición de los planos inferiores y superiores. El modo RGB xor y los modos avanzados en Android anterior a 29 conservan el compositor nativo de respaldo. Al confirmar siempre se dibujan glifos en bloques a resolución del documento. Se mantienen texto Unicode editable, guardar/abrir proyecto nativo, deshacer/rehacer, imágenes editables y límite de lienzo de 6000 px por lado. Rango tipográfico 4–6000 px, con validación de los límites del bloque de texto antes de aplicar.
+
+          Arquitectura modular de texto, vistas previas y renderizado. APK debug condicionado a las compilaciones y pruebas exactas del código fuente. SHA-256 adjunta. Rama codex/image-layer-transform: main permanece intacta, pendiente de aprobación del usuario.
 
           NOTES
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Velyntora Core — texto editable por capa" --notes-file notes.md --prerelease
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Velyntora Core — texto nítido y controles visuales" --notes-file notes.md --prerelease
           fi
-          gh release upload "$RELEASE_TAG" Velyntora-Core-Texto-Editable.apk Velyntora-Core-Texto-Editable.apk.sha256 --repo "$GH_REPO" --clobber
+          gh release upload "$RELEASE_TAG" Velyntora-Core-Texto-Nitido.apk Velyntora-Core-Texto-Nitido.apk.sha256 --repo "$GH_REPO" --clobber
