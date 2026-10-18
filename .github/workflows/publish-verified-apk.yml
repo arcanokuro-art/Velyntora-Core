@@ -17,7 +17,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: fa9ea07e3bcd76eb767b9111165ae922197bdf0f
+      VERIFIED_SHA: c892f2af3811bcc6377bee05279d251d6cd37fb8
       RELEASE_TAG: v0.1.0-insertar-imagen-preview
     steps:
       - uses: actions/checkout@v4
@@ -25,7 +25,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 39097574889 39097574875 39097574927; do
+          for run_id in 39097997336 39097997385 39097997329; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "codex/image-layer-transform"' run.json
@@ -42,7 +42,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 39097574889 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 39097997336 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
           cp apk/*.apk Velyntora-Core-Insertar-Imagen.apk
           sha256sum Velyntora-Core-Insertar-Imagen.apk > Velyntora-Core-Insertar-Imagen.apk.sha256
