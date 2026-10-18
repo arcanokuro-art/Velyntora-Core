@@ -15,7 +15,7 @@ extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_native
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativePlacedImageTile(JNIEnv* env,jclass,jint x,jint y,jint w,jint h,jintArray data){
   std::lock_guard<std::mutex> lock(guard);
   if(!placedImage || !data || w<1 || h<1 || std::int64_t(w)*h>1048576 || x<0 || y<0 || std::int64_t(x)+w>placedImage->width() || std::int64_t(y)+h>placedImage->height() || env->GetArrayLength(data)!=std::int64_t(w)*h)return JNI_FALSE;
-  try{std::vector<std::uint32_t> pixels(std::size_t(w)*h);env->GetIntArrayRegion(data,0,pixels.size(),reinterpret_cast<jint*>(pixels.data()));if(env->ExceptionCheck())return JNI_FALSE;placedImage->replaceActiveRegion(pixels,x,y,w,h);return JNI_TRUE;}catch(...){return JNI_FALSE;}
+  try{std::vector<std::uint32_t> pixels(std::size_t(w)*h);env->GetIntArrayRegion(data,0,pixels.size(),reinterpret_cast<jint*>(pixels.data()));if(env->ExceptionCheck())return JNI_FALSE;for(int row=0;row<h;row++)placedImage->writeActiveSpan(std::size_t(y+row)*placedImage->width()+x,w,pixels.data()+std::size_t(row)*w);return JNI_TRUE;}catch(...){return JNI_FALSE;}
 }
 extern "C" JNIEXPORT jboolean JNICALL Java_art_velyntora_core_DrawingView_nativeCommitPlacedImage(JNIEnv*,jclass){
   std::lock_guard<std::mutex> lock(guard);

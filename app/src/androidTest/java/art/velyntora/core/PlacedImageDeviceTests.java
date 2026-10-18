@@ -32,8 +32,20 @@ public final class PlacedImageDeviceTests {
     if(view instanceof ViewGroup group)for(int i=0;i<group.getChildCount();i++){View result=find(group.getChildAt(i),label);if(result!=null)return result;}return null;}
   void event(DrawingView view,long time,int action,float x,float y){MotionEvent e=MotionEvent.obtain(time,time+(action==0?0:20),action,(float)view.readViewport().screenX(x,y),(float)view.readViewport().screenY(x,y),0);try{assertTrue(view.onTouchEvent(e));}finally{e.recycle();}}
   void gesture(float x,float y,float endX,float endY){inst.runOnMainSync(()->{long time=SystemClock.uptimeMillis();DrawingView v=host.readDrawing();event(v,time,0,x,y);event(v,time,2,endX,endY);event(v,time,1,endX,endY);});}
-  void dialogButton(String text){inst.waitForIdleSync();AccessibilityNodeInfo root=inst.getUiAutomation().getRootInActiveWindow();assertNotNull(root);
-    for(AccessibilityNodeInfo node:root.findAccessibilityNodeInfosByText(text))if(text.contentEquals(node.getText())){assertTrue(node.performAction(AccessibilityNodeInfo.ACTION_CLICK));inst.waitForIdleSync();return;}throw new AssertionError("Missing dialog button "+text);}
+  void dialogButton(String text) throws Exception {
+    long deadline=SystemClock.uptimeMillis()+5000;
+    do {
+      inst.waitForIdleSync();AccessibilityNodeInfo root=inst.getUiAutomation().getRootInActiveWindow();
+      if(root!=null && clickText(root,text)){inst.waitForIdleSync();return;}
+      Thread.sleep(50);
+    }while(SystemClock.uptimeMillis()<deadline);
+    throw new AssertionError("Missing dialog button "+text);
+  }
+  boolean clickText(AccessibilityNodeInfo node,String text){
+    if(node.getText()!=null && text.equalsIgnoreCase(node.getText().toString()) && node.isClickable())return node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+    for(int i=0;i<node.getChildCount();i++){AccessibilityNodeInfo child=node.getChild(i);if(child!=null && clickText(child,text))return true;}
+    return false;
+  }
   @Test public void placementGesturesCancelWithoutChangingDocumentAndCropDialogIsIsolated() throws Exception {
     long[] revision={0};inst.runOnMainSync(()->revision[0]=DrawingView.nativeRevision());load(400,300);
     inst.runOnMainSync(()->{PlacedImageSession s=host.readDrawing().placedImage();assertTrue(s.active());assertEquals(1,host.readDrawing().layerCount());assertEquals(revision[0],DrawingView.nativeRevision());});
