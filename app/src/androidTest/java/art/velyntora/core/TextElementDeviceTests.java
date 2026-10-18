@@ -55,4 +55,12 @@ public final class TextElementDeviceTests {
     apply(new TextSpec("a\n".repeat(1000),256,Color.BLACK,0,0,400),false);
     p.inst.runOnMainSync(()->{assertFalse(session().active());assertEquals(1,p.host.readDrawing().layerCount());});
   }
+  @Test public void textToolCanAddWritingOverAnExistingImage()throws Exception {
+    p.load(400,300);p.confirmImage();p.inst.runOnMainSync(()->p.host.readDrawing().setTool(DrawingView.TEXT));p.gesture(400,400,400,400);p.inst.waitForIdleSync();
+    android.view.accessibility.AccessibilityNodeInfo root=p.inst.getUiAutomation().getRootInActiveWindow();assertNotNull(root);assertTrue(hasDescription(root,"Contenido del texto"));assertFalse(session().active());p.dialogButton("Cancelar");assertEquals(2,DrawingView.nativeLayerCount());assertNull(TextSpec.read(1));
+  }
+  boolean hasDescription(android.view.accessibility.AccessibilityNodeInfo node,String description){
+    if(description.contentEquals(node.getContentDescription()==null?"":node.getContentDescription()))return true;
+    for(int i=0;i<node.getChildCount();i++){android.view.accessibility.AccessibilityNodeInfo child=node.getChild(i);if(child!=null && hasDescription(child,description))return true;}return false;
+  }
 }

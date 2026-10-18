@@ -70,6 +70,7 @@ final class PlacedImageSession {
   void applyText(TextSpec next,int x,int y,boolean editing){TextLayerEditing.apply(this,next,x,y,editing);}
   boolean tapExisting(float x,float y){
     int index=drawing.activeLayer();if(!DrawingView.nativeLayerIsImage(index))return false;
+    if(drawing.currentTool()==DrawingView.TEXT && DrawingView.nativeTextStyle(index)==null)return false;
     float[] values=DrawingView.nativeImageTransform(index);if(values==null)return false;
     PlacedImageTransform t=new PlacedImageTransform(1,1,1,1);t.restore(values);
     if(!t.contains(x,y))return false;edit(index);return true;
