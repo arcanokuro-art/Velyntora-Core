@@ -18,7 +18,7 @@ final class PlacedImageControls {
     opacity=new SeekBar(host);opacity.setMax(100);opacity.setContentDescription("Opacidad de imagen insertada");row.addView(opacity,new LinearLayout.LayoutParams(host.dp(120),host.dp(48)));
     opacity.setOnTouchListener((v,e)->{v.getParent().requestDisallowInterceptTouchEvent(true);return false;});
     opacity.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
-      public void onProgressChanged(SeekBar s,int value,boolean user){if(!syncing && session.active()){session.state.opacity=value/100f;opacityLabel.setText("Opacidad: "+value+" %");host.readDrawing().invalidate();}}
+      public void onProgressChanged(SeekBar s,int value,boolean user){if(!syncing && session.active()){session.state.opacity=value/100f;opacityLabel.setText("Opacidad: "+value+" %");session.notifyChanged();}}
       public void onStartTrackingTouch(SeekBar s){session.remember();}
       public void onStopTrackingTouch(SeekBar s){s.getParent().requestDisallowInterceptTouchEvent(false);}
     });

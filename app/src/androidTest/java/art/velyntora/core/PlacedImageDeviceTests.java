@@ -93,4 +93,47 @@ public final class PlacedImageDeviceTests {
     }
     PlacedImageTransform t=new PlacedImageTransform(400,300,800,800);float[] point={100,100};t.matrix().mapPoints(point);t.cropTo(new RectF(100,50,350,275));float[] after={100,100};t.matrix().mapPoints(after);assertArrayEquals(point,after,.001f);
   }
+
+  void confirmImage() throws Exception {inst.runOnMainSync(()->host.readDrawing().placedImage().confirm());LargeImportResponsivenessTests.waitResponsive(inst,host);inst.runOnMainSync(()->assertFalse(host.readDrawing().placedImage().active()));}
+  void editImage(int index) throws Exception {inst.runOnMainSync(()->host.readDrawing().placedImage().edit(index));LargeImportResponsivenessTests.waitResponsive(inst,host);inst.runOnMainSync(()->assertEquals(index,host.readDrawing().placedImage().editingIndex));}
+  void waitPreview() throws Exception {
+    long deadline=SystemClock.uptimeMillis()+10000;boolean[] ready={false};
+    do{inst.runOnMainSync(()->{PlacedImageElementEditor e=host.readDrawing().placedImage().editor;ready[0]=e!=null && e.frame!=null && !e.running;});if(ready[0])return;Thread.sleep(30);}while(SystemClock.uptimeMillis()<deadline);
+    fail("Image preview did not settle");
+  }
+  @Test public void confirmedImageReopensResizesRotatesAndCancelKeepsOriginal() throws Exception {
+    load(400,300);confirmImage();float[] original=DrawingView.nativeImageTransform(1);long revision=DrawingView.nativeRevision();assertTrue(DrawingView.nativeLayerIsImage(1));
+    // Select again by tapping the image itself after confirmation.
+    inst.runOnMainSync(()->{DrawingView v=host.readDrawing();long t=SystemClock.uptimeMillis();event(v,t,0,400,400);});LargeImportResponsivenessTests.waitResponsive(inst,host);waitPreview();
+    gesture(600,550,650,587.5f);
+    inst.runOnMainSync(()->{PlacedImageSession s=host.readDrawing().placedImage();assertEquals(450,s.state.width,.1);assertEquals(337.5,s.state.height,.1);s.rotate();assertEquals(90,s.state.angle,.1);s.cropTo(new RectF(50,25,350,275));s.state.opacity=.4f;s.notifyChanged();});waitPreview();
+    inst.runOnMainSync(()->{PlacedImageSession s=host.readDrawing().placedImage();s.cancel();assertEquals(2,host.readDrawing().layerCount());assertEquals(revision,DrawingView.nativeRevision());assertArrayEquals(original,DrawingView.nativeImageTransform(1),.001f);});
+  }
+  @Test public void reeditingReplacesSameLayerAndHistoryRestoresEditableTransform() throws Exception {
+    load(400,300);confirmImage();float[] original=DrawingView.nativeImageTransform(1);
+    editImage(1);gesture(400,400,500,450);
+    inst.runOnMainSync(()->{PlacedImageSession s=host.readDrawing().placedImage();s.cropTo(new RectF(50,25,350,275));s.rotate();s.state.opacity=.45f;s.notifyChanged();});confirmImage();
+    float[] changed=DrawingView.nativeImageTransform(1);assertNotEquals(original[4],changed[4],.01);assertEquals(2,DrawingView.nativeLayerCount());assertEquals(.45f,DrawingView.nativeIndexedLayerOpacity(1),.001);
+    inst.runOnMainSync(host::undo);LargeImportResponsivenessTests.waitResponsive(inst,host);assertArrayEquals(original,DrawingView.nativeImageTransform(1),.001f);assertEquals(2,DrawingView.nativeLayerCount());
+    inst.runOnMainSync(host::redo);LargeImportResponsivenessTests.waitResponsive(inst,host);assertArrayEquals(changed,DrawingView.nativeImageTransform(1),.001f);editImage(1);
+    inst.runOnMainSync(()->{assertEquals(.45f,host.readDrawing().placedImage().state.opacity,.001);host.readDrawing().placedImage().cancel();});
+  }
+  @Test public void projectReopenRetainsSourceAndCanRestoreAnEarlierCrop() throws Exception {
+    load(400,300);inst.runOnMainSync(()->host.readDrawing().placedImage().cropTo(new RectF(100,50,300,250)));confirmImage();
+    File project=new File(host.getCacheDir(),"editable-image.vly");
+    try{
+      try(android.os.ParcelFileDescriptor fd=android.os.ParcelFileDescriptor.open(project,android.os.ParcelFileDescriptor.MODE_CREATE|android.os.ParcelFileDescriptor.MODE_TRUNCATE|android.os.ParcelFileDescriptor.MODE_WRITE_ONLY)){assertTrue(DrawingView.nativeSaveProject(fd.getFd()));}
+      input.delete();inst.runOnMainSync(()->assertTrue(host.readDrawing().newDocument(64,64)));
+      try(android.os.ParcelFileDescriptor fd=android.os.ParcelFileDescriptor.open(project,android.os.ParcelFileDescriptor.MODE_READ_ONLY)){assertTrue(DrawingView.nativeOpenProject(fd.getFd()));}
+      inst.runOnMainSync(()->host.readDrawing().projectOpened());assertTrue(DrawingView.nativeLayerIsImage(1));editImage(1);
+      inst.runOnMainSync(()->{PlacedImageSession s=host.readDrawing().placedImage();assertEquals(400,s.source.size.displayWidth());assertEquals(new RectF(100,50,300,250),s.state.crop);s.cropTo(new RectF(0,0,400,300));});confirmImage();editImage(1);
+      inst.runOnMainSync(()->{assertEquals(new RectF(0,0,400,300),host.readDrawing().placedImage().state.crop);host.readDrawing().placedImage().cancel();});
+    }finally{project.delete();}
+  }
+  @Test public void editPreviewPreservesUpperLayerOrderAndBlendAndOpacity() throws Exception {
+    load(400,300);confirmImage();
+    inst.runOnMainSync(()->{assertTrue(DrawingView.nativeAddLayer());assertTrue(DrawingView.nativeLayerProperties(2,"Capa superior",true,.5f,1));host.readDrawing().setTool(DrawingView.BRUSH);host.readDrawing().setColor(0xff123456);host.readDrawing().setBrushRadius(30);});
+    gesture(400,400,400,400);int expected=DrawingView.nativeRegionPixels(400,400,1,1)[0];editImage(1);waitPreview();
+    inst.runOnMainSync(()->{PlacedImageElementEditor e=host.readDrawing().placedImage().editor;int actual=e.frame.getPixel(400/e.sample,400/e.sample);for(int shift:new int[]{0,8,16,24})assertTrue("Preview layer order",Math.abs((actual>>>shift&255)-(expected>>>shift&255))<=4);host.readDrawing().placedImage().cancel();});
+  }
 }

@@ -27,7 +27,7 @@ final class PlacedImageSource implements AutoCloseable {
     File file=File.createTempFile("placed-image-",".source",host.getCacheDir());Bitmap preview=null;
     try{
       try(InputStream in=host.getContentResolver().openInputStream(uri);OutputStream out=new FileOutputStream(file)){
-        if(in==null)throw new IOException("No se puede leer la imagen");byte[] buffer=new byte[65536];int count;while((count=in.read(buffer))!=-1)out.write(buffer,0,count);
+        if(in==null)throw new IOException("No se puede leer la imagen");byte[] buffer=new byte[65536];int count;long total=0;while((count=in.read(buffer))!=-1){total+=count;if(total>256L*1024*1024)throw new IOException("Imagen mayor al límite de archivo");out.write(buffer,0,count);}
       }
       ImageImportSize size=RegionImageImporter.probe(host,Uri.fromFile(file));
       // Validate region decoding before opening an editable session.

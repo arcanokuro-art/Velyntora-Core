@@ -15,6 +15,8 @@ final class PlacedImageSession {
   volatile PlacedImageSource loading;
   PlacedImageTransform state;
   boolean keepRatio=true;
+  int editingIndex=-1;
+  PlacedImageElementEditor editor;
   Runnable changed;
   private final ArrayDeque<PlacedImageTransform> undo=new ArrayDeque<>(),redo=new ArrayDeque<>();
   private PlacedImageTransform dragStart;
@@ -24,7 +26,7 @@ final class PlacedImageSession {
   PlacedImageSession(DrawingView drawing){this.drawing=drawing;}
   boolean active(){return source!=null;}
   MainActivity host(){return (MainActivity)drawing.getContext();}
-  void notifyChanged(){drawing.invalidate();if(changed!=null)changed.run();}
+  void notifyChanged(){if(editor!=null)editor.request();drawing.invalidate();if(changed!=null)changed.run();}
   void pick(){
     if(active() || host().readProjectProgress()!=null)return;
     Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT);intent.addCategory(Intent.CATEGORY_OPENABLE);intent.setType("image/*");
@@ -46,9 +48,28 @@ final class PlacedImageSession {
   void begin(PlacedImageSource ready){
     if(host().isDestroyed()){ready.close();return;}
     if(drawing.layerCount()>=32){ready.close();host().message("Se alcanzó el límite de capas");return;}
-    source=ready;state=new PlacedImageTransform(ready.size.displayWidth(),ready.size.displayHeight(),drawing.documentWidth(),drawing.documentHeight());
+    editingIndex=-1;source=ready;state=new PlacedImageTransform(ready.size.displayWidth(),ready.size.displayHeight(),drawing.documentWidth(),drawing.documentHeight());
     undo.clear();redo.clear();drawing.requestFocus();notifyChanged();host().refreshLayerPanel();
   }
+  void edit(int index){
+    if(active() || host().readProjectProgress()!=null || !DrawingView.nativeLayerIsImage(index))return;
+    PlacedImageElementEditor.Prepared[] ready={null};
+    LayerWorkQueue.run(host(),()->{
+      try{ready[0]=PlacedImageElementEditor.prepare(host(),index);return true;}
+      catch(Exception|OutOfMemoryError error){DrawingView.nativeCloseImageEdit();return false;}
+    },false,"Abriendo imagen editable…","No se pudo abrir la imagen editable",()->{
+      if(host().isDestroyed()){ready[0].source.close();DrawingView.nativeCloseImageEdit();return;}
+      source=ready[0].source;state=new PlacedImageTransform(source.size.displayWidth(),source.size.displayHeight(),drawing.documentWidth(),drawing.documentHeight());state.restore(ready[0].transform);state.opacity=ready[0].opacity;
+      editingIndex=index;undo.clear();redo.clear();editor=new PlacedImageElementEditor(this,ready[0].preview);drawing.deselect();drawing.requestFocus();notifyChanged();host().refreshLayerPanel();
+    },()->{if(host().isDestroyed() && ready[0]!=null){ready[0].source.close();DrawingView.nativeCloseImageEdit();}});
+  }
+  boolean tapExisting(float x,float y){
+    int index=drawing.activeLayer();if(!DrawingView.nativeLayerIsImage(index))return false;
+    float[] values=DrawingView.nativeImageTransform(index);if(values==null)return false;
+    PlacedImageTransform t=new PlacedImageTransform(1,1,1,1);t.restore(values);
+    if(!t.contains(x,y))return false;edit(index);return true;
+  }
+  boolean drawBase(Canvas canvas){return editor!=null && editor.draw(canvas);}
   void remember(){if(active()){undo.addLast(state.copy());redo.clear();}}
   void undo(){if(!active() || undo.isEmpty())return;redo.addLast(state.copy());state=undo.removeLast();notifyChanged();}
   void redo(){if(!active() || redo.isEmpty())return;undo.addLast(state.copy());state=redo.removeLast();notifyChanged();}
@@ -56,10 +77,11 @@ final class PlacedImageSession {
   void cropTo(RectF rect){if(!active() || rect.width()<1 || rect.height()<1)return;remember();state.cropTo(rect);notifyChanged();}
   void cancel(){if(committing || host().readProjectProgress()!=null)return;clear();}
   private void clear(){
+    if(editor!=null){editor.close();editor=null;}editingIndex=-1;
     if(source!=null)source.close();source=null;state=null;dragStart=null;undo.clear();redo.clear();
     notifyChanged();host().syncToolState();if(!host().isDestroyed())host().refreshLayerPanel();
   }
-  void dispose(){if(!committing){if(source!=null)source.close();source=null;if(loading!=null)loading.close();loading=null;}}
+  void dispose(){if(editor!=null){editor.close();editor=null;}if(!committing){if(source!=null)source.close();source=null;if(loading!=null)loading.close();loading=null;}}
   boolean key(int code,android.view.KeyEvent event){
     if(!active())return false;
     if(host().readProjectProgress()!=null)return true;
@@ -107,7 +129,7 @@ final class PlacedImageSession {
         w=Math.min(24000,w);h=Math.min(24000,h);float shiftX=hx*(w-dragStart.width)/2,shiftY=hy*(h-dragStart.height)/2;
         state.cx=dragStart.cx+(float)(shiftX*c-shiftY*s);state.cy=dragStart.cy+(float)(shiftX*s+shiftY*c);state.width=w;state.height=h;
       }
-      drawing.invalidate();
+      if(editor!=null)editor.request();drawing.invalidate();
       if(action==MotionEvent.ACTION_UP){
         if(handle!=-3 && (Math.abs(x-startX)>0.01 || Math.abs(y-startY)>0.01)){undo.addLast(dragStart);redo.clear();}
         dragStart=null;drawing.getParent().requestDisallowInterceptTouchEvent(false);notifyChanged();
@@ -118,8 +140,8 @@ final class PlacedImageSession {
   }
   void draw(Canvas canvas,float scale){
     if(!active())return;Paint image=new Paint(Paint.FILTER_BITMAP_FLAG);image.setAlpha(Math.round(state.opacity*255));
-    canvas.save();canvas.concat(state.matrix());canvas.clipRect(state.crop);
-    canvas.drawBitmap(source.preview,null,new RectF(0,0,source.size.displayWidth(),source.size.displayHeight()),image);canvas.restore();
+    if(editor==null){canvas.save();canvas.concat(state.matrix());canvas.clipRect(state.crop);
+    canvas.drawBitmap(source.preview,null,new RectF(0,0,source.size.displayWidth(),source.size.displayHeight()),image);canvas.restore();}
     float[] p=state.handles();Paint frame=new Paint(Paint.ANTI_ALIAS_FLAG);frame.setColor(0xFF80CBC4);frame.setStrokeWidth(1.5f/scale);frame.setStyle(Paint.Style.STROKE);
     Path border=new Path();border.moveTo(p[0],p[1]);for(int i:new int[]{2,4,6})border.lineTo(p[i*2],p[i*2+1]);border.close();canvas.drawPath(border,frame);
     float radius=5*drawing.getResources().getDisplayMetrics().density/scale;frame.setStyle(Paint.Style.FILL);
@@ -138,13 +160,14 @@ final class PlacedImageSession {
     LayerWorkQueue.run(host(),()->{
       BitmapRegionDecoder decoder=null;
       try{
-        if(!DrawingView.nativeBeginPlacedImage(original.name,transform.opacity))return false;
+        if(!(editingIndex>=0?DrawingView.nativeBeginPlacedImageEdit(editingIndex,transform.opacity):DrawingView.nativeBeginPlacedImage(original.name,transform.opacity)))return false;
         decoder=BitmapRegionDecoder.newInstance(original.file.getPath(),false);if(decoder==null)return false;
         for(int y=bounds.top;y<bounds.bottom;y+=256)for(int x=bounds.left;x<bounds.right;x+=256){
           Rect tile=new Rect(x,y,Math.min(bounds.right,x+256),Math.min(bounds.bottom,y+256));Bitmap pixels=original.tile(decoder,transform,tile);
           try{int[] data=new int[tile.width()*tile.height()];pixels.getPixels(data,0,tile.width(),0,0,tile.width(),tile.height());if(!DrawingView.nativePlacedImageTile(tile.left,tile.top,tile.width(),tile.height(),data))return false;}
           finally{pixels.recycle();}
         }
+        if(!DrawingView.nativePlacedImageElement(original.file.getPath(),transform.values()))return false;
         committed[0]=DrawingView.nativeCommitPlacedImage();return committed[0];
       }catch(Exception|OutOfMemoryError error){return false;}
       finally{if(decoder!=null)decoder.recycle();DrawingView.nativeCancelPlacedImage();}

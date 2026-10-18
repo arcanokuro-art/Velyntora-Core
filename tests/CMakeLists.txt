@@ -76,3 +76,7 @@ add_test(NAME antialiased_brush_tests COMMAND antialiased_brush_tests)
 add_executable(history_archive_tests history_archive_tests.cpp)
 target_link_libraries(history_archive_tests PRIVATE velyntora_engine)
 add_test(NAME history_archive_tests COMMAND history_archive_tests)
+
+add_executable(image_element_tests image_element_tests.cpp)
+target_link_libraries(image_element_tests PRIVATE velyntora_engine)
+add_test(NAME image_element_tests COMMAND image_element_tests)

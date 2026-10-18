@@ -221,10 +221,19 @@
     "nativeAcceptImageImport": "d2e1bc89f144b7888399460d63be59cf00eb95fb286191172355b12e22f7377f",
     "nativeFillSelectionWorker": "fba9f2c22d62d6b39e070e452e07dc9f68cbe8985fbb40cbea8ff86ceeabd867",
     "nativeHistoryAvailability": "33568a92fb32e3c905c1ef88baeb301728bb8ffcc7487c5a44bd867fc196898b",
-    "nativeBeginPlacedImage": "299fffbbe5bb16cdee0d701caf9cfeaa485d1c7f972ba26e079db5c811c43106",
+    "nativeBeginPlacedImage": "ada33c54539d011ee2bd09ae7a016db96a9becadd2d31cd24f5045d79e228b4d",
     "nativePlacedImageTile": "5a993f34e4bf35464c6933f05cd4c9e724d3d5519745f66b4aa31eccec135e9d",
-    "nativeCommitPlacedImage": "fb2c1239c8fd707a557023be311249ef9c705c535a5eae210cc908f71fe1472a",
-    "nativeCancelPlacedImage": "f49962bfdcfde0025e2b48361bc6d89858a0519f11766e35321e555442a15847"
+    "nativeCommitPlacedImage": "95a497a5dd5122c2f2b9ff747be6e6a758dc95e8b8733cb8da4e2ac1f25beb7e",
+    "nativeCancelPlacedImage": "ccced66072eaa8dd17b7b5a6e3d5ebf6add9b8c0e01e82cf6531bda9cb14017e",
+    "nativeImageStorage": "350fb9798b73b9781c70edb978d96fa9546371d00a6000c92ea9afd57f737282",
+    "nativeLayerIsImage": "4ef660ba2ac335d78793f913e845735bc2837b36044659959b660e69cec57cfe",
+    "nativeImageTransform": "b801e752cd0e11ed581453e437b2290fcdb1cc1e28f19987e09a7cfdb26d8c6a",
+    "nativeBeginPlacedImageEdit": "7d5d85bccc3657e08c7e59bb413d832967ca5f28628f61a7bf065f760b2d0868",
+    "nativePlacedImageElement": "9ce773e6cfee03d2f3d279c696450e710c4a44ccdf3b6251cc064641b0b2b286",
+    "nativePrepareImageEdit": "a49ad4589116ff47fe58d45f907d4532ee507eaa264c069578be0b011bdffff2",
+    "nativeComposeImageEdit": "642d5184d10c2f03e0908cc3e92200bfa2adbe729339fade84c9bd6b6e701734",
+    "nativeCloseImageEdit": "08d2e02ae4f8831cfcfa8d9b235f46fba37ff1a5beb25a1fceb5de3315ad0ff4",
+    "nativeRasterizeImage": "02e1a58fd555693d1c6aca1c8afa411665262fee4779cbc6e4b0bf9f8cb421b6"
   },
   "session": "117c721239248c8dee7708db972cda2c14d6047a1138dbd1d0cac424f5a2b3b7"
 }

@@ -5,7 +5,7 @@ import art.velyntora.core.document.CanvasLimits;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 
-/** Portable streamed adapter for the native VLYCORE v2 project format (reads v1 and v2). */
+/** Portable streamed adapter for the native VLYCORE v2 project format (reads v1/v2 and the raster result of v3 image elements). */
 final class VlyProjectStream {
   static final byte[] MAGIC = {'V', 'L', 'Y', 'C', 'O', 'R', 'E', 2};
 
@@ -57,7 +57,7 @@ final class VlyProjectStream {
       byte[] magic = new byte[8];
       in.readFully(magic);
       version=magic[7];magic[7]=2;
-      if ((version!=1&&version!=2)||!java.util.Arrays.equals(magic, MAGIC)) throw new IOException("Proyecto incompatible");
+      if ((version!=1&&version!=2&&version!=3)||!java.util.Arrays.equals(magic, MAGIC)) throw new IOException("Proyecto incompatible");
       width = integer(in);
       height = integer(in);
       count = integer(in);
@@ -81,6 +81,15 @@ final class VlyProjectStream {
       if(mode<0||mode>15)throw new IOException("Mezcla inválida");
       int[] pixels = new int[width * height];
       for (int i = 0; i < pixels.length; i++) pixels[i] = integer(in);
+      if(version>=3){
+        int has=integer(in);if(has<0 || has>1)throw new IOException("Elemento inválido");
+        if(has==1){
+          float[] t=new float[9];for(int i=0;i<9;i++){t[i]=Float.intBitsToFloat(integer(in));if(Float.isNaN(t[i]) || Float.isInfinite(t[i]) || Math.abs(t[i])>1000000)throw new IOException("Transformación inválida");}
+          if(t[0]<0 || t[1]<0 || t[2]<=t[0] || t[3]<=t[1] || t[2]>6000 || t[3]>6000 || t[6]<1 || t[7]<1 || t[6]>24000 || t[7]>24000)throw new IOException("Transformación inválida");
+          int bytes=integer(in);if(bytes<1 || bytes>256*1024*1024)throw new IOException("Fuente inválida");
+          byte[] buffer=new byte[65536];while(bytes>0){int n=Math.min(bytes,buffer.length);in.readFully(buffer,0,n);bytes-=n;}
+        }
+      }
       index++;
       return new Layer(new String(name, StandardCharsets.UTF_8), visibility == 1, opacity, pixels,mode);
     }

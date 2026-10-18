@@ -144,11 +144,13 @@ bool LayerDocument::setOpacity(std::size_t index, float opacity) {
 }
 void LayerDocument::replaceActivePixels(const tiles::LayerPixels& pixels){
   if(pixels.size()!=std::size_t(width_)*height_)throw std::invalid_argument("Layer dimensions");
+  if(layers_[active_].image && !(layers_[active_].pixels==pixels))layers_[active_].image.reset();
   layers_[active_].pixels=pixels;
 }
 void LayerDocument::replaceActivePixels(const std::vector<std::uint32_t>& pixels) {
   if (pixels.size() != layers_[active_].pixels.size())
     throw std::invalid_argument("Pixel count mismatch");
+  if(layers_[active_].image && !(layers_[active_].pixels==pixels))layers_[active_].image.reset();
   layers_[active_].pixels = pixels;
 }
 std::vector<std::uint32_t> LayerDocument::flatten() const {
@@ -174,6 +176,7 @@ void LayerDocument::replaceActiveRegion(const std::vector<std::uint32_t>& pixels
                                          int x, int y, int w, int h) {
   if (pixels.size()!=std::size_t(width_)*height_ || x<0 || y<0 || w<=0 || h<=0
       || x>width_-w || y>height_-h) throw std::invalid_argument("Invalid region");
+  layers_[active_].image.reset();
   auto& target=layers_[active_].pixels;
   for (int row=y;row<y+h;row++) {
     const auto offset=std::size_t(row)*width_+x;
@@ -223,6 +226,7 @@ bool LayerDocument::mergeDown(){
      lower.pixels.writeSpan(at,n,bottom.data());
    }
  }
+ lower.image.reset();
  lower.opacity=1;lower.visible=true;lower.blendMode=0;
  layers_.erase(layers_.begin()+active_);--active_;return true;
 }

@@ -7,6 +7,8 @@
 #include "velyntora/Canvas.hpp"
 #include "../../document/tiles/LayerPixels.hpp"
 
+#include "../../components/images/ImageElement.hpp"
+
 namespace velyntora {
 struct Layer {
   std::string name;
@@ -14,6 +16,7 @@ struct Layer {
   bool visible = true;
   float opacity = 1.f;
   int blendMode = 0;
+  std::shared_ptr<const images::Element> image;
 };
 class LayerDocument {
  public:
@@ -45,7 +48,8 @@ class LayerDocument {
   void replaceActivePixels(const std::vector<std::uint32_t>& pixels);
   void replaceActivePixels(const tiles::LayerPixels& pixels);
   void replaceActivePixels(std::initializer_list<std::uint32_t> pixels){replaceActivePixels(std::vector<std::uint32_t>(pixels));}
-  void writeActiveSpan(std::size_t offset,std::size_t count,const std::uint32_t* input){layers_[active_].pixels.writeSpan(offset,count,input);}
+  void writeActiveSpan(std::size_t offset,std::size_t count,const std::uint32_t* input){layers_[active_].image.reset();layers_[active_].pixels.writeSpan(offset,count,input);}
+  void setActiveImage(std::shared_ptr<const images::Element> image){if(image && !image->valid())throw std::invalid_argument("Invalid image element");layers_[active_].image=std::move(image);}
   std::vector<std::uint32_t> flatten() const;
   void replaceActiveRegion(const std::vector<std::uint32_t>& pixels, int x, int y, int w, int h);
   std::vector<std::uint32_t> flattenRegion(int x, int y, int w, int h) const;

@@ -11,7 +11,7 @@ namespace velyntora {
 namespace {
 constexpr std::size_t maxLayers = 32, maxName = 4096;
 constexpr std::uint64_t maxPixels = limits::maxDocumentPixels * maxLayers;
-constexpr std::array<unsigned char, 8> magic = {'V', 'L', 'Y', 'C', 'O', 'R', 'E', 2};
+constexpr std::array<unsigned char, 8> magic = {'V', 'L', 'Y', 'C', 'O', 'R', 'E', 3};
 void put(const ProjectWrite& write, std::uint32_t value) {
   unsigned char b[4];
   for (int i = 0; i < 4; ++i) b[i] = static_cast<unsigned char>(value >> (8 * i));
@@ -34,7 +34,8 @@ void writeProject(const LayerDocument& doc, const ProjectWrite& write) {
   dimensions(doc.width(), doc.height(), doc.layerCount());
   for (std::size_t i = 0; i < doc.layerCount(); ++i)
     if (doc.layer(i).name.size() > maxName) throw std::invalid_argument("Layer name too long");
-  write(magic.data(), magic.size());
+  bool extended=false;for(std::size_t i=0;i<doc.layerCount();i++)extended=extended || bool(doc.layer(i).image);
+  auto signature=magic;if(!extended)signature[7]=2;write(signature.data(),signature.size());
   put(write, doc.width());
   put(write, doc.height());
   put(write, doc.layerCount());
@@ -55,14 +56,20 @@ void writeProject(const LayerDocument& doc, const ProjectWrite& write) {
           block[p * 4 + b] = static_cast<unsigned char>(decoded[p] >> (8 * b));
       write(block.data(), count * 4);
     }
+    if(extended)put(write,layer.image?1:0);
+    if(layer.image){
+      if(!layer.image->valid())throw std::invalid_argument("Invalid image element");
+      for(float v:layer.image->transform)put(write,std::bit_cast<std::uint32_t>(v));
+      put(write,layer.image->source->bytes);layer.image->source->write(write);
+    }
   }
 }
 LayerDocument readProject(const ProjectRead& read, int requiredWidth, int requiredHeight,
                           std::uint64_t maxDocumentPixels) {
   std::array<unsigned char, 8> signature{};
   read(signature.data(), signature.size());
-  const auto version=signature[7]; signature[7]=2;
-  if (signature != magic || (version!=1 && version!=2)) throw std::invalid_argument("Unsupported project format");
+  const auto version=signature[7]; signature[7]=3;
+  if (signature != magic || (version!=1 && version!=2 && version!=3)) throw std::invalid_argument("Unsupported project format");
   auto w = get(read), h = get(read), count = get(read), active = get(read);
   dimensions(w, h, count);
   if (std::uint64_t(w) * h > maxDocumentPixels || active >= count ||
@@ -104,6 +111,14 @@ LayerDocument readProject(const ProjectRead& read, int requiredWidth, int requir
       pixels.writeSpan(offset,n,decoded.data());
     }
     doc.replaceActivePixels(pixels);
+    if(version>=3){
+      auto has=get(read);if(has>1)throw std::invalid_argument("Image element flag");
+      if(has){auto image=std::make_shared<images::Element>();
+        for(float& v:image->transform)v=std::bit_cast<float>(get(read));
+        auto length=get(read);image->source=std::make_shared<images::Source>(length,read);
+        doc.setActiveImage(std::move(image));
+      }
+    }
   }
   doc.selectLayer(active);
   return doc;

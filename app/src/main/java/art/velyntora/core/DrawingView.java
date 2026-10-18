@@ -22,6 +22,15 @@ public final class DrawingView extends View {
 
   static native float nativeIndexedLayerOpacity(int index);
   static native boolean nativeBeginPlacedImage(String name,float opacity);
+  static native void nativeImageStorage(String directory);
+  static native boolean nativeLayerIsImage(int index);
+  static native float[] nativeImageTransform(int index);
+  static native boolean nativeBeginPlacedImageEdit(int index,float opacity);
+  static native boolean nativePlacedImageElement(String path,float[] transform);
+  static native int[] nativePrepareImageEdit(int index,int fd);
+  static native int[] nativeComposeImageEdit(int[] moving,float opacity);
+  static native void nativeCloseImageEdit();
+  static native boolean nativeRasterizeImage(int index);
   static native boolean nativePlacedImageTile(int x,int y,int width,int height,int[] pixels);
   static native boolean nativeCommitPlacedImage();
   static native void nativeCancelPlacedImage();
@@ -692,6 +701,7 @@ public final class DrawingView extends View {
     super(context);
     fillHost=new java.lang.ref.WeakReference<>(this);
     nativeHistoryDirectory(context.getCacheDir().getAbsolutePath());
+    nativeImageStorage(context.getCacheDir().getAbsolutePath());
     opacityPreferences();
     brushOpacity = toolOpacities.get(tool) / 100f;
     setContentDescription(

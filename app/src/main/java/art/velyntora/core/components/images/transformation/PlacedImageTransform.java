@@ -11,6 +11,8 @@ final class PlacedImageTransform {
     float fit=Math.min(1,Math.min(canvasW*.75f/w,canvasH*.75f/h));width=w*fit;height=h*fit;
   }
   PlacedImageTransform copy(){PlacedImageTransform t=new PlacedImageTransform(1,1,1,1);t.crop=new RectF(crop);t.cx=cx;t.cy=cy;t.width=width;t.height=height;t.angle=angle;t.opacity=opacity;return t;}
+  float[] values(){return new float[]{crop.left,crop.top,crop.right,crop.bottom,cx,cy,width,height,angle};}
+  void restore(float[] v){if(v==null || v.length!=9)throw new IllegalArgumentException("Image transform");crop=new RectF(v[0],v[1],v[2],v[3]);cx=v[4];cy=v[5];width=v[6];height=v[7];angle=v[8];}
   Matrix matrix(){
     Matrix m=new Matrix();m.setTranslate(-crop.centerX(),-crop.centerY());
     m.postScale(width/crop.width(),height/crop.height());m.postRotate(angle);m.postTranslate(cx,cy);return m;

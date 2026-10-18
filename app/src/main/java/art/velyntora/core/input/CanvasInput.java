@@ -99,6 +99,7 @@ final class CanvasInput {
     float x = (float) host.readViewport().documentX(event.getX(), event.getY());
     float y = (float) host.readViewport().documentY(event.getX(), event.getY());
     if(host.placedImage().active())return host.placedImage().touch(event,x,y);
+    if(action==MotionEvent.ACTION_DOWN && host.placedImage().tapExisting(x,y))return true;
     host.updateCursor(x, y);
     switch (event.getActionMasked()) {
       case MotionEvent.ACTION_DOWN:

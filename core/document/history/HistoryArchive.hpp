@@ -6,6 +6,8 @@
 namespace velyntora::history {
 class HistoryArchive {
   std::shared_ptr<HistoryFile> file_;
+  std::vector<std::shared_ptr<const images::Element>> images_;
+  std::map<const images::Element*,std::uint64_t> imageIds_;
   struct Writer {
     std::vector<std::uint8_t> bytes;
     template<class T> void put(T value){auto p=reinterpret_cast<const std::uint8_t*>(&value);bytes.insert(bytes.end(),p,p+sizeof(T));}
@@ -25,6 +27,9 @@ class HistoryArchive {
     for(std::size_t i=0;i<document.layerCount();++i) {
       const auto& layer=document.layer(i);auto saved=layer.pixels.archive(file_);
       out.text(layer.name);out.put(std::uint8_t(layer.visible));out.put(layer.opacity);out.put(layer.blendMode);
+      std::uint64_t imageId=0;
+      if(layer.image){auto [it,added]=imageIds_.emplace(layer.image.get(),images_.size()+1);if(added)images_.push_back(layer.image);imageId=it->second;}
+      out.put(imageId);
       out.put(saved.size);out.put(saved.background);out.put(std::uint64_t(saved.blocks.size()));
       for(const auto& block:saved.blocks){out.put(block.key);out.put(block.offset);}
     }
@@ -38,6 +43,7 @@ class HistoryArchive {
     std::vector<Layer> layers;layers.reserve(count);
     for(std::uint64_t i=0;i<count;++i) {
       Layer layer;layer.name=in.text();layer.visible=in.get<std::uint8_t>();layer.opacity=in.get<float>();layer.blendMode=in.get<int>();
+      auto imageId=in.get<std::uint64_t>();if(imageId>images_.size())throw std::runtime_error("History image");if(imageId)layer.image=images_[imageId-1];
       tiles::LayerPixels::Archived saved; saved.size=in.get<std::uint64_t>();saved.background=in.get<std::uint32_t>();
       auto blocks=in.get<std::uint64_t>();if(blocks>(saved.size+4095)/4096)throw std::runtime_error("History blocks");
       saved.blocks.reserve(blocks);
