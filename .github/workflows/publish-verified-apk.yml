@@ -17,15 +17,15 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: 1868f03eb096b4a37621ed962f09110855b8005e
-      RELEASE_TAG: v0.1.0-texto-nitido-preview
+      VERIFIED_SHA: bce4035af9617009cc2190ba4c772ba17257b545
+      RELEASE_TAG: v0.1.0-guias-alineacion-preview
     steps:
       - uses: actions/checkout@v4
       - name: Require exact source builds and tests
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 39164402279 39164402229 39164402220; do
+          for run_id in 39186888417 39186888403 39186888318; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "codex/image-layer-transform"' run.json
@@ -42,10 +42,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 39164402279 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 39186888417 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
-          cp apk/*.apk Velyntora-Core-Texto-Nitido.apk
-          sha256sum Velyntora-Core-Texto-Nitido.apk > Velyntora-Core-Texto-Nitido.apk.sha256
+          cp apk/*.apk Velyntora-Core-Guias-Alineacion.apk
+          sha256sum Velyntora-Core-Guias-Alineacion.apk > Velyntora-Core-Guias-Alineacion.apk.sha256
       - name: Publish release and assets
         shell: bash
         run: |
@@ -53,16 +53,14 @@ jobs:
           cat > notes.md <<'NOTES'
           Versión experimental de la rama codex/image-layer-transform. Main permanece sin cambios; pendiente de revisión y aprobación en dispositivo.
 
-          Barra de edición con márgenes explícitos entre Texto, Editar texto, giro, Proporciones, Opacidad y ✓/X. Tamaño y ancho máximo se ajustan con deslizadores y valores en píxeles, con muestra vectorial inmediata dentro del cuadro de configuración.
+          Guías celestes temporales al mover y girar capas editables de imagen y texto. Al arrastrar, cada eje encaja en el centro del lienzo dentro de un margen de 8 dp en pantalla, independiente del zoom. Al girar, encaja en múltiplos de 90 grados dentro de 3 grados. Las guías desaparecen al soltar o cancelar; no se guardan ni se exportan. El gesto conserva deshacer y rehacer y cancelar restaura la transformación original.
 
-          Color del texto abre un selector independiente con rueda/plano, HSV, RGB y alfa. Aceptar o cancelar este selector no modifica los colores del pincel. El tamaño mostrado al reabrir la configuración tiene en cuenta el escalado de los tiradores; aplicar tipografía normaliza la escala vertical para no duplicar el aumento y conserva el estiramiento horizontal.
+          Módulo independiente AlignmentGuides compartido por imágenes y textos. Dos nuevas pruebas cubren ajuste por eje, liberación, ángulos negativos y varias vueltas, sin alterar tamaño. Se conservan las herramientas protegidas. Esta versión no incorpora guías para mover píxeles de capas rasterizadas ni alineación entre objetos: las referencias son el centro y los ejes del lienzo.
 
-          Edición y confirmación dibujan los glifos a la resolución correspondiente, sin ampliar la pequeña caché de origen. Las capas de texto usan glifos vectoriales durante la edición con composición de los planos inferiores y superiores. El modo RGB xor y los modos avanzados en Android anterior a 29 conservan el compositor nativo de respaldo. Al confirmar siempre se dibujan glifos en bloques a resolución del documento. Se mantienen texto Unicode editable, guardar/abrir proyecto nativo, deshacer/rehacer, imágenes editables y límite de lienzo de 6000 px por lado. Rango tipográfico 4–6000 px, con validación de los límites del bloque de texto antes de aplicar.
-
-          Arquitectura modular de texto, vistas previas y renderizado. APK debug condicionado a las compilaciones y pruebas exactas del código fuente. SHA-256 adjunta. Rama codex/image-layer-transform: main permanece intacta, pendiente de aprobación del usuario.
+          APK de pruebas condicionado a la compilación y las pruebas exactas de esta revisión. SHA-256 adjunta. Main permanece intacta.
 
           NOTES
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Velyntora Core — texto nítido y controles visuales" --notes-file notes.md --prerelease
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Velyntora Core — guías de alineación" --notes-file notes.md --prerelease
           fi
-          gh release upload "$RELEASE_TAG" Velyntora-Core-Texto-Nitido.apk Velyntora-Core-Texto-Nitido.apk.sha256 --repo "$GH_REPO" --clobber
+          gh release upload "$RELEASE_TAG" Velyntora-Core-Guias-Alineacion.apk Velyntora-Core-Guias-Alineacion.apk.sha256 --repo "$GH_REPO" --clobber
