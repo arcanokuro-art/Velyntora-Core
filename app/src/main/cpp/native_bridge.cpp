@@ -18,4 +18,4 @@
 #include "text/TextElementBridge.inc"
 #include "text/TextPreviewBridge.inc"
 
-#include "brush/KritaBrushBridge.inc"
+#include "brush/VelyntoraBrushBridge.inc"

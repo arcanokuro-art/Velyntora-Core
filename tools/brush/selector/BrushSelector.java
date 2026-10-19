@@ -14,10 +14,10 @@ final class BrushSelector {
     basic.add(1,BrushModule.ANTIALIASED,1,"Pincel con bordes suavizados").setCheckable(true).setChecked(drawing.brushes().selected()==BrushModule.ANTIALIASED);
     basic.setGroupCheckable(1,true,true);
     LinkedHashMap<String,SubMenu> categories=new LinkedHashMap<>();
-    for(KritaBrushCatalog.Preset preset:drawing.brushes().presets){
+    for(VelyntoraBrushCatalog.Preset preset:drawing.brushes().presets){
       SubMenu category=categories.get(preset.category);
       if(category==null){category=menu.addSubMenu(preset.category);categories.put(preset.category,category);}
-      category.add(2,preset.id,category.size(),preset.label()).setIcon(KritaBrushCatalog.icon(drawing.getContext(),preset)).setCheckable(true).setChecked(preset.id==drawing.brushes().selected());
+      category.add(2,preset.id,category.size(),preset.label()).setIcon(VelyntoraBrushCatalog.icon(drawing.getContext(),preset)).setCheckable(true).setChecked(preset.id==drawing.brushes().selected());
       category.setGroupCheckable(2,true,true);
     }
     return menu;

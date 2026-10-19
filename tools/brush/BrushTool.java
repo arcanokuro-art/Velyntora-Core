@@ -27,7 +27,7 @@ final class BrushTool implements DrawingTool {
   }
 
   public void stroke(DrawingView v, float x0, float y0, float x1, float y1, float pressure) {
-    if (v.brushes().isKrita())v.brushes().runtime.stroke(x0,y0,x1,y1,pressure);
+    if (v.brushes().isVelyntoraPreset())v.brushes().runtime.stroke(x0,y0,x1,y1,pressure);
     else if (v.brushes().isAntialiased())
       AntialiasedBrush.stroke(v,x0,y0,x1,y1,pressure);
     else ClassicBrush.stroke(v,x0,y0,x1,y1,pressure);

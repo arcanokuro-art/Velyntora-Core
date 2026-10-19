@@ -13,10 +13,10 @@ add_library(velyntora_engine STATIC
  effects/PixelEffects.cpp
  effects/RenderEffects.cpp
  effects/UtilityEffects.cpp
- ../tools/brush/krita/runtime/TipBrushEngine.cpp
+ ../tools/brush/velyntora_brush/runtime/TipBrushEngine.cpp
  src/Canvas.cpp
- ../tools/brush/classic/native/Raster.cpp
- ../tools/brush/antialiased/native/Raster.cpp
+ ../tools/brush/velyntora_brush/clasico/classic/native/Raster.cpp
+ ../tools/brush/velyntora_brush/clasico/antialiased/native/Raster.cpp
  ../tools/bucket/native/Raster.cpp
  ../tools/figuras/sin_relleno/elipse/native/Raster.cpp
  ../tools/move_pixels/native/SelectionTransform.cpp
