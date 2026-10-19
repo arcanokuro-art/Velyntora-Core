@@ -24,6 +24,7 @@ final class PlacedImageSession {
   private final ArrayDeque<EditState> undo=new ArrayDeque<>(),redo=new ArrayDeque<>();
   private PlacedImageTransform dragStart;
   private int handle=-3;
+  final AlignmentGuides guides=new AlignmentGuides();
   private float startX,startY,startAngle;
   private boolean committing;
   PlacedImageSession(DrawingView drawing){this.drawing=drawing;}
@@ -77,12 +78,13 @@ final class PlacedImageSession {
   }
   boolean drawBase(Canvas canvas){return editor!=null && editor.draw(canvas);}
   void remember(){if(active()){undo.addLast(new EditState(state));redo.clear();}}
-  void undo(){if(!active() || undo.isEmpty())return;redo.addLast(new EditState(state));undo.removeLast().restore();notifyChanged();}
-  void redo(){if(!active() || redo.isEmpty())return;undo.addLast(new EditState(state));redo.removeLast().restore();notifyChanged();}
+  void undo(){guides.clear();if(!active() || undo.isEmpty())return;redo.addLast(new EditState(state));undo.removeLast().restore();notifyChanged();}
+  void redo(){guides.clear();if(!active() || redo.isEmpty())return;undo.addLast(new EditState(state));redo.removeLast().restore();notifyChanged();}
   void rotate(){if(!active())return;remember();state.angle=(state.angle+90)%360;notifyChanged();}
   void cropTo(RectF rect){if(!active() || rect.width()<1 || rect.height()<1)return;remember();state.cropTo(rect);notifyChanged();}
   void cancel(){if(committing || host().readProjectProgress()!=null)return;clear();}
   private void clear(){
+    guides.clear();
     if(editor!=null){editor.close();editor=null;}editingIndex=-1;
     for(PlacedImageSource s:sources.keySet())s.close();sources.clear();source=null;text=null;state=null;dragStart=null;undo.clear();redo.clear();
     notifyChanged();host().syncToolState();if(!host().isDestroyed())host().refreshLayerPanel();
@@ -106,13 +108,13 @@ final class PlacedImageSession {
     if(label.equals("Deshacer")){undo();return false;}if(label.equals("Rehacer")){redo();return false;}
     return label.equals("Editar texto") || label.equals("Confirmar imagen") || label.equals("Cancelar imagen") || label.equals("Recortar imagen") || label.equals("Rotar imagen");
   }
-  void cancelGesture(){if(dragStart!=null){state=dragStart;dragStart=null;notifyChanged();}}
+  void cancelGesture(){guides.clear();if(dragStart!=null){state=dragStart;dragStart=null;notifyChanged();}}
   boolean touch(MotionEvent event,float x,float y){
     if(!active())return false;
     float radius=24*drawing.getResources().getDisplayMetrics().density/(float)drawing.readViewport().scale;
     int action=event.getActionMasked();
     if(action==MotionEvent.ACTION_DOWN){
-      drawing.getParent().requestDisallowInterceptTouchEvent(true);dragStart=state.copy();startX=x;startY=y;handle=-3;
+      guides.clear();drawing.getParent().requestDisallowInterceptTouchEvent(true);dragStart=state.copy();startX=x;startY=y;handle=-3;
       float[] p=state.handles();float best=radius;
       float radians=(float)Math.toRadians(state.angle),rotationX=state.cx+(float)Math.sin(radians)*(state.height/2+radius*1.6f),rotationY=state.cy-(float)Math.cos(radians)*(state.height/2+radius*1.6f);
       if(Math.hypot(x-rotationX,y-rotationY)<=radius)handle=8;
@@ -124,8 +126,8 @@ final class PlacedImageSession {
     }
     if(action==MotionEvent.ACTION_CANCEL){cancelGesture();return true;}
     if((action==MotionEvent.ACTION_MOVE || action==MotionEvent.ACTION_UP) && dragStart!=null){
-      if(handle==-1){state.cx=dragStart.cx+x-startX;state.cy=dragStart.cy+y-startY;}
-      else if(handle==8){state.angle=dragStart.angle+(float)Math.toDegrees(Math.atan2(y-dragStart.cy,x-dragStart.cx))-startAngle;}
+      if(handle==-1){state.cx=dragStart.cx+x-startX;state.cy=dragStart.cy+y-startY;guides.move(state,drawing.documentWidth(),drawing.documentHeight(),8*drawing.getResources().getDisplayMetrics().density/(float)drawing.readViewport().scale);}
+      else if(handle==8){state.angle=dragStart.angle+(float)Math.toDegrees(Math.atan2(y-dragStart.cy,x-dragStart.cx))-startAngle;guides.rotate(state);}
       else if(handle>=0){
         int[] xs={-1,0,1,1,1,0,-1,-1},ys={-1,-1,-1,0,1,1,1,0};int hx=xs[handle],hy=ys[handle];
         double angle=Math.toRadians(dragStart.angle),c=Math.cos(angle),s=Math.sin(angle);
@@ -138,7 +140,7 @@ final class PlacedImageSession {
       if(editor!=null)editor.request();drawing.invalidate();
       if(action==MotionEvent.ACTION_UP){
         if(handle!=-3 && (Math.abs(x-startX)>0.01 || Math.abs(y-startY)>0.01)){undo.addLast(new EditState(dragStart));redo.clear();}
-        dragStart=null;drawing.getParent().requestDisallowInterceptTouchEvent(false);notifyChanged();
+        guides.clear();dragStart=null;drawing.getParent().requestDisallowInterceptTouchEvent(false);notifyChanged();
       }
       return true;
     }
@@ -148,6 +150,7 @@ final class PlacedImageSession {
     if(!active())return;Paint image=new Paint(Paint.FILTER_BITMAP_FLAG);image.setAlpha(Math.round(state.opacity*255));
     if(editor==null){canvas.save();canvas.concat(state.matrix());canvas.clipRect(state.crop);
     if(text!=null){canvas.saveLayerAlpha(state.crop,Math.round(state.opacity*255));new TextGlyphLayout(text).draw(canvas);canvas.restore();}else canvas.drawBitmap(source.preview,null,new RectF(0,0,source.size.displayWidth(),source.size.displayHeight()),image);canvas.restore();}
+    guides.draw(canvas,state,drawing.documentWidth(),drawing.documentHeight(),scale,drawing.getResources().getDisplayMetrics().density);
     float[] p=state.handles();Paint frame=new Paint(Paint.ANTI_ALIAS_FLAG);frame.setColor(0xFF80CBC4);frame.setStrokeWidth(1.5f/scale);frame.setStyle(Paint.Style.STROKE);
     Path border=new Path();border.moveTo(p[0],p[1]);for(int i:new int[]{2,4,6})border.lineTo(p[i*2],p[i*2+1]);border.close();canvas.drawPath(border,frame);
     float radius=5*drawing.getResources().getDisplayMetrics().density/scale;frame.setStyle(Paint.Style.FILL);
