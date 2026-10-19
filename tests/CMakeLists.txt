@@ -84,3 +84,7 @@ add_test(NAME image_element_tests COMMAND image_element_tests)
 add_executable(text_element_tests text_element_tests.cpp)
 target_link_libraries(text_element_tests PRIVATE velyntora_engine)
 add_test(NAME text_element_tests COMMAND text_element_tests)
+
+add_executable(krita_brush_tests krita_brush_tests.cpp)
+target_link_libraries(krita_brush_tests PRIVATE velyntora_engine)
+add_test(NAME krita_brush_tests COMMAND krita_brush_tests ${CMAKE_CURRENT_SOURCE_DIR}/../tools/brush/krita)

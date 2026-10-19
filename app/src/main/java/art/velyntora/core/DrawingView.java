@@ -546,6 +546,8 @@ public final class DrawingView extends View {
   }
 
   final NavigationTool navigationTool = new NavigationTool(4);
+  static native boolean nativeConfigureTipBrush(byte[] tips,byte[] texture,float[] parameters,float[] sizeCurve,float[] opacityCurve,float[] flowCurve);
+  static native void nativeTipBrushStroke(float x0,float y0,float x1,float y1,float radius,int color,float opacity,float pressure);
   private BrushModule brushModule;
   BrushModule brushes() {
     if (brushModule == null) brushModule = new BrushModule(this);
@@ -618,6 +620,7 @@ public final class DrawingView extends View {
     invalidate();
   }
   void finishOpacityStroke() {
+    if(brushModule!=null)brushModule.stop();
     if (strokeEditing) nativeEndOpacityStroke();
     strokeEditing = false;
   }

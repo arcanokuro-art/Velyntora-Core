@@ -25,7 +25,7 @@ dependencies {
 
 // Bundled, pinned model: app never needs a network connection for Remove AI.
 def removeAssets = layout.buildDirectory.dir('generated/removeAiAssets')
-android.sourceSets.main.assets.srcDirs += [file('../tools/remove_ai/assets'), removeAssets]
+android.sourceSets.main.assets.srcDirs += [file('../tools/remove_ai/assets'), removeAssets, file('../tools/brush/krita')]
 tasks.register('prepareRemoveAiModel') {
  def target = removeAssets.map { it.file('remove_ai/migan_pipeline_v2.onnx') }
  outputs.file(target)

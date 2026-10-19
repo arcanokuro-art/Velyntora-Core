@@ -5,6 +5,7 @@
 namespace velyntora {
 namespace tiles {class LayerPixels;}
 class Canvas {
+  friend class TipBrushEngine;
  public:
   Canvas(int width, int height);
   Canvas(const Canvas& other);

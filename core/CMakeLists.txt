@@ -13,6 +13,7 @@ add_library(velyntora_engine STATIC
  effects/PixelEffects.cpp
  effects/RenderEffects.cpp
  effects/UtilityEffects.cpp
+ ../tools/brush/krita/runtime/TipBrushEngine.cpp
  src/Canvas.cpp
  ../tools/brush/classic/native/Raster.cpp
  ../tools/brush/antialiased/native/Raster.cpp
