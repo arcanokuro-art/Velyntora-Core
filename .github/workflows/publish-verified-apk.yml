@@ -17,15 +17,15 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      VERIFIED_SHA: bce4035af9617009cc2190ba4c772ba17257b545
-      RELEASE_TAG: v0.1.0-guias-alineacion-preview
+      VERIFIED_SHA: 09f51c01ee340e3d10fc7432f34b4ad581517b97
+      RELEASE_TAG: v0.1.0-pinceles-krita-preview
     steps:
       - uses: actions/checkout@v4
       - name: Require exact source builds and tests
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in 39186888417 39186888403 39186888318; do
+          for run_id in 39204813516 39204813550 39204813512; do
             for attempt in $(seq 1 85); do
               gh api "repos/$GH_REPO/actions/runs/$run_id" > run.json
               jq -e --arg sha "$VERIFIED_SHA" '.head_sha == $sha and .head_branch == "codex/image-layer-transform"' run.json
@@ -42,10 +42,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 39186888417 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
+          gh run download 39204813516 --repo "$GH_REPO" --name velyntora-core-debug-apk --dir apk
           test "$(find apk -name '*.apk' -type f | wc -l)" -eq 1
-          cp apk/*.apk Velyntora-Core-Guias-Alineacion.apk
-          sha256sum Velyntora-Core-Guias-Alineacion.apk > Velyntora-Core-Guias-Alineacion.apk.sha256
+          cp apk/*.apk Velyntora-Core-Pinceles-Krita.apk
+          sha256sum Velyntora-Core-Pinceles-Krita.apk > Velyntora-Core-Pinceles-Krita.apk.sha256
       - name: Publish release and assets
         shell: bash
         run: |
@@ -53,14 +53,16 @@ jobs:
           cat > notes.md <<'NOTES'
           Versión experimental de la rama codex/image-layer-transform. Main permanece sin cambios; pendiente de revisión y aprobación en dispositivo.
 
-          Guías celestes temporales al mover y girar capas editables de imagen y texto. Al arrastrar, cada eje encaja en el centro del lienzo dentro de un margen de 8 dp en pantalla, independiente del zoom. Al girar, encaja en múltiplos de 90 grados dentro de 3 grados. Las guías desaparecen al soltar o cancelar; no se guardan ni se exportan. El gesto conserva deshacer y rehacer y cancelar restaura la transformación original.
+          34 presets originales de las colecciones Krita 3 y Krita 4, CC0, clasificados en Aerógrafos (3), Tinta de escritura (5), Marcadores (3), Crayones y pastel (2), Carboncillo (4), Óleo (5), Acuarela (4), Puntas especiales (3) y Mezcla (5). Cada preset conserva su carpeta, archivo KPP original, parámetros, puntas, textura y miniatura. No incluye recursos de HiPaint. Los presets Pastel de Krita 3 forman el grupo Crayones y pastel.
 
-          Módulo independiente AlignmentGuides compartido por imágenes y textos. Dos nuevas pruebas cubren ajuste por eje, liberación, ángulos negativos y varias vueltas, sin alterar tamaño. Se conservan las herramientas protegidas. Esta versión no incorpora guías para mover píxeles de capas rasterizadas ni alineación entre objetos: las referencias son el centro y los ejes del lienzo.
+          El desplegable abre categoría y luego pincel, como las figuras. Clásico y suavizado siguen accesibles directamente y conservan sus renderizadores. Selección persistente; anchura 1–300 px y opacidad de herramienta. Nuevo motor modular de sellos con espaciado continuo, presión, texturas, aerógrafo temporizado y mezcla de pigmento en la capa activa. Un trazo corresponde a una entrada del historial.
 
-          APK de pruebas condicionado a la compilación y las pruebas exactas de esta revisión. SHA-256 adjunta. Main permanece intacta.
+          Es una adaptación a Velyntora, no el motor completo de Krita ni una equivalencia visual exacta: máscaras de 128×128 y hasta 32 fotogramas, curvas de presión lineales y textura normalizada. No se incluyen todos los sensores de inclinación ni todos los modos de textura o simulación húmeda de Krita. Los originales se conservan para ampliar el soporte. No se ha importado la biblioteca completa de Krita, sino los 34 presets de estos nueve grupos documentados en tools/brush/krita.
+
+          Se mantienen las guías celestes aprobadas, imágenes y textos editables y herramientas anteriores. APK debug para pruebas en codex/image-layer-transform, condicionado a compilación y pruebas de la revisión exacta. Main permanece sin cambios. SHA-256 adjunta.
 
           NOTES
           if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Velyntora Core — guías de alineación" --notes-file notes.md --prerelease
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Velyntora Core — pinceles Krita por categorías" --notes-file notes.md --prerelease
           fi
-          gh release upload "$RELEASE_TAG" Velyntora-Core-Guias-Alineacion.apk Velyntora-Core-Guias-Alineacion.apk.sha256 --repo "$GH_REPO" --clobber
+          gh release upload "$RELEASE_TAG" Velyntora-Core-Pinceles-Krita.apk Velyntora-Core-Pinceles-Krita.apk.sha256 --repo "$GH_REPO" --clobber
